@@ -1,0 +1,377 @@
+/* =====================================================================
+   Eca² – Painel Administrativo & Backoffice (admin.css)
+   Design System Industrial: Ciano (Controle) + Âmbar (Automação)
+   ===================================================================== */
+
+/* ---------- Chassi e Layout do Painel ADM ---------- */
+.admin-shell {
+  padding-block: 2rem 5rem;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-title-wrap h1 {
+  font-size: clamp(1.8rem, 3.5vw, 2.4rem);
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.02em;
+}
+
+.admin-badge-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  background: hsl(35 100% 58% / 0.15);
+  border: 1px solid var(--amber);
+  color: var(--amber);
+}
+
+.admin-badge-role.super {
+  background: hsl(189 94% 55% / 0.15);
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+/* ---------- Grid de KPIs / Métricas do Dashboard ---------- */
+.admin-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2.25rem;
+}
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+}
+
+.kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--accent-bar, var(--cyan));
+}
+
+.kpi-card.amber::before { background: var(--amber); }
+.kpi-card.green::before { background: var(--green); }
+.kpi-card.violet::before { background: var(--violet); }
+
+.kpi-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+
+.kpi-label {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.kpi-icon {
+  font-size: 1.3rem;
+  opacity: 0.85;
+}
+
+.kpi-value {
+  font-family: var(--font-head);
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+.kpi-sub {
+  font-size: 0.8rem;
+  color: var(--faint);
+  margin-top: 0.35rem;
+}
+
+/* ---------- Navegação em Abas do Painel ---------- */
+.admin-tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2rem;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.admin-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  border-radius: 8px 8px 0 0;
+}
+
+.admin-tab-btn:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.admin-tab-btn.active {
+  color: var(--cyan);
+  border-bottom-color: var(--cyan);
+  background: hsl(189 94% 55% / 0.06);
+}
+
+.admin-tab-badge {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* ---------- Barra de Ações & Filtros ---------- */
+.admin-action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.85rem 1.2rem;
+}
+
+.admin-search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 240px;
+  max-width: 450px;
+}
+
+.admin-search-box input {
+  min-height: 40px;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.9rem;
+}
+
+/* ---------- Tabelas de Dados Administrativas ---------- */
+.admin-table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+  box-shadow: 0 10px 30px -15px rgba(0, 0, 0, 0.4);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.admin-table th {
+  background: hsl(222 40% 10% / 0.8);
+  color: var(--faint);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--border-strong);
+  white-space: nowrap;
+}
+
+.admin-table td {
+  padding: 0.95rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tbody tr:hover {
+  background: hsl(220 35% 18% / 0.35);
+}
+
+.table-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  font-size: 1.4rem;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.table-actions {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+/* ---------- Badges de Status ---------- */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.22rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+
+.status-pill.disponivel, .status-pill.publicado, .status-pill.ativo, .status-pill.entregue {
+  color: var(--green);
+  background: hsl(152 68% 52% / 0.12);
+}
+
+.status-pill.prevenda, .status-pill.analise, .status-pill.pendente {
+  color: var(--amber);
+  background: hsl(35 100% 58% / 0.12);
+}
+
+.status-pill.esgotado, .status-pill.oculto, .status-pill.cancelado {
+  color: var(--red);
+  background: hsl(0 85% 66% / 0.12);
+}
+
+.status-pill.institucional, .status-pill.pago {
+  color: var(--cyan);
+  background: hsl(189 94% 55% / 0.12);
+}
+
+/* ---------- Modal Administrativo ---------- */
+.admin-modal {
+  width: min(100% - 2rem, 740px);
+}
+
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+
+.admin-form-full {
+  grid-column: 1 / -1;
+}
+
+/* ---------- Trilha de Auditoria (Audit Log) ---------- */
+.audit-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.85rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+
+.audit-item:last-child {
+  border-bottom: none;
+}
+
+.audit-action-tag {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.audit-action-tag.create {
+  background: hsl(152 68% 52% / 0.18);
+  color: var(--green);
+  border: 1px solid var(--green);
+}
+
+.audit-action-tag.update {
+  background: hsl(189 94% 55% / 0.18);
+  color: var(--cyan);
+  border: 1px solid var(--cyan);
+}
+
+.audit-action-tag.delete {
+  background: hsl(0 85% 66% / 0.18);
+  color: var(--red);
+  border: 1px solid var(--red);
+}
+
+/* ---------- Alertas de Acesso Restrito ---------- */
+.admin-access-lock {
+  text-align: center;
+  padding: 4rem 1.5rem;
+  max-width: 580px;
+  margin: 0 auto;
+}
+
+.admin-lock-icon {
+  font-size: 4rem;
+  margin-bottom: 1.25rem;
+  display: inline-block;
+  animation: pulseLock 2.5s ease-in-out infinite;
+}
+
+@keyframes pulseLock {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 15px hsl(35 100% 58% / .3)); }
+  50% { transform: scale(1.05); filter: drop-shadow(0 0 25px hsl(189 94% 55% / .5)); }
+}
+
+@media (max-width: 768px) {
+  .admin-action-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .admin-search-box {
+    max-width: 100%;
+  }
+  .table-actions {
+    flex-wrap: wrap;
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "E(CA)² · Centro Acadêmico UERGS",
+  "short_name": "E(CA)² UERGS",
+  "description": "Portal Oficial do Centro Acadêmico de Engenharia de Controle e Automação - UERGS Porto Alegre",
+  "start_url": "./#inicio",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b1120",
+  "theme_color": "#0284c7",
+  "orientation": "portrait",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "img/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "img/logo_option2_microchip.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E(CA)² · Centro Acadêmico de Eng. de Controle e Automação – UERGS</title>
+  <meta name="description" content="Portal oficial do Centro Acadêmico de Engenharia de Controle e Automação da UERGS Porto Alegre (E(CA)²). Participe da assembleia, vote na cédula oficial e conheça o curso!">
+  <meta name="theme-color" content="#0284c7">
+  
+  <!-- Open Graph / Compartilhamento no WhatsApp, Instagram & Redes Sociais -->
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="pt_BR">
+  <meta property="og:site_name" content="E(CA)² · Centro Acadêmico UERGS">
+  <meta property="og:title" content="E(CA)² · Centro Acadêmico de Eng. de Controle e Automação – UERGS">
+  <meta property="og:description" content="Portal oficial da Assembleia de Fundação do E(CA)². Cédula de votação, quórum do salchipão, matrizes PPC 2019/2024 e comunidade discente.">
+  <meta property="og:image" content="img/hero_estudantes.jpg">
+  <meta property="og:image:alt" content="Estudantes de Engenharia de Controle e Automação da UERGS">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="E(CA)² · Centro Acadêmico de Eng. de Controle e Automação – UERGS">
+  <meta name="twitter:description" content="Portal oficial da Assembleia de Fundação do E(CA)². Cédula de votação, quórum do salchipão, matrizes PPC e comunidade discente.">
+  <meta name="twitter:image" content="img/hero_estudantes.jpg">
+  
+  <!-- Favicon Oficial E(CA)² (Opção 2: Microchip de Silício & Automação) -->
+  <link rel="icon" type="image/svg+xml" href="img/favicon.svg?v=chip2">
+  <link rel="alternate icon" type="image/jpeg" href="img/logo_option2_microchip.jpg">
+  <link rel="apple-touch-icon" href="img/logo_option2_microchip.jpg">
+  
+  <!-- PWA Manifest (Instalação no Celular como App) -->
+  <link rel="manifest" href="manifest.json">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/styles.css?v=20261009_diag3">
+  <link rel="stylesheet" href="css/admin.css?v=20261011_admin1">
+</head>
+<body>
+
+  <!-- Efeitos de Fundo (Circuito / Gradiente Animado) -->
+  <div class="bg-fx" aria-hidden="true">
+    <div class="orb a"></div>
+    <div class="orb b"></div>
+    <div class="orb c"></div>
+  </div>
+
+  <!-- Barra de Notificação Demo (Modo Demonstração) -->
+  <aside id="demo-banner" class="demo-banner" style="display: none;" aria-label="Aviso de Modo Demonstração">
+    ⚡ <strong>Modo Demonstração ativo:</strong> dados armazenados localmente no seu navegador.
+    <button type="button" id="btn-reset-demo" title="Redefinir dados">Restaurar dados de teste</button>
+  </aside>
+
+  <!-- Cabeçalho / Navegação -->
+  <header class="site-header">
+    <div class="container">
+      <nav class="nav" aria-label="Navegação principal">
+        <a href="#inicio" class="brand" title="E(CA)² - Engenharia de Controle e Automação UERGS">
+          <img src="img/logo_option2_microchip.jpg" alt="Logo E(CA)² Microchip" class="brand-logo-img" width="42" height="42">
+          <div>
+            <span>E(CA)² · UERGS</span>
+            <small>Eng. Controle & Automação</small>
+          </div>
+        </a>
+
+        <button type="button" class="btn btn-ghost btn-sm nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Abrir menu de navegação">
+          ☰
+        </button>
+
+        <ul class="nav-links" id="nav-links">
+          <li><a href="#inicio" data-nav="inicio">Início</a></li>
+          <li class="nav-dropdown">
+            <button type="button" class="nav-dropdown-toggle" id="btn-curso-toggle" aria-expanded="false" aria-haspopup="true" style="color: var(--cyan); font-weight: 500;">
+              O Curso 🎓 <span class="arrow" aria-hidden="true">▾</span>
+            </button>
+            <ul class="nav-dropdown-menu">
+              <li><a href="#curso" data-nav="curso-perfil">🎓 Sobre o Curso</a></li>
+              <li><a href="#curso/estagios" data-nav="curso-estagios">💼 Estágios, Perfil & Mercado CREA</a></li>
+              <li><a href="#curso/arvore" data-nav="curso-arvore">🗺️ Matriz & Árvores PPCs</a></li>
+              <li><a href="#curso/beneficios" data-nav="curso-beneficios">🎁 Benefícios & Monitoria UERGS</a></li>
+              <li><a href="#curso/labs" data-nav="curso-labs">🔬 Laboratórios & Bancadas</a></li>
+            </ul>
+          </li>
+          <li><a href="#eventos" data-nav="eventos">Calendário 2026 📅</a></li>
+          <li><a href="#shop" data-nav="shop">Lojinha ☕</a></li>
+          <li class="nav-dropdown">
+            <button type="button" class="nav-dropdown-toggle" id="btn-comunidade-toggle" aria-expanded="false" aria-haspopup="true">
+              Comunidade <span class="arrow" aria-hidden="true">▾</span>
+            </button>
+            <ul class="nav-dropdown-menu">
+              <li><a href="#mural" data-nav="mural">💡 Mural de Ideias & Estágios</a></li>
+              <li><a href="#forum" data-nav="forum">💬 Fórum dos Estudantes</a></li>
+              <li><a href="#registro" data-nav="registro">📝 Cadastro de Estudante</a></li>
+              <li><a href="#faq" data-nav="faq">❓ Guia do Estudante & FAQ</a></li>
+            </ul>
+          </li>
+          <li class="nav-dropdown">
+            <button type="button" class="nav-dropdown-toggle nav-highlight-cyan" id="btn-fundacao-toggle" aria-expanded="false" aria-haspopup="true">
+              Fundação 26/10 🌭 <span class="arrow" aria-hidden="true">▾</span>
+            </button>
+            <ul class="nav-dropdown-menu">
+              <li><a href="#fundacao" data-nav="fundacao">🌭 Salchipão (18h30-19h15) & Assinaturas</a></li>
+              <li><a href="#eleicao" data-nav="eleicao">🗳️ Cédula Oficial & Urna Eletrônica</a></li>
+              <li><a href="#documentos" data-nav="documentos">📜 Documentos Oficiais & Estatutos</a></li>
+            </ul>
+          </li>
+          <li id="auth-nav-slot">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-open-login">Entrar</button>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Conteúdo Principal Dinâmico -->
+  <main id="app-root">
+    <!-- Renderizado via app.js -->
+    <div class="container section">
+      <div class="skeleton"></div>
+    </div>
+  </main>
+
+  <!-- Rodapé -->
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <div class="brand" style="margin-bottom: .5rem;">
+          <img src="img/logo_option2_microchip.jpg" alt="Logo E(CA)² Microchip" class="brand-logo-img" width="34" height="34" style="width: 34px; height: 34px;">
+          <strong>E(CA)² · Centro Acadêmico</strong>
+        </div>
+        <p class="small muted" style="max-width: 420px; margin: 0;">
+          Construído pelos estudantes de Engenharia de Controle e Automação da UERGS Unidade Porto Alegre.
+          <em>"Sem feedback não há controle."</em>
+        </p>
+      </div>
+      <div>
+        <div class="social-row" id="footer-social-links">
+          <!-- Links sociais gerados via app.js -->
+        </div>
+        <div style="margin-top: .75rem; text-align: right;">
+          <p class="small muted" style="margin: 0 0 .35rem;">
+            Base Legal: Lei Federal nº 7.395/1985 · Apartidário & Gratuito
+          </p>
+          <div class="row" style="justify-content: flex-end; gap: .5rem; align-items: center;">
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-open-lgpd" style="padding: .2rem .65rem; font-size: .75rem; border-color: var(--border); display: inline-flex; align-items: center; gap: .3rem;">
+              🛡️ Privacidade & LGPD (Lei 13.709/18)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Modal de Autenticação / Registro Rápido -->
+  <dialog id="dlg-auth" closedby="any" aria-labelledby="dlg-auth-title">
+    <div class="dialog-body">
+      <div class="dialog-head">
+        <h2 id="dlg-auth-title">Acesso & Registro de Estudante</h2>
+        <button type="button" class="close-x" id="btn-close-auth" aria-label="Fechar modal">✕</button>
+      </div>
+      <p class="small muted" id="auth-desc">
+        Identifique-se com seu e-mail institucional (@uergs.edu.br) ou pessoal para votar e participar da comunidade.
+      </p>
+
+      <form id="form-auth" class="form" novalidate>
+        <div class="field">
+          <label for="auth-email">Seu e-mail *</label>
+          <input type="email" id="auth-email" name="email" placeholder="seu.nome@uergs.edu.br ou pessoal" required autocomplete="email">
+          <div id="auth-student-status" style="margin-top: .4rem; display: none;"></div>
+          <span class="hint" id="auth-email-hint">Alunos cadastrados na lista oficial do curso têm acesso imediato.</span>
+          <span class="err" id="auth-email-err">Por favor, insira um e-mail válido.</span>
+        </div>
+
+        <!-- Campos adicionais caso o e-mail não esteja na lista inicial de 235 alunos -->
+        <div id="auth-extra-fields" style="display: none; border-top: 1px solid var(--border); padding-top: .85rem; margin-top: .5rem;">
+          <div class="field">
+            <label for="auth-name">Nome Completo *</label>
+            <input type="text" id="auth-name" name="name" placeholder="Seu nome completo">
+          </div>
+          <div class="grid grid-2">
+            <div class="field">
+              <label for="auth-sem">Semestre Atual *</label>
+              <select id="auth-sem" name="semester">
+                <option value="1º semestre">1º semestre</option>
+                <option value="2º semestre">2º semestre</option>
+                <option value="3º semestre">3º semestre</option>
+                <option value="4º semestre">4º semestre</option>
+                <option value="5º semestre">5º semestre</option>
+                <option value="6º semestre">6º semestre</option>
+                <option value="7º semestre">7º semestre</option>
+                <option value="8º semestre">8º semestre</option>
+                <option value="9º semestre">9º semestre</option>
+                <option value="10º semestre">10º semestre</option>
+                <option value="Irregular / TCC">Irregular / TCC</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="auth-reg">Matrícula UERGS</label>
+              <input type="text" id="auth-reg" name="registration" placeholder="Opcional / Censo">
+            </div>
+          </div>
+          <div class="field" style="margin-top: .35rem;">
+            <label style="display: flex; gap: .6rem; align-items: start; cursor: pointer;">
+              <input type="checkbox" id="auth-eca-confirm" name="is_eca" checked style="margin-top: .25rem;">
+              <span class="small" style="color: var(--cyan); line-height: 1.4;">
+                Declaro e comprovo vínculo como estudante regular de <strong>Engenharia de Controle e Automação</strong> da UERGS.
+              </span>
+            </label>
+          </div>
+        <div style="margin: .75rem 0 .5rem; padding: .65rem; background: hsl(220 40% 12% / .6); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+          <p class="small muted" style="margin: 0; font-size: .75rem; line-height: 1.45;">
+            🔒 <strong>Conformidade LGPD:</strong> Seus dados são utilizados exclusivamente para representação estudantil e quórum eleitoral da UERGS. Nenhum dado é compartilhado com terceiros.
+          </p>
+        </div>
+
+        <div class="row" style="margin-top: .75rem;">
+          <button type="submit" class="btn btn-primary" id="btn-submit-auth">Entrar no Sistema</button>
+          <a href="#registro" class="btn btn-ghost" id="btn-go-full-register" style="font-size: .85rem;">Ir para Cadastro Completo</a>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Modal de Perfil do Usuário -->
+  <dialog id="dlg-profile" closedby="any" aria-labelledby="dlg-profile-title">
+    <div class="dialog-body">
+      <div class="dialog-head">
+        <h2 id="dlg-profile-title">Meu Perfil</h2>
+        <button type="button" class="close-x" id="btn-close-profile" aria-label="Fechar modal">✕</button>
+      </div>
+      <form id="form-profile" class="form">
+        <div class="field">
+          <label for="prof-name">Nome público</label>
+          <input type="text" id="prof-name" name="name" maxlength="60" required>
+        </div>
+        <div class="field">
+          <label for="prof-sem">Semestre atual</label>
+          <input type="text" id="prof-sem" name="semester" placeholder="Ex: 3º semestre / 2025-1">
+        </div>
+        <div class="row">
+          <button type="submit" class="btn btn-primary btn-sm">Salvar Alterações</button>
+          <button type="button" class="btn btn-danger btn-sm" id="btn-logout">Sair da Conta</button>
+        </div>
+        <div id="prof-admin-section" style="display: none; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px dashed var(--border);">
+          <div class="row" style="justify-content: space-between; align-items: center; gap: .75rem;">
+            <div>
+              <span class="badge amber" style="font-size: .75rem;">⭐ DIRETORIA HOMOLOGADA</span>
+              <p class="small muted" style="margin: .25rem 0 0; font-size: .8rem;">Acesso de gestão do Centro Acadêmico.</p>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" id="btn-profile-open-admin" style="background: var(--amber); color: #000; border-color: var(--amber); font-weight: 600;">
+              ⚙️ Acessar Painel ADM
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Modal de Encomenda / Reserva da Lojinha -->
+  <dialog id="dlg-shop-order" closedby="any" aria-labelledby="dlg-shop-title">
+    <div class="dialog-body">
+      <div class="dialog-head">
+        <h2 id="dlg-shop-title">Reserva de Material E(CA)²</h2>
+        <button type="button" class="close-x" id="btn-close-shop-order" aria-label="Fechar">✕</button>
+      </div>
+      <div id="shop-order-preview" style="margin-bottom: 1.25rem;"></div>
+      <form id="form-shop-order" class="form">
+        <input type="hidden" id="order-product-id" name="product_id">
+        <div class="field">
+          <label for="order-nome">Seu Nome Completo *</label>
+          <input type="text" id="order-nome" name="name" required placeholder="Nome e Sobrenome">
+        </div>
+        <div class="grid grid-2">
+          <div class="field">
+            <label for="order-semestre">Semestre Atual *</label>
+            <input type="text" id="order-semestre" name="semester" required placeholder="Ex: 2º semestre">
+          </div>
+          <div class="field">
+            <label for="order-whatsapp">WhatsApp para Contato *</label>
+            <input type="text" id="order-whatsapp" name="whatsapp" required placeholder="(51) 99999-9999">
+          </div>
+        </div>
+        <div class="field" id="order-variant-field" style="display: none;">
+          <label for="order-variant" id="order-variant-label">Opção / Tamanho</label>
+          <select id="order-variant" name="variant"></select>
+        </div>
+        <div class="field">
+          <label for="order-obs">Observações / Gravação Opcional</label>
+          <input type="text" id="order-obs" name="obs" placeholder="Ex: Tamanho GG, ou nome para gravação">
+        </div>
+        <div class="field" style="padding: .85rem; background: hsl(220 40% 12% / .6); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+          <div class="small" style="color: var(--amber); margin-bottom: .25rem;">
+            💳 <strong>Chave PIX Oficial do CA E(CA)²:</strong>
+          </div>
+          <div class="row" style="justify-content: space-between;">
+            <code id="pix-key-display" style="font-family: var(--font-mono); font-size: .85rem; color: var(--cyan);">ca.eca2.uergs@gmail.com</code>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-copy-pix" style="min-height: 28px; padding: .2rem .6rem; font-size: .75rem;">Copiar PIX</button>
+          </div>
+          <p class="small muted" style="margin: .35rem 0 0; font-size: .75rem;">
+            A pré-reserva garante o item no lote. Pagamento na entrega ou via PIX com comprovante.
+          </p>
+        </div>
+        <div class="row" style="margin-top: .75rem;">
+          <button type="submit" class="btn btn-primary" id="btn-submit-order" style="flex: 1;">Confirmar Pré-Reserva</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Modal de Leitura / Visualização de PDF -->
+  <dialog id="dlg-pdf-viewer" class="dialog-lg" closedby="any" aria-labelledby="dlg-pdf-title">
+    <div class="dialog-body" style="display: flex; flex-direction: column; height: 85vh; padding: 1.25rem;">
+      <div class="dialog-head" style="margin-bottom: .75rem;">
+        <div>
+          <h2 id="dlg-pdf-title" style="font-size: 1.2rem;">Visualizador de Documento</h2>
+          <span class="small muted" id="dlg-pdf-subtitle">Visualização rápida de documento oficial</span>
+        </div>
+        <div class="row" style="gap: .5rem;">
+          <a id="dlg-pdf-download-btn" href="#" download class="btn btn-primary btn-sm" target="_blank">⬇ Baixar Arquivo</a>
+          <button type="button" class="close-x" id="btn-close-pdf-viewer" aria-label="Fechar">✕</button>
+        </div>
+      </div>
+      <div style="flex: 1; border-radius: var(--radius-sm); overflow: hidden; background: #111; border: 1px solid var(--border);">
+        <iframe id="pdf-frame" src="about:blank" style="width: 100%; height: 100%; border: 0;" title="Documento PDF"></iframe>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modal de Política de Privacidade & LGPD (Lei 13.709/2018) -->
+  <dialog id="dlg-lgpd" class="dialog-lg" closedby="any" aria-labelledby="dlg-lgpd-title">
+    <div class="dialog-body" style="max-height: 85vh; overflow-y: auto; padding: 1.5rem;">
+      <div class="dialog-head" style="margin-bottom: 1.25rem;">
+        <div>
+          <div class="row" style="gap: .5rem; align-items: center; margin-bottom: .25rem;">
+            <span class="badge green" style="font-size: .75rem;">CONFORMIDADE ATIVA</span>
+            <span class="small font-mono muted">Lei Federal nº 13.709/2018</span>
+          </div>
+          <h2 id="dlg-lgpd-title" style="font-size: 1.35rem; margin: 0;">Política de Privacidade & Proteção de Dados Pessoais</h2>
+          <span class="small muted">Centro Acadêmico de Eng. de Controle e Automação (E(CA)²) · UERGS</span>
+        </div>
+        <button type="button" class="close-x" id="btn-close-lgpd" aria-label="Fechar modal">✕</button>
+      </div>
+
+      <div class="stack" style="gap: 1.25rem; line-height: 1.6; font-size: .92rem;">
+        <!-- Card 1: Controlador e Finalidade -->
+        <div class="card" style="background: var(--surface-2); border-color: var(--border);">
+          <h3 style="font-size: 1.05rem; margin-bottom: .4rem; display: flex; align-items: center; gap: .5rem;">
+            <span>🏛️</span> 1. Controlador dos Dados & Base Legal
+          </h3>
+          <p class="small muted" style="margin: 0 0 .5rem;">
+            O <strong>Centro Acadêmico de Engenharia de Controle e Automação – E(CA)²</strong> da Universidade Estadual do Rio Grande do Sul (UERGS), entidade de representação discente amparada pela <strong>Lei Federal nº 7.395/1985</strong>, atua como <strong>Controlador</strong> dos dados pessoais tratados nesta plataforma digital.
+          </p>
+          <p class="small muted" style="margin: 0;">
+            O tratamento de dados é realizado estritamente para o exercício regular de direitos em processo associativo, representação estudantil, formação de quórum e auditoria eleitoral da assembleia (Art. 7º, incisos V e VI da LGPD).
+          </p>
+        </div>
+
+        <!-- Card 2: Princípio da Minimização e Dados Coletados -->
+        <div class="card" style="background: var(--surface-2); border-color: var(--border);">
+          <h3 style="font-size: 1.05rem; margin-bottom: .4rem; display: flex; align-items: center; gap: .5rem;">
+            <span>📋</span> 2. Dados Coletados & Princípio da Minimização
+          </h3>
+          <p class="small muted" style="margin-bottom: .6rem;">
+            Em estrita observância ao <strong>Princípio da Necessidade e Minimização</strong> (Art. 6º, III da LGPD), coletamos apenas as informações imprescindíveis para cada funcionalidade:
+          </p>
+          <ul class="small muted" style="padding-left: 1.2rem; margin: 0; line-height: 1.7;">
+            <li><strong>Censo Estudantil & Acesso:</strong> Nome completo, e-mail institucional (<code>@uergs.edu.br</code>), semestre atual e áreas de interesse técnico.</li>
+            <li><strong>Matrícula Acadêmica:</strong> Campo confidencial e opcional, usado exclusivamente para checagem interna de quórum e impedimento de duplicidade.</li>
+            <li><strong>WhatsApp / Telefone:</strong> Opcional, utilizado unicamente para convites de visitas técnicas, comunicados urgentes da coordenação e avisos do CA.</li>
+            <li><strong>Lojinha & Vestuário:</strong> Nome e número de contato para entrega física e prestação de contas do lote sem fins lucrativos.</li>
+          </ul>
+        </div>
+
+        <!-- Card 3: Sigilo do Voto Eleitoral -->
+        <div class="card" style="background: hsl(189 94% 55% / .06); border-color: hsl(189 94% 55% / .3);">
+          <h3 style="font-size: 1.05rem; margin-bottom: .4rem; display: flex; align-items: center; gap: .5rem;">
+            <span>🗳️</span> 3. Inviolabilidade & Sigilo do Voto na Urna Eletrônica
+          </h3>
+          <p class="small muted" style="margin: 0 0 .5rem;">
+            Garantimos que <strong>o voto de cada estudante na cédula eletrônica é 100% secreto e desvinculado de sua identidade pessoal</strong>.
+          </p>
+          <p class="small muted" style="margin: 0;">
+            O sistema registra apenas um código de comprovação criptográfica de participação para impedir voto duplo, sem jamais atrelar a escolha do estudante (Sim, Não, Abstenção) ao seu nome ou e-mail.
+          </p>
+        </div>
+
+        <!-- Card 4: Não Compartilhamento e Ausência de Rastreamento -->
+        <div class="card" style="background: var(--surface-2); border-color: var(--border);">
+          <h3 style="font-size: 1.05rem; margin-bottom: .4rem; display: flex; align-items: center; gap: .5rem;">
+            <span>🚫</span> 4. Não Compartilhamento com Terceiros & Sem Cookies Rastreadores
+          </h3>
+          <ul class="small muted" style="padding-left: 1.2rem; margin: 0; line-height: 1.7;">
+            <li><strong>Zero Comercialização:</strong> Nenhum dado cadastrado nesta plataforma é vendido, alugado, cedido ou compartilhado com empresas externas, partidos políticos ou plataformas de marketing.</li>
+            <li><strong>Sem Cookies de Terceiros:</strong> Esta plataforma não utiliza cookies de espionagem, pixels do Facebook ou ferramentas de monetização publicitária. O armazenamento local (LocalStorage) é estritamente funcional para manter sua sessão aberta no navegador.</li>
+          </ul>
+        </div>
+
+        <!-- Card 5: Direitos do Titular (Art. 18) -->
+        <div class="card" style="background: var(--surface-2); border-color: var(--border);">
+          <h3 style="font-size: 1.05rem; margin-bottom: .4rem; display: flex; align-items: center; gap: .5rem;">
+            <span>⚖️</span> 5. Seus Direitos como Titular de Dados (Art. 18 da LGPD)
+          </h3>
+          <p class="small muted" style="margin-bottom: .5rem;">
+            Todo estudante da UERGS pode exercer plenamente seus direitos previstos em lei:
+          </p>
+          <div class="grid grid-2" style="gap: .75rem; font-size: .82rem;">
+            <div style="background: var(--surface); padding: .6rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+              <strong>✓ Confirmação & Acesso:</strong> Saber quais dados o CA possui sobre você no censo.
+            </div>
+            <div style="background: var(--surface); padding: .6rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+              <strong>✓ Correção de Dados:</strong> Atualizar semestre, nome ou dados de contato no perfil.
+            </div>
+            <div style="background: var(--surface); padding: .6rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+              <strong>✓ Exclusão dos Dados:</strong> Solicitar a remoção do seu registro a qualquer momento.
+            </div>
+            <div style="background: var(--surface); padding: .6rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+              <strong>✓ Revogação de Consentimento:</strong> Desativar recebimento de comunicados.
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 6: Encarregado e Canal de Contato -->
+        <div class="card" style="background: hsl(220 40% 12% / .9); border-color: var(--cyan);">
+          <h3 style="font-size: 1.05rem; margin-bottom: .4rem; display: flex; align-items: center; gap: .5rem;">
+            <span>📬</span> 6. Canal do Encarregado (DPO) & Dúvidas
+          </h3>
+          <p class="small muted" style="margin: 0 0 .5rem;">
+            Para exercer qualquer um dos seus direitos, solicitar esclarecimentos ou requerer exclusão do seu cadastro, entre em contato direto com a Diretoria do E(CA)²:
+          </p>
+          <div class="row" style="gap: 1rem; align-items: center; flex-wrap: wrap;">
+            <code style="color: var(--cyan); font-size: .9rem;">ca.eca2.uergs@gmail.com</code>
+            <span class="badge slate">Atendimento em até 5 dias úteis</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row" style="justify-content: flex-end; margin-top: 1.5rem;">
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('dlg-lgpd').close()">
+          Entendi & Concordo ✓
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Container de Toasts / Mensagens Rápidas -->
+  <div class="toasts" id="toasts-container" role="region" aria-live="polite" aria-label="Notificações"></div>
+
+  <!-- Scripts -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

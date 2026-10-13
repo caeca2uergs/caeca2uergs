@@ -1,0 +1,20 @@
+# Dependências
+node_modules/
+package-lock.json
+
+# Backups e lixeira
+_backup_limpeza_duplicados/
+*.bak
+*.tmp
+*.log
+
+# Arquivos de Sistema & IDEs
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Variáveis de ambiente secretas
+.env
+.env.local
+.env.*.local
