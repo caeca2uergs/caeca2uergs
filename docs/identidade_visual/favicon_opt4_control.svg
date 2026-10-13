@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgOpt4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b101c" />
+      <stop offset="100%" stop-color="#05080f" />
+    </linearGradient>
+    <filter id="glow4" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Fundo Sólido Dark com cantos arredondados padrão Favicon -->
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#bgOpt4)" stroke="#1e293b" stroke-width="2" />
+
+  <!-- Acentos e Linhas Guia Tecnológicas Sutis -->
+  <line x1="20" y1="20" x2="36" y2="20" stroke="#00f0ff" stroke-width="2" opacity="0.6" />
+  <line x1="20" y1="20" x2="20" y2="36" stroke="#00f0ff" stroke-width="2" opacity="0.6" />
+  <line x1="108" y1="20" x2="92" y2="20" stroke="#ffb703" stroke-width="2" opacity="0.6" />
+  <line x1="108" y1="20" x2="108" y2="36" stroke="#ffb703" stroke-width="2" opacity="0.6" />
+
+  <!-- Monograma Principal 'E(CA)²' -->
+  <g font-family="'Space Grotesk', 'Inter', system-ui, sans-serif" font-weight="800">
+    <!-- 'E' com barramento e pontos de solda ciano -->
+    <text x="18" y="72" font-size="36" fill="#00f0ff" filter="url(#glow4)">E</text>
+    
+    <!-- '(CA)' em Branco Puro Alto Contraste -->
+    <text x="44" y="72" font-size="34" fill="#ffffff" letter-spacing="-1.5"> (CA)</text>
+    
+    <!-- '²' em Âmbar Neon Vibrante -->
+    <text x="100" y="52" font-size="24" fill="#ffb703" font-weight="900" filter="url(#glow4)">2</text>
+  </g>
+
+  <!-- Curva Característica de Resposta ao Degrau (Controle de Sistemas Dinâmicos) -->
+  <path d="M 20 102 C 32 102, 40 82, 52 82 C 64 82, 70 94, 82 94 C 92 94, 98 89, 108 89" 
+        fill="none" 
+        stroke="#00f0ff" 
+        stroke-width="3" 
+        stroke-linecap="round" 
+        filter="url(#glow4)" />
+  
+  <!-- Linha de Setpoint / Regime Permanente pontilhada -->
+  <line x1="20" y1="89" x2="108" y2="89" stroke="#64748b" stroke-width="1.2" stroke-dasharray="3,3" />
+</svg>

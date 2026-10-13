@@ -1,0 +1,32 @@
+{
+  "name": "caeca2uergs",
+  "version": "1.0.0",
+  "description": "Portal Oficial do Centro Acadêmico de Engenharia de Controle e Automação (E(CA)²) – UERGS Porto Alegre",
+  "main": "site/js/app.js",
+  "type": "module",
+  "scripts": {
+    "start": "npx serve site",
+    "dev": "npx serve site",
+    "generate:pdfs": "node gerar_pdfs.js",
+    "check": "node --check site/js/app.js && node --check site/js/modules/admin.js && node --check site/js/store.js && node --check site/js/config.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/caeca2uergs/caeca2uergs.git"
+  },
+  "keywords": [
+    "uergs",
+    "engenharia-de-controle-e-automacao",
+    "centro-academico",
+    "eca2",
+    "porto-alegre",
+    "assembleia-geral",
+    "urna-eletronica"
+  ],
+  "author": "Centro Acadêmico E(CA)² UERGS <ca.eca2.uergs@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/caeca2uergs/caeca2uergs/issues"
+  },
+  "homepage": "https://github.com/caeca2uergs/caeca2uergs#readme"
+}

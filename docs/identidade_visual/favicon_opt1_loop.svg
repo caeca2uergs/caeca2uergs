@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0e1424" />
+      <stop offset="100%" stop-color="#070a12" />
+    </linearGradient>
+    <linearGradient id="cyanRing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f0ff" />
+      <stop offset="100%" stop-color="#00a8ff" />
+    </linearGradient>
+    <linearGradient id="amberRing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffb703" />
+      <stop offset="100%" stop-color="#fb8500" />
+    </linearGradient>
+    <filter id="glow1" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Base Icone Arredondado Favicon -->
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#bgGrad1)" stroke="#1e293b" stroke-width="2" />
+
+  <!-- Feedback Loop Arco Superior / Direito (Ciano) -->
+  <path d="M 64 22 A 42 42 0 0 1 106 64 A 42 42 0 0 1 84 100" fill="none" stroke="url(#cyanRing)" stroke-width="6.5" stroke-linecap="round" filter="url(#glow1)" />
+  <!-- Seta Ciano -->
+  <polygon points="84,93 92,106 77,105" fill="#00f0ff" filter="url(#glow1)" />
+
+  <!-- Feedback Loop Arco Inferior / Esquerdo (Âmbar) -->
+  <path d="M 64 106 A 42 42 0 0 1 22 64 A 42 42 0 0 1 44 28" fill="none" stroke="url(#amberRing)" stroke-width="6.5" stroke-linecap="round" filter="url(#glow1)" />
+  <!-- Seta Âmbar -->
+  <polygon points="44,35 36,22 51,23" fill="#ffb703" filter="url(#glow1)" />
+
+  <!-- Centro: E(CA)² -->
+  <g font-family="'Space Grotesk', 'Inter', system-ui, sans-serif" font-weight="800" text-anchor="middle">
+    <!-- Texto Principal -->
+    <text x="56" y="72" font-size="28" fill="#ffffff" letter-spacing="-1">E(CA)</text>
+    <!-- Expoente ² em Âmbar Neon -->
+    <text x="96" y="58" font-size="20" fill="#ffb703" font-weight="900" filter="url(#glow1)">2</text>
+  </g>
+</svg>
