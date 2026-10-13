@@ -460,25 +460,20 @@ where p.question like 'PROPOSTA 2%'
   and not exists (select 1 from public.poll_options po where po.poll_id = p.id);
 
 -- Evento Principal: Assembleia Geral e Salchipão
-insert into public.events (titulo, data, data_exibicao, horario, categoria, local, descricao, destaque, starts_at)
+insert into public.events (title, description, starts_at, location)
 values (
   'Assembleia Geral de Fundação do E(CA)² + Salchipão',
-  '2026-10-26',
-  '26 de Outubro de 2026',
-  '18h30 às 21h30',
-  'assembleia',
-  'Refeitório / Pátio da UERGS · Washington Luiz, 675',
   'Convocação solene de todos os estudantes de Engenharia de Controle e Automação para fundação formal do Centro Acadêmico e eleição da comissão provisória.',
-  true,
-  '2026-10-26T18:30:00Z'
+  '2026-10-26T18:30:00Z',
+  'Refeitório / Pátio da UERGS · Rua Washington Luiz, 675'
 );
 
 -- Produtos Iniciais da Lojinha
-insert into public.products (id, nome, preco, imagem, descricao, status, estoque)
+insert into public.products (id, nome, categoria, preco, preco_socio, icone, tag, descricao, status, estoque)
 values 
-  ('moletom-eca2', 'Moletom Canguru E(CA)²', 'R$ 139,00', 'img/shop_moletom.jpg', 'Algodão premium 3 cabos com bordado de alta precisão do microchip de silício no peito e slogan nas costas.', 'disponivel', 30),
-  ('copo-termico-eca2', 'Copo Térmico Inox 473ml', 'R$ 59,00', 'img/shop_copo_termico.jpg', 'Parede dupla com vácuo térmico. Conserva sua bebida gelada nas 4 horas de aula ou café quente no laboratório.', 'disponivel', 40),
-  ('caneca-lab-eca2', 'Caneca de Cerâmica Lab 325ml', 'R$ 38,00', 'img/shop_caneca_lab.jpg', 'Cerâmica fosca resistente a micro-ondas com a fórmula clássica da função de transferência de malha fechada.', 'disponivel', 50)
+  ('moletom-eca2', 'Moletom Canguru E(CA)²', 'Vestuário', 'R$ 139,00', 'R$ 119,00', '🧥', 'OFICIAL 2026', 'Algodão premium 3 cabos com bordado de alta precisão do microchip de silício no peito e slogan nas costas.', 'disponivel', 30),
+  ('copo-termico-eca2', 'Copo Térmico Inox 473ml', 'Acessórios', 'R$ 59,00', 'R$ 49,00', '🥤', 'SUSTENTÁVEL', 'Parede dupla com vácuo térmico. Conserva sua bebida gelada nas 4 horas de aula ou café quente no laboratório.', 'disponivel', 40),
+  ('caneca-lab-eca2', 'Caneca de Cerâmica Lab 325ml', 'Acessórios', 'R$ 38,00', 'R$ 32,00', '☕', 'CLÁSSICA', 'Cerâmica fosca resistente a micro-ondas com a fórmula clássica da função de transferência de malha fechada.', 'disponivel', 50)
 on conflict (id) do nothing;
 
 -- =====================================================================
