@@ -425,7 +425,65 @@ create policy "internships_read"  on public.internships for select using (true);
 create policy "internships_admin" on public.internships for all using (public.is_admin()) with check (public.is_admin());
 
 -- =====================================================================
--- 11. TORNAR ALGUÉM ADMINISTRADOR (rode após o primeiro login)
+-- 11. CARGA INICIAL (SEEDS DA ASSEMBLEIA, EVENTOS E LOJINHA)
+-- =====================================================================
+-- Enquete 1: Fundação do CA
+insert into public.polls (question, is_open) 
+values ('PROPOSTA 1: Você aprova que o Centro Acadêmico de Engenharia de Controle e Automação (E(CA)²) seja oficialmente fundado na UERGS?', true);
+
+insert into public.poll_options (poll_id, label, position, vote_count)
+select p.id, opt.label, opt.pos, 0
+from public.polls p
+cross join (
+  values 
+    ('SIM, aprovo por aclamação (A Favor)', 0),
+    ('NÃO, sou contrário', 1),
+    ('ABSTENÇÃO', 2)
+) as opt(label, pos)
+where p.question like 'PROPOSTA 1%'
+  and not exists (select 1 from public.poll_options po where po.poll_id = p.id);
+
+-- Enquete 2: Comissão Pró-CA
+insert into public.polls (question, is_open) 
+values ('PROPOSTA 2: Você aprova a aclamação da Comissão Pró-CA como diretoria executiva transitória até as eleições gerais regulamentares?', true);
+
+insert into public.poll_options (poll_id, label, position, vote_count)
+select p.id, opt.label, opt.pos, 0
+from public.polls p
+cross join (
+  values 
+    ('SIM, aprovo a Comissão Provisória', 0),
+    ('NÃO, sou contrário', 1),
+    ('ABSTENÇÃO', 2)
+) as opt(label, pos)
+where p.question like 'PROPOSTA 2%'
+  and not exists (select 1 from public.poll_options po where po.poll_id = p.id);
+
+-- Evento Principal: Assembleia Geral e Salchipão
+insert into public.events (titulo, data, data_exibicao, horario, categoria, local, descricao, destaque, starts_at)
+values (
+  'Assembleia Geral de Fundação do E(CA)² + Salchipão',
+  '2026-10-26',
+  '26 de Outubro de 2026',
+  '18h30 às 21h30',
+  'assembleia',
+  'Refeitório / Pátio da UERGS · Washington Luiz, 675',
+  'Convocação solene de todos os estudantes de Engenharia de Controle e Automação para fundação formal do Centro Acadêmico e eleição da comissão provisória.',
+  true,
+  '2026-10-26T18:30:00Z'
+);
+
+-- Produtos Iniciais da Lojinha
+insert into public.products (id, nome, preco, imagem, descricao, status, estoque)
+values 
+  ('moletom-eca2', 'Moletom Canguru E(CA)²', 'R$ 139,00', 'img/shop_moletom.jpg', 'Algodão premium 3 cabos com bordado de alta precisão do microchip de silício no peito e slogan nas costas.', 'disponivel', 30),
+  ('copo-termico-eca2', 'Copo Térmico Inox 473ml', 'R$ 59,00', 'img/shop_copo_termico.jpg', 'Parede dupla com vácuo térmico. Conserva sua bebida gelada nas 4 horas de aula ou café quente no laboratório.', 'disponivel', 40),
+  ('caneca-lab-eca2', 'Caneca de Cerâmica Lab 325ml', 'R$ 38,00', 'img/shop_caneca_lab.jpg', 'Cerâmica fosca resistente a micro-ondas com a fórmula clássica da função de transferência de malha fechada.', 'disponivel', 50)
+on conflict (id) do nothing;
+
+-- =====================================================================
+-- 12. TORNAR ALGUÉM ADMINISTRADOR (rode após o primeiro login)
 -- =====================================================================
 -- insert into public.admins (user_id)
 --   select id from auth.users where email = 'seu.email@uergs.edu.br';
+
