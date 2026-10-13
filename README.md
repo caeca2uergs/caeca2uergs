@@ -118,7 +118,7 @@ O E(CA)² preza pelo respeito absoluto aos dados dos discentes da UERGS. Esta pl
 ## 📬 Contato & Comunidade
 
 * 📧 **E-mail Institucional:** [ca.eca2.uergs@gmail.com](mailto:ca.eca2.uergs@gmail.com)
-* 📍 **Endereço:** Av. Bento Gonçalves, 8855 – Agronomia, Porto Alegre - RS (Unidade UERGS)
+* 📍 **Endereço:** Rua Washington Luiz, 675, Centro Histórico, Porto Alegre - RS (Campus Central UERGS)
 * 📷 **Instagram:** [@eca2uergs](https://instagram.com/eca2uergs)
 * 🐙 **GitHub:** [github.com/caeca2uergs](https://github.com/caeca2uergs)
 
