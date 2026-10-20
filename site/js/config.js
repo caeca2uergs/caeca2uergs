@@ -12,8 +12,8 @@ export const CONFIG = {
    * (Project Settings → API). A anon key é pública por design; a segurança
    * vem das políticas RLS do schema.sql.
    */
-  SUPABASE_URL: "https://jfzisfwbfunrhurwrpbl.supabase.co",
-  SUPABASE_ANON_KEY: "sb_publishable_3vFXKRZA0bQ1_mSW9RgKXQ_DY-ajNZG",
+  SUPABASE_URL: "",
+  SUPABASE_ANON_KEY: "",
 
   /* Restringir login a um domínio de e-mail (ex.: "uergs.edu.br").
    * Deixe vazio para aceitar qualquer e-mail. Para segurança real,

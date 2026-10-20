@@ -316,10 +316,37 @@ function createDemoStore() {
         ] },
     ],
     topics: [
+      {
+        id: 1,
+        user_id: "u1",
+        title: "🚀 Bem-vindos ao Fórum Oficial do E(CA)² · Apresente-se aqui!",
+        body: "Sejam muito bem-vindos ao espaço oficial de debate e integração discente do Centro Acadêmico de Engenharia de Controle e Automação da UERGS (E(CA)²)! 👋🤖\n\nEste fórum é o canal aberto da nossa comunidade acadêmica para aproximar estudantes de todos os semestres. Utilize este espaço para:\n• 📚 Tirar dúvidas sobre disciplinas (Cálculo, Física, Controle PID, Automação Industrial, CLP, Microcontroladores e Robótica);\n• 💼 Compartilhar oportunidades de estágio e trainees na indústria gaúcha;\n• 💡 Propor projetos de extensão, semanas acadêmicas e visitas técnicas a fábricas;\n• ☕ Organizar grupos de estudo e confraternizações.\n\nDeixe uma resposta abaixo se apresentando: conte seu nome, seu semestre e em qual área da automação você mais tem interesse! 🤝",
+        category: "CA E(CA)²",
+        hidden: false,
+        pinned: true,
+        created_at: iso(3 * D),
+        last_activity: iso(1 * H)
+      },
       { id: 20, user_id: "u3", title: "Dicas para Controle de Sistemas Dinâmicos?", body: "Vou cursar no próximo semestre. Quem já fez, tem dicas de material e de como se organizar?", category: "Disciplinas", hidden: false, created_at: iso(D), last_activity: iso(4 * H) },
       { id: 21, user_id: "u1", title: "Como vai funcionar a Comissão Pró-CA?", body: "Espaço para tirar dúvidas sobre a comissão provisória que será criada no dia 26/10.", category: "CA E(CA)²", hidden: false, created_at: iso(2 * D), last_activity: iso(2 * D) },
     ],
     replies: [
+      {
+        id: 1,
+        topic_id: 1,
+        user_id: "u2",
+        body: "Fala pessoal! Sou a Ana, do 3º semestre. Bem-vindos a todos os calouros e veteranos! Quem precisar de materiais e roteiros de laboratório de eletrônica básica, estamos à disposição no WhatsApp e no CA!",
+        hidden: false,
+        created_at: iso(2 * D)
+      },
+      {
+        id: 2,
+        topic_id: 1,
+        user_id: "u3",
+        body: "Bem-vindos galera! Sou o Bruno do 7º semestre. Vamos fazer dessa gestão do E(CA)² a mais ativa da história da UERGS com muitas visitas técnicas!",
+        hidden: false,
+        created_at: iso(1 * H)
+      },
       { id: 30, topic_id: 20, user_id: "u2", body: "Revisa bem Laplace e equações diferenciais antes. E usa o Octave/Python pra simular tudo!", hidden: false, created_at: iso(4 * H) },
     ],
     announcements: [
@@ -454,6 +481,43 @@ function createDemoStore() {
       created_at: iso(D)
     }));
     localStorage.setItem(KEY, JSON.stringify(db));
+  }
+  // Migração suave do tópico de boas-vindas do fórum para bancos já inicializados
+  if (db && Array.isArray(db.topics)) {
+    const hasWelcome = db.topics.some(t => t.id === 1 || (t.title && t.title.toLowerCase().includes("bem-vind")));
+    if (!hasWelcome) {
+      db.topics.unshift({
+        id: 1,
+        user_id: "u1",
+        title: "🚀 Bem-vindos ao Fórum Oficial do E(CA)² · Apresente-se aqui!",
+        body: "Sejam muito bem-vindos ao espaço oficial de debate e integração discente do Centro Acadêmico de Engenharia de Controle e Automação da UERGS (E(CA)²)! 👋🤖\n\nEste fórum é o canal aberto da nossa comunidade acadêmica para aproximar estudantes de todos os semestres. Utilize este espaço para:\n• 📚 Tirar dúvidas sobre disciplinas (Cálculo, Física, Controle PID, Automação Industrial, CLP, Microcontroladores e Robótica);\n• 💼 Compartilhar oportunidades de estágio e trainees na indústria gaúcha;\n• 💡 Propor projetos de extensão, semanas acadêmicas e visitas técnicas a fábricas;\n• ☕ Organizar grupos de estudo e confraternizações.\n\nDeixe uma resposta abaixo se apresentando: conte seu nome, seu semestre e em qual área da automação você mais tem interesse! 🤝",
+        category: "CA E(CA)²",
+        hidden: false,
+        pinned: true,
+        created_at: iso(3 * D),
+        last_activity: iso(1 * H)
+      });
+      db.replies = db.replies || [];
+      db.replies.push(
+        {
+          id: 1,
+          topic_id: 1,
+          user_id: "u2",
+          body: "Fala pessoal! Sou a Ana, do 3º semestre. Bem-vindos a todos os calouros e veteranos! Quem precisar de materiais e roteiros de laboratório de eletrônica básica, estamos à disposição no WhatsApp e no CA!",
+          hidden: false,
+          created_at: iso(2 * D)
+        },
+        {
+          id: 2,
+          topic_id: 1,
+          user_id: "u3",
+          body: "Bem-vindos galera! Sou o Bruno do 7º semestre. Vamos fazer dessa gestão do E(CA)² a mais ativa da história da UERGS com muitas visitas técnicas!",
+          hidden: false,
+          created_at: iso(1 * H)
+        }
+      );
+      localStorage.setItem(KEY, JSON.stringify(db));
+    }
   }
   if (db && (!Array.isArray(db.internships) || db.internships.length === 0)) {
     db.internships = [
@@ -914,8 +978,21 @@ function createDemoStore() {
 /* ===================================================================== */
 export async function createStore() {
   if (CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY) {
-    try { return await createSupabaseStore(); }
-    catch (e) { console.error("Falha ao conectar ao Supabase, usando modo demonstração.", e); }
+    try {
+      // Teste de conexão prévio com timeout rápido de 2s
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 2000);
+      const ping = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/`, {
+        headers: { apikey: CONFIG.SUPABASE_ANON_KEY },
+        signal: ctrl.signal
+      });
+      clearTimeout(tid);
+      if (ping.ok || ping.status === 401 || ping.status === 200) {
+        return await createSupabaseStore();
+      }
+    } catch (e) {
+      console.warn("Supabase indisponível (" + e.message + "). Ativando Modo Demonstração com persistência local.");
+    }
   }
   return createDemoStore();
 }

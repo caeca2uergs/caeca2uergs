@@ -334,6 +334,23 @@ export const PRODUTOS_SHOP = [
     foto: "img/shop_copo_termico.jpg",
     destaque: true,
     tag: "Gravação a Laser",
+    permitePersonalizacao: true,
+    tipoPersonalizacao: "Gravação a Laser de Fibra Indelével",
+    taxaPersonalizacao: 5.0,
+    taxaPersonalizacaoTexto: "+ R$ 5,00",
+    placeholderPersonalizacao: "Ex: WILLIAN SANTOS - 2026/1",
+    maxCaracteresPersonalizacao: 26,
+    posicoesPersonalizacao: [
+      { id: "frente", label: "Frente (Abaixo do Brasão)" },
+      { id: "verso", label: "Verso (Centralizado)" },
+      { id: "vertical", label: "Lateral Vertical" }
+    ],
+    fontesDisponiveis: [
+      { id: "mono", label: "Técnica (JetBrains Mono)", family: "'JetBrains Mono', monospace" },
+      { id: "sans", label: "Moderna (Inter)", family: "'Inter', sans-serif" },
+      { id: "tech", label: "Futurista (Space Grotesk)", family: "'Space Grotesk', sans-serif" }
+    ],
+    sugestoesRapidas: ["SEU NOME", "NOME · TURMA 2026", "ENG. AUTOMAÇÃO", "E(CA)² UERGS"],
     descricao: "Aço inoxidável 304 com parede dupla isolada a vácuo, acabamento preto fosco acetinado e gravação a laser permanente do logotipo E(CA)² Engenharia de Controle e Automação - UERGS e trilhas de circuito. Mantém bebidas geladas por até 12h ou café quente por 6h.",
     especificacoes: [
       "Capacidade: 500 ml",
@@ -352,6 +369,22 @@ export const PRODUTOS_SHOP = [
     foto: "img/shop_caneca_lab.jpg",
     destaque: true,
     tag: "Café do Engenheiro",
+    permitePersonalizacao: true,
+    tipoPersonalizacao: "Sublimação Térmica com Nome no Verso",
+    taxaPersonalizacao: 4.0,
+    taxaPersonalizacaoTexto: "+ R$ 4,00",
+    placeholderPersonalizacao: "Ex: SEU NOME / APELIDO",
+    maxCaracteresPersonalizacao: 22,
+    posicoesPersonalizacao: [
+      { id: "verso", label: "Verso da Caneca" },
+      { id: "frente", label: "Abaixo da Engrenagem" }
+    ],
+    fontesDisponiveis: [
+      { id: "mono", label: "Técnica (JetBrains Mono)", family: "'JetBrains Mono', monospace" },
+      { id: "sans", label: "Moderna (Inter)", family: "'Inter', sans-serif" },
+      { id: "tech", label: "Futurista (Space Grotesk)", family: "'Space Grotesk', sans-serif" }
+    ],
+    sugestoesRapidas: ["SEU NOME", "NOME · CAFEÍNA++", "ENG. DE CONTROLE"],
     descricao: "Cerâmica nobre preta fosca com estampa em alta definição neon ciano e âmbar, apresentando o brasão E(CA)², engrenagens e robótica da Engenharia de Controle e Automação UERGS. Perfeita para as maratonas de programação e bancada de ensaios.",
     especificacoes: [
       "Capacidade: 350 ml",
@@ -369,6 +402,23 @@ export const PRODUTOS_SHOP = [
     foto: "img/shop_moletom.jpg",
     destaque: true,
     tag: "Lote Inaugural",
+    tamanhos: ["P", "M", "G", "GG", "XGG"],
+    permitePersonalizacao: true,
+    tipoPersonalizacao: "Estampa de Nome/Apelido na Manga ou Costas",
+    taxaPersonalizacao: 10.0,
+    taxaPersonalizacaoTexto: "+ R$ 10,00",
+    placeholderPersonalizacao: "Ex: SOBRENOME OU APELIDO",
+    maxCaracteresPersonalizacao: 18,
+    posicoesPersonalizacao: [
+      { id: "manga", label: "Manga Direita" },
+      { id: "costas", label: "Costas (Abaixo da Gola)" },
+      { id: "peito", label: "Peito Direito" }
+    ],
+    fontesDisponiveis: [
+      { id: "tech", label: "Futurista (Space Grotesk)", family: "'Space Grotesk', sans-serif" },
+      { id: "mono", label: "Técnica (JetBrains Mono)", family: "'JetBrains Mono', monospace" }
+    ],
+    sugestoesRapidas: ["SEU SOBRENOME", "APELIDO", "TURMA 2026"],
     descricao: "Moletom flanelado 100% algodão de alta gramatura, com capuz forrado, bolso frontal canguru e estampa em silk-screen neon com brasão futurista e tipografia do E(CA)² Controle e Automação UERGS.",
     especificacoes: [
       "Tecido: 100% algodão flanelado 3 cabos (não encolhe)",
@@ -382,10 +432,25 @@ export const PRODUTOS_SHOP = [
     nome: "Camiseta Técnica do Curso (Dry-Fit)",
     preco: "R$ 49,90",
     precoNum: 49.9,
-    foto: null,
-    icone: "👕",
-    destaque: false,
+    foto: "img/shop_camiseta.jpg",
+    destaque: true,
     tag: "Conforto Diário",
+    tamanhos: ["P", "M", "G", "GG", "XGG"],
+    permitePersonalizacao: true,
+    tipoPersonalizacao: "Nome ou Apelido Estampado",
+    taxaPersonalizacao: 5.0,
+    taxaPersonalizacaoTexto: "+ R$ 5,00",
+    placeholderPersonalizacao: "Ex: SEU NOME",
+    maxCaracteresPersonalizacao: 20,
+    posicoesPersonalizacao: [
+      { id: "peito", label: "Peito Direito" },
+      { id: "manga", label: "Manga Esquerda" }
+    ],
+    fontesDisponiveis: [
+      { id: "sans", label: "Moderna (Inter)", family: "'Inter', sans-serif" },
+      { id: "mono", label: "Técnica (JetBrains Mono)", family: "'JetBrains Mono', monospace" }
+    ],
+    sugestoesRapidas: ["SEU NOME", "TURMA 2026"],
     descricao: "Camiseta preta leve e respirável com diagrama esquemático de malha de controle PID nas costas e logo minimalista no peito.",
     especificacoes: [
       "Tecido: Malha fria PV ou 100% algodão penteado 30.1",
@@ -399,10 +464,10 @@ export const PRODUTOS_SHOP = [
     nome: "Kit de Adesivos + Régua PCB de Engenheiro",
     preco: "R$ 24,00",
     precoNum: 24.0,
-    foto: null,
-    icone: "⚡",
-    destaque: false,
+    foto: "img/shop_regua_pcb.jpg",
+    destaque: true,
     tag: "Ferramenta de Bancada",
+    permitePersonalizacao: false,
     descricao: "Régua técnica fabricada em fibra de vidro FR-4 (placa de circuito impresso real) de 15cm com gabarito de componentes SMD, tamanhos de trilhas (AWG/mils) e pinouts, mais pack com 6 adesivos em vinil laminado à prova d'água.",
     especificacoes: [
       "Régua em PCB FR-4 com acabamento de ouro químico ENIG",

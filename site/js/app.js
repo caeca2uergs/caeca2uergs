@@ -1925,7 +1925,7 @@ function renderShopHtml() {
         <div class="grid grid-3" id="shop-products-grid" style="align-items: stretch; margin-bottom: 3.5rem;">
           ${PRODUTOS_SHOP.map(prod => `
             <div class="card hover product-card" data-category="${prod.categoria}">
-              <div class="product-card-img-wrap">
+              <div class="product-card-img-wrap" style="position: relative;">
                 ${prod.foto ? `
                   <img src="${prod.foto}" alt="${escapeHtml(prod.nome)}" loading="lazy">
                 ` : `
@@ -1936,6 +1936,11 @@ function renderShopHtml() {
                 <span class="badge ${prod.destaque ? 'amber' : 'cyan'}" style="position: absolute; top: 12px; left: 12px; backdrop-filter: blur(8px);">
                   ${prod.tag || prod.categoria}
                 </span>
+                ${prod.permitePersonalizacao ? `
+                  <span class="badge amber" style="position: absolute; top: 12px; right: 12px; backdrop-filter: blur(8px); box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);">
+                    ✨ Personalizável
+                  </span>
+                ` : ''}
                 <span class="badge" style="position: absolute; bottom: 12px; right: 12px; background: hsl(224 50% 6% / .88); color: var(--cyan); border-color: var(--cyan); font-weight: 700; font-size: .88rem;">
                   ${prod.preco}
                 </span>
@@ -1958,7 +1963,7 @@ function renderShopHtml() {
                 ` : ''}
 
                 <button type="button" class="btn btn-primary btn-sm btn-open-order" data-prod-id="${prod.id}" style="width: 100%;">
-                  Reservar este Item
+                  ${prod.permitePersonalizacao ? 'Personalizar & Encomendar ✨' : 'Reservar este Item ⚡'}
                 </button>
               </div>
             </div>
@@ -1992,11 +1997,42 @@ function setupShopInteractions() {
   const dlgOrder = document.getElementById("dlg-shop-order");
   const formOrder = document.getElementById("form-shop-order");
   const previewEl = document.getElementById("shop-order-preview");
-  const variantField = document.getElementById("order-variant-field");
-  const variantSelect = document.getElementById("order-variant");
   const prodIdInput = document.getElementById("order-product-id");
+  const customEnabledInput = document.getElementById("order-custom-enabled");
+  const fontChoiceInput = document.getElementById("order-font-choice");
+  const posChoiceInput = document.getElementById("order-position-choice");
 
-  // Filtros por categoria
+  const customToggleSection = document.getElementById("order-custom-toggle-section");
+  const btnModeStandard = document.getElementById("btn-mode-standard");
+  const btnModeCustom = document.getElementById("btn-mode-custom");
+  const customPanel = document.getElementById("order-custom-panel");
+  const customTextInput = document.getElementById("order-custom-text");
+  const charCounter = document.getElementById("order-char-counter");
+  const suggestionChips = document.getElementById("order-suggestion-chips");
+  const fontPills = document.getElementById("order-font-pills");
+  const posPills = document.getElementById("order-position-pills");
+
+  const variantField = document.getElementById("order-variant-field");
+  const sizePills = document.getElementById("order-size-pills");
+  const variantSelect = document.getElementById("order-variant");
+
+  const studioSpecsText = document.getElementById("studio-specs-text");
+  const studioTagBadge = document.getElementById("studio-tag-badge");
+  const studioModeBadge = document.getElementById("studio-mode-badge");
+  const studioExtraBadge = document.getElementById("studio-extra-badge");
+
+  const btnSubmitWhatsapp = document.getElementById("btn-submit-order-whatsapp");
+  const btnSubmitSystem = document.getElementById("btn-submit-order-system");
+
+  // Estado dinâmico do estúdio de personalização
+  let currentProd = null;
+  let isCustom = false;
+  let selectedFont = { id: "mono", label: "Técnica", family: "'JetBrains Mono', monospace" };
+  let selectedPos = { id: "frente", label: "Frente (Abaixo do Brasão)" };
+  let selectedSize = null;
+  let submitTarget = "whatsapp";
+
+  // Filtros por categoria na lojinha
   const chips = document.querySelectorAll("#shop-filter-chips button");
   chips.forEach(chip => {
     chip.addEventListener("click", () => {
@@ -2033,72 +2069,231 @@ function setupShopInteractions() {
     });
   });
 
-  // Fechar modal de pedido
+  // Fechar modal de estúdio
   document.getElementById("btn-close-shop-order")?.addEventListener("click", () => {
     dlgOrder?.close();
   });
 
-  // Abertura do modal ao clicar em "Reservar este Item"
+  // Atualizador do Mockup e Preço ao Vivo
+  function updateStudioLivePreview() {
+    if (!currentProd) return;
+    const overlay = document.getElementById("studio-overlay-text");
+    const laserIndicator = document.getElementById("studio-laser-indicator");
+    const laserText = document.getElementById("studio-laser-text");
+    const priceBaseEl = document.getElementById("studio-price-base");
+    const feeRow = document.getElementById("studio-fee-row");
+    const priceTotalEl = document.getElementById("studio-price-total");
+
+    const basePrice = currentProd.precoNum;
+    const extraFee = isCustom ? (currentProd.taxaPersonalizacao || 0) : 0;
+    const finalPrice = basePrice + extraFee;
+    const finalPriceFormatted = "R$ " + finalPrice.toFixed(2).replace('.', ',');
+
+    if (priceBaseEl) priceBaseEl.textContent = "R$ " + basePrice.toFixed(2).replace('.', ',');
+    if (priceTotalEl) priceTotalEl.textContent = finalPriceFormatted;
+
+    if (feeRow) {
+      if (isCustom && extraFee > 0) {
+        feeRow.style.display = "flex";
+        document.getElementById("studio-price-fee").textContent = "+ R$ " + extraFee.toFixed(2).replace('.', ',');
+      } else {
+        feeRow.style.display = "none";
+      }
+    }
+
+    if (overlay) {
+      if (isCustom) {
+        overlay.style.display = "block";
+        const rawText = customTextInput.value.trim();
+        overlay.textContent = rawText ? rawText.toUpperCase() : "SEU NOME AQUI";
+        overlay.style.fontFamily = selectedFont.family;
+        overlay.className = `studio-live-overlay pos-${selectedPos.id}`;
+      } else {
+        overlay.style.display = "none";
+      }
+    }
+
+    if (laserIndicator && laserText) {
+      if (isCustom) {
+        laserText.textContent = currentProd.tipoPersonalizacao || "Gravação Personalizada ✨";
+        laserIndicator.style.borderColor = "var(--cyan)";
+      } else {
+        laserText.textContent = "Padrão Oficial E(CA)²";
+        laserIndicator.style.borderColor = "var(--border)";
+      }
+    }
+
+    if (studioModeBadge) {
+      studioModeBadge.style.display = isCustom ? "inline-block" : "none";
+    }
+  }
+
+  // Abertura do Estúdio de Personalização ao Clicar em Produto
   document.querySelectorAll(".btn-open-order").forEach(btn => {
     btn.addEventListener("click", () => {
       const prodId = btn.getAttribute("data-prod-id");
       const prod = PRODUTOS_SHOP.find(p => p.id === prodId);
       if (!prod) return;
 
+      currentProd = prod;
       prodIdInput.value = prod.id;
 
-      // Monta preview
+      // Reset de estado
+      isCustom = false;
+      customEnabledInput.value = "false";
+      selectedFont = prod.fontesDisponiveis?.[0] || { id: "mono", label: "Técnica", family: "'JetBrains Mono', monospace" };
+      selectedPos = prod.posicoesPersonalizacao?.[0] || { id: "frente", label: "Frente (Abaixo do Brasão)" };
+      fontChoiceInput.value = selectedFont.id;
+      posChoiceInput.value = selectedPos.id;
+      customTextInput.value = "";
+      charCounter.textContent = `0 / ${prod.maxCaracteresPersonalizacao || 24}`;
+
+      if (studioTagBadge) studioTagBadge.textContent = prod.categoria;
+      if (studioSpecsText) {
+        studioSpecsText.textContent = prod.descricao || "Material nobre com garantia oficial de durabilidade em laboratórios da UERGS.";
+      }
+
+      // Monta Card do Mockup ao Vivo
       previewEl.innerHTML = `
-        <div class="card" style="padding: 1rem; background: hsl(220 40% 12% / .7); display: flex; align-items: center; gap: 1rem;">
-          ${prod.foto ? `
-            <img src="${prod.foto}" alt="${escapeHtml(prod.nome)}" style="width: 68px; height: 68px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border);">
-          ` : `
-            <div style="width: 68px; height: 68px; display: grid; place-items: center; font-size: 2rem; background: var(--surface-2); border-radius: var(--radius-sm);">
-              ${prod.icone || '📦'}
+        <div class="studio-mockup-card">
+          <div class="studio-canvas-container">
+            ${prod.foto ? `
+              <img src="${prod.foto}" alt="${escapeHtml(prod.nome)}" class="studio-mockup-img" id="studio-mockup-img">
+            ` : `
+              <div style="font-size: 5.5rem; user-select: none;">
+                ${prod.icone || '📦'}
+              </div>
+            `}
+            <div class="studio-live-overlay pos-frente" id="studio-overlay-text" style="display: none; font-family: ${selectedFont.family};">
+              SEU NOME AQUI
             </div>
-          `}
-          <div style="flex: 1;">
+            <div class="studio-laser-indicator" id="studio-laser-indicator">
+              <span class="studio-laser-dot"></span>
+              <span id="studio-laser-text">Padrão Oficial E(CA)²</span>
+            </div>
+          </div>
+
+          <div class="row" style="justify-content: space-between; align-items: baseline; margin-bottom: .25rem;">
             <span class="small muted">${prod.categoria}</span>
-            <h4 style="margin: 0; font-size: 1.05rem;">${prod.nome}</h4>
-            <strong style="color: var(--cyan); font-size: 1.15rem;">${prod.preco}</strong>
+            <span class="small" style="color: var(--amber); font-weight: 600;">Lote Oficial 2026</span>
+          </div>
+          <h3 style="font-size: 1.15rem; margin: 0 0 .5rem;">${prod.nome}</h3>
+          
+          <div class="studio-breakdown-box">
+            <div class="studio-breakdown-row">
+              <span>Preço Base do Item:</span>
+              <strong class="font-mono text-cyan" id="studio-price-base">${prod.preco}</strong>
+            </div>
+            <div class="studio-breakdown-row" id="studio-fee-row" style="display: none;">
+              <span>Adicional de Personalização:</span>
+              <strong class="font-mono text-amber" id="studio-price-fee">+ R$ 0,00</strong>
+            </div>
+            <div class="studio-breakdown-row total">
+              <span>Total Estimado:</span>
+              <strong class="font-mono text-cyan" id="studio-price-total">${prod.preco}</strong>
+            </div>
           </div>
         </div>
       `;
 
-      // Configura opções de variante (ex: tamanhos para moletom/camiseta)
-      if (prod.id === "moletom-neon") {
-        variantField.style.display = "block";
-        variantSelect.innerHTML = `
-          <option value="P">Tamanho P (Unissex)</option>
-          <option value="M" selected>Tamanho M (Unissex)</option>
-          <option value="G">Tamanho G (Unissex)</option>
-          <option value="GG">Tamanho GG (Unissex)</option>
-          <option value="XGG">Tamanho XGG (Unissex)</option>
-        `;
-      } else if (prod.id === "camiseta-tecnica") {
-        variantField.style.display = "block";
-        variantSelect.innerHTML = `
-          <option value="P">Tamanho P</option>
-          <option value="M" selected>Tamanho M</option>
-          <option value="G">Tamanho G</option>
-          <option value="GG">Tamanho GG</option>
-        `;
-      } else if (prod.id === "copo-termico") {
-        variantField.style.display = "block";
-        variantSelect.innerHTML = `
-          <option value="padrao" selected>Preto Fosco com Gravação a Laser Eca²</option>
-          <option value="personalizado">Preto Fosco + Nome Gravado (+ R$ 5,00)</option>
-        `;
-      } else if (prod.id === "caneca-lab") {
-        variantField.style.display = "block";
-        variantSelect.innerHTML = `
-          <option value="padrao" selected>Caneca Cerâmica Preta Fosca Neon Eca²</option>
-        `;
+      // Configuração de Personalização (se o produto permitir)
+      if (prod.permitePersonalizacao) {
+        customToggleSection.style.display = "block";
+        btnModeStandard.classList.add("active");
+        btnModeCustom.classList.remove("active");
+        customPanel.style.display = "none";
+        if (studioExtraBadge) studioExtraBadge.textContent = prod.taxaPersonalizacaoTexto || "+ R$ 5,00";
+
+        // Sugestões Rápidas
+        if (suggestionChips) {
+          const sugestoes = prod.sugestoesRapidas || ["SEU NOME", "NOME · TURMA 2026", "ENG. CONTROLE"];
+          suggestionChips.innerHTML = sugestoes.map(s => `
+            <button type="button" class="studio-chip-btn">${escapeHtml(s)}</button>
+          `).join("");
+          suggestionChips.querySelectorAll(".studio-chip-btn").forEach(chipBtn => {
+            chipBtn.addEventListener("click", () => {
+              customTextInput.value = chipBtn.textContent.trim();
+              charCounter.textContent = `${customTextInput.value.length} / ${prod.maxCaracteresPersonalizacao || 24}`;
+              updateStudioLivePreview();
+            });
+          });
+        }
+
+        // Seletor de Fontes
+        if (fontPills) {
+          const fontes = prod.fontesDisponiveis || [selectedFont];
+          fontPills.innerHTML = fontes.map((f, idx) => `
+            <button type="button" class="pill-btn ${idx === 0 ? 'active' : ''}" data-font-id="${f.id}">
+              ${escapeHtml(f.label)}
+            </button>
+          `).join("");
+          fontPills.querySelectorAll(".pill-btn").forEach(pBtn => {
+            pBtn.addEventListener("click", () => {
+              fontPills.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
+              pBtn.classList.add("active");
+              const fid = pBtn.getAttribute("data-font-id");
+              const found = prod.fontesDisponiveis?.find(x => x.id === fid);
+              if (found) {
+                selectedFont = found;
+                fontChoiceInput.value = found.id;
+                updateStudioLivePreview();
+              }
+            });
+          });
+        }
+
+        // Seletor de Posições
+        if (posPills) {
+          const posicoes = prod.posicoesPersonalizacao || [selectedPos];
+          posPills.innerHTML = posicoes.map((p, idx) => `
+            <button type="button" class="pill-btn ${idx === 0 ? 'active' : ''}" data-pos-id="${p.id}">
+              ${escapeHtml(p.label)}
+            </button>
+          `).join("");
+          posPills.querySelectorAll(".pill-btn").forEach(pBtn => {
+            pBtn.addEventListener("click", () => {
+              posPills.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
+              pBtn.classList.add("active");
+              const pid = pBtn.getAttribute("data-pos-id");
+              const found = prod.posicoesPersonalizacao?.find(x => x.id === pid);
+              if (found) {
+                selectedPos = found;
+                posChoiceInput.value = found.id;
+                updateStudioLivePreview();
+              }
+            });
+          });
+        }
       } else {
-        variantField.style.display = "none";
+        customToggleSection.style.display = "none";
+        customPanel.style.display = "none";
       }
 
-      // Preenche dados conhecidos caso o usuário já esteja logado
+      // Configuração de Tamanhos (Vestuário)
+      if (prod.tamanhos && prod.tamanhos.length) {
+        variantField.style.display = "block";
+        selectedSize = prod.tamanhos[1] || prod.tamanhos[0];
+        sizePills.innerHTML = prod.tamanhos.map(s => `
+          <button type="button" class="pill-btn ${s === selectedSize ? 'active' : ''}" data-size="${s}">
+            ${s}
+          </button>
+        `).join("");
+        variantSelect.innerHTML = prod.tamanhos.map(s => `<option value="${s}" ${s === selectedSize ? 'selected' : ''}>${s}</option>`).join("");
+        
+        sizePills.querySelectorAll(".pill-btn").forEach(sBtn => {
+          sBtn.addEventListener("click", () => {
+            sizePills.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
+            sBtn.classList.add("active");
+            selectedSize = sBtn.getAttribute("data-size");
+            variantSelect.value = selectedSize;
+          });
+        });
+      } else {
+        variantField.style.display = "none";
+        selectedSize = null;
+      }
+
+      // Preenchimento de dados de perfil do aluno se logado
       const auth = getAuth();
       if (auth.user) {
         store.getStudentProfile(auth.user.id).then(prof => {
@@ -2108,47 +2303,136 @@ function setupShopInteractions() {
         }).catch(() => {});
       }
 
+      updateStudioLivePreview();
       dlgOrder?.showModal();
     });
   });
 
-  // Submissão da reserva
+  // Toggle Modo Padrão Oficial
+  btnModeStandard?.addEventListener("click", () => {
+    isCustom = false;
+    customEnabledInput.value = "false";
+    btnModeStandard.classList.add("active");
+    btnModeCustom.classList.remove("active");
+    customPanel.style.display = "none";
+    updateStudioLivePreview();
+  });
+
+  // Toggle Modo Personalizado a Laser
+  btnModeCustom?.addEventListener("click", () => {
+    isCustom = true;
+    customEnabledInput.value = "true";
+    btnModeCustom.classList.add("active");
+    btnModeStandard.classList.remove("active");
+    customPanel.style.display = "grid";
+    customTextInput.focus();
+    updateStudioLivePreview();
+  });
+
+  // Digitação do Texto de Gravação em Tempo Real
+  customTextInput?.addEventListener("input", () => {
+    const max = currentProd?.maxCaracteresPersonalizacao || 24;
+    charCounter.textContent = `${customTextInput.value.length} / ${max}`;
+    updateStudioLivePreview();
+  });
+
+  // Botões de ação rápida de submissão
+  btnSubmitWhatsapp?.addEventListener("click", () => {
+    submitTarget = "whatsapp";
+  });
+
+  btnSubmitSystem?.addEventListener("click", () => {
+    submitTarget = "system";
+    formOrder.requestSubmit();
+  });
+
+  // Processamento e Conclusão da Reserva / Pedido
   formOrder?.addEventListener("submit", (e) => {
     e.preventDefault();
-    const prodId = prodIdInput.value;
-    const prod = PRODUTOS_SHOP.find(p => p.id === prodId);
+    if (!currentProd) return;
+
     const name = formOrder.name.value.trim();
     const semester = formOrder.semester.value.trim();
     const whatsapp = formOrder.whatsapp.value.trim();
-    const variant = variantSelect.value;
     const obs = formOrder.obs.value.trim();
 
     if (!name || !semester || !whatsapp) {
-      showToast("Preencha nome, semestre e WhatsApp.", true);
+      showToast("Preencha seu Nome, Semestre e WhatsApp.", true);
       return;
     }
 
-    // Salva pedido em localStorage
+    if (isCustom && !customTextInput.value.trim()) {
+      showToast("Informe o nome ou texto que deseja gravar no item.", true);
+      customTextInput.focus();
+      return;
+    }
+
+    const basePrice = currentProd.precoNum;
+    const extraFee = isCustom ? (currentProd.taxaPersonalizacao || 0) : 0;
+    const finalPriceNum = basePrice + extraFee;
+    const finalPriceStr = "R$ " + finalPriceNum.toFixed(2).replace('.', ',');
+    const customText = isCustom ? customTextInput.value.trim().toUpperCase() : null;
+
+    // Estrutura de dados completa do pedido
     const orderData = {
       id: "ord_" + Date.now(),
-      product_id: prodId,
-      product_name: prod ? prod.nome : prodId,
-      product_price: prod ? prod.preco : "",
+      product_id: currentProd.id,
+      product_name: currentProd.nome,
+      product_base_price: currentProd.preco,
+      is_customized: isCustom,
+      custom_text: customText,
+      font_style: isCustom ? selectedFont.label : null,
+      custom_position: isCustom ? selectedPos.label : null,
+      size: selectedSize || null,
+      final_price: finalPriceStr,
+      final_price_num: finalPriceNum,
       name,
       semester,
       whatsapp,
-      variant,
       obs,
+      status: "pendente",
       created_at: new Date().toISOString()
     };
 
+    // Salva no LocalStorage
     const existing = JSON.parse(localStorage.getItem("eca2_orders") || "[]");
-    existing.push(orderData);
+    existing.unshift(orderData);
     localStorage.setItem("eca2_orders", JSON.stringify(existing));
+
+    // Salva no Store/Backend
+    if (store.orders?.create) {
+      store.orders.create(orderData).catch(err => console.warn("Erro ao salvar pedido no store:", err));
+    }
+
+    // Se selecionou envio no WhatsApp do CA
+    if (submitTarget === "whatsapp") {
+      const msg = [
+        `🛍️ *NOVA ENCOMENDA · LOJINHA E(CA)² UERGS*`,
+        `----------------------------------------`,
+        `📦 *Produto:* ${currentProd.nome}`,
+        `💰 *Valor Total:* ${finalPriceStr}`,
+        isCustom ? `✨ *Personalização:* SIM (${currentProd.tipoPersonalizacao || 'Gravação'})` : `🛡️ *Personalização:* Não (Padrão Oficial)`,
+        isCustom ? `🔤 *Texto Gravado:* ${customText}` : null,
+        isCustom ? `📐 *Posição:* ${selectedPos.label}` : null,
+        isCustom ? `🖋️ *Fonte:* ${selectedFont.label}` : null,
+        selectedSize ? `👕 *Tamanho:* ${selectedSize}` : null,
+        `----------------------------------------`,
+        `👤 *Estudante:* ${name}`,
+        `🎓 *Semestre:* ${semester}`,
+        `📱 *WhatsApp:* ${whatsapp}`,
+        obs ? `📝 *Obs:* ${obs}` : null,
+        `----------------------------------------`,
+        `💳 *Chave PIX:* ca.eca2.uergs@gmail.com`,
+        `_Estou enviando este pedido oficial com personalização configurada no site._`
+      ].filter(Boolean).join("\n");
+
+      const waUrl = `https://api.whatsapp.com/send?phone=5551989508930&text=${encodeURIComponent(msg)}`;
+      window.open(waUrl, "_blank", "noopener,noreferrer");
+    }
 
     dlgOrder?.close();
     formOrder.reset();
-    showToast(`🎉 Pré-reserva de ${prod ? prod.nome : 'material'} registrada com sucesso!`);
+    showToast(`🎉 Encomenda de ${currentProd.nome} ${isCustom ? 'personalizada ' : ''}registrada com sucesso!`);
   });
 }
 
@@ -2918,27 +3202,39 @@ async function setupForumInteractions() {
   });
 
   try {
-    const topics = await store.topics.list();
-    if (topics.length === 0) {
+    let topics = [];
+    try {
+      topics = await store.topics.list();
+    } catch (fetchErr) {
+      console.warn("Fórum: falha ao buscar da nuvem, carregando tópicos locais:", fetchErr);
+      const demo = typeof createDemoStore === "function" ? createDemoStore() : null;
+      topics = demo ? await demo.topics.list() : [];
+    }
+
+    if (!topics || topics.length === 0) {
       listEl.innerHTML = `<div class="card empty"><p>Nenhum tópico criado ainda. Comece a conversa!</p></div>`;
       return;
     }
 
-    listEl.innerHTML = topics.map(t => `
-      <div class="card topic-row hover">
-        <div>
-          <div class="row" style="margin-bottom: .25rem;">
-            <span class="badge slate">${escapeHtml(t.category)}</span>
-            <span class="small muted">por ${escapeHtml(t.author)} ${t.semester ? `(${escapeHtml(t.semester)})` : ''} · ${formatRelativeTime(t.created_at)}</span>
+    listEl.innerHTML = topics.map(t => {
+      const isPinned = t.pinned || t.id === 1;
+      return `
+        <div class="card topic-row hover ${isPinned ? 'topic-pinned' : ''}" style="${isPinned ? 'border-left: 3px solid var(--amber); background: hsl(35 100% 50% / .03);' : ''}">
+          <div>
+            <div class="row" style="margin-bottom: .25rem; align-items: center; gap: .4rem;">
+              <span class="badge slate">${escapeHtml(t.category)}</span>
+              ${isPinned ? '<span class="badge amber" style="font-size: .68rem;">📌 Destaque · Oficial</span>' : ''}
+              <span class="small muted">por ${escapeHtml(t.author || 'Membro E(CA)²')} ${t.semester ? `(${escapeHtml(t.semester)})` : ''} · ${formatRelativeTime(t.created_at)}</span>
+            </div>
+            <h3 style="font-size: 1.15rem; margin-top: .15rem;"><a href="#forum/${t.id}" data-topic-link="${t.id}">${escapeHtml(t.title)}</a></h3>
           </div>
-          <h3><a href="#forum/${t.id}" data-topic-link="${t.id}">${escapeHtml(t.title)}</a></h3>
+          <div class="reply-count">
+            <span class="n">${t.reply_count || 0}</span>
+            <span class="small muted">respostas</span>
+          </div>
         </div>
-        <div class="reply-count">
-          <span class="n">${t.reply_count}</span>
-          <span class="small muted">respostas</span>
-        </div>
-      </div>
-    `).join("");
+      `;
+    }).join("");
 
     listEl.querySelectorAll("[data-topic-link]").forEach(a => {
       a.addEventListener("click", (e) => {
@@ -2949,7 +3245,7 @@ async function setupForumInteractions() {
     });
 
   } catch (err) {
-    listEl.innerHTML = `<div class="card error"><p>${err.message}</p></div>`;
+    listEl.innerHTML = `<div class="card error"><p>${escapeHtml(err.message)}</p></div>`;
   }
 }
 
@@ -3431,8 +3727,8 @@ function renderCursoHtml(tab = currentCursoTab) {
       <!-- Caixa de Apoio do Centro Acadêmico -->
       <div class="card" style="border: 1px solid hsl(35 100% 58% / .3); background: linear-gradient(135deg, hsl(35 100% 58% / .08) 0%, transparent 100%); margin-bottom: 3.5rem;">
         <div class="row" style="align-items: flex-start; gap: 1rem;">
-          <span style="font-size: 2.25rem;">📢</span>
-          <div>
+          <span style="font-size: 2.25rem; flex-shrink: 0;">📢</span>
+          <div style="flex: 1; min-width: 0;">
             <h3 style="margin: 0 0 .35rem; color: var(--amber);">Como o Centro Acadêmico E(CA)² atua nos Benefícios?</h3>
             <p class="small muted" style="margin: 0 0 1rem; line-height: 1.6;">
               O Centro Acadêmico tem assento e voz ativa nas instâncias deliberativas da UERGS. Defendemos a abertura periódica de editais de monitoria remunerada em disciplinas com alta taxa de retenção (como Cálculo e CLP), cobramos celeridade nos repasses de auxílio PRAE e auxiliamos novos alunos no preenchimento de recursos e cadastros socioeconômicos.
@@ -3835,7 +4131,7 @@ function renderCursoHtml(tab = currentCursoTab) {
         <div class="section-head">
           <div class="row" style="gap: .6rem; margin-bottom: .75rem; flex-wrap: wrap; justify-content: center;">
             <span class="course-hero-badge">📜 ${CURSO.resolucaoVigente}</span>
-            <span class="badge" style="background: hsl(222 25% 15%); color: var(--muted); border: 1px solid var(--border); font-size: .8rem;">Anterior: ${CURSO.resolucaoAnterior}</span>
+            <span class="badge" style="background: hsl(222 25% 15%); color: var(--muted); border: 1px solid var(--border); font-size: .8rem; white-space: normal; text-align: center; max-width: 100%;">Anterior: ${CURSO.resolucaoAnterior}</span>
           </div>
           <h2>Engenharia de Controle e Automação</h2>
           <p class="lead" style="max-width: 900px; margin-inline: auto;">
@@ -4217,7 +4513,7 @@ function setupCursoInteractions(tab = currentCursoTab) {
     if (resetBtn) resetBtn.style.display = "none";
     if (svgCanvas) svgCanvas.innerHTML = "";
 
-    const allCards = gridContainer.querySelectorAll(".dep-card");
+    const allCards = gridContainer ? gridContainer.querySelectorAll(".dep-card") : [];
     allCards.forEach(card => {
       card.classList.remove("is-selected", "is-prereq", "is-unlocks", "is-dimmed");
       // Se houver filtro de área ativo, reaplica

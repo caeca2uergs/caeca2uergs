@@ -604,6 +604,16 @@ async function renderTabLoja(container, store, showToast) {
     products = PRODUTOS_SHOP;
   }
 
+  let orders = [];
+  try {
+    orders = store.orders?.list ? await store.orders.list() : [];
+  } catch (err) {
+    orders = [];
+  }
+  if (!orders || !orders.length) {
+    orders = JSON.parse(localStorage.getItem("eca2_orders") || "[]");
+  }
+
   document.getElementById("badge-count-loja").textContent = products.length;
 
   container.innerHTML = `
@@ -638,6 +648,7 @@ async function renderTabLoja(container, store, showToast) {
               <td>
                 <strong>${esc(p.nome)}</strong>
                 ${p.tag ? `<div><span class="badge slate" style="font-size: .7rem;">${esc(p.tag)}</span></div>` : ''}
+                ${p.permitePersonalizacao ? `<div><span class="badge amber" style="font-size: .65rem;">✨ Personalizável</span></div>` : ''}
               </td>
               <td style="white-space: nowrap;"><span class="small muted">${esc(p.categoria || 'Geral')}</span></td>
               <td style="white-space: nowrap;"><strong class="font-mono text-cyan">${esc(p.preco || 'R$ 0,00')}</strong></td>
@@ -658,9 +669,91 @@ async function renderTabLoja(container, store, showToast) {
         </tbody>
       </table>
     </div>
+
+    <!-- Seção de Encomendas & Personalizações dos Alunos -->
+    <div style="margin-top: 2.75rem; margin-bottom: .85rem; display: flex; justify-content: space-between; align-items: baseline;">
+      <div>
+        <h3 style="margin: 0; font-size: 1.25rem;">📦 Encomendas &amp; Personalizações dos Alunos (${orders.length})</h3>
+        <span class="small muted">Acompanhe os pedidos recebidos, gravações a laser solicitadas e status de produção/entrega.</span>
+      </div>
+    </div>
+
+    <div class="admin-table-wrap">
+      <table class="admin-table" aria-label="Tabela de Pedidos e Gravações Personalizadas">
+        <thead>
+          <tr>
+            <th style="white-space: nowrap;">Data</th>
+            <th>Aluno(a) / Contato</th>
+            <th>Item &amp; Tamanho</th>
+            <th>Personalização &amp; Gravação</th>
+            <th style="white-space: nowrap;">Total</th>
+            <th style="white-space: nowrap;">Status</th>
+            <th style="text-align: right; white-space: nowrap;">Atualizar</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${orders.length ? orders.map(ord => `
+            <tr>
+              <td style="white-space: nowrap;">
+                <span class="small font-mono muted">${new Date(ord.created_at || Date.now()).toLocaleDateString('pt-BR')}</span>
+              </td>
+              <td>
+                <strong>${esc(ord.name)}</strong>
+                <div class="small muted">${esc(ord.semester || '')}</div>
+                ${ord.whatsapp ? `
+                  <div style="margin-top: .2rem;">
+                    <a href="https://wa.me/55${esc(ord.whatsapp).replace(/\\D/g, '')}" target="_blank" rel="noopener noreferrer" class="small text-cyan font-mono" style="text-decoration: none;">
+                      📱 ${esc(ord.whatsapp)}
+                    </a>
+                  </div>
+                ` : ''}
+              </td>
+              <td>
+                <strong>${esc(ord.product_name)}</strong>
+                ${ord.size ? `<div><span class="badge slate" style="font-size: .7rem;">Tam: ${esc(ord.size)}</span></div>` : ''}
+              </td>
+              <td>
+                ${ord.is_customized ? `
+                  <div style="display: inline-block; padding: .35rem .65rem; background: hsl(189 94% 55% / .1); border: 1px dashed var(--cyan); border-radius: 4px;">
+                    <strong class="font-mono text-cyan" style="letter-spacing: .05em;">"${esc(ord.custom_text || '')}"</strong>
+                    <div class="small muted" style="font-size: .72rem; margin-top: .2rem;">
+                      ${ord.font_style ? `Fonte: ${esc(ord.font_style)} · ` : ''}${ord.custom_position ? `Pos: ${esc(ord.custom_position)}` : ''}
+                    </div>
+                  </div>
+                ` : `
+                  <span class="badge slate" style="font-size: .75rem;">🛡️ Padrão Oficial</span>
+                `}
+                ${ord.obs ? `<div class="small muted" style="margin-top: .3rem; font-style: italic;">Obs: ${esc(ord.obs)}</div>` : ''}
+              </td>
+              <td style="white-space: nowrap;">
+                <strong class="font-mono text-amber">${esc(ord.final_price || ord.product_price || 'R$ 0,00')}</strong>
+              </td>
+              <td style="white-space: nowrap;">
+                <span class="status-pill ${ord.status === 'entregue' ? 'disponivel' : (ord.status === 'producao' ? 'prevenda' : 'esgotado')}">
+                  ${ord.status === 'entregue' ? 'Entregue' : (ord.status === 'producao' ? 'Em Gravação' : 'Pendente')}
+                </span>
+              </td>
+              <td style="text-align: right; white-space: nowrap;">
+                <select class="admin-order-status-select" data-id="${ord.id}" style="padding: .25rem .5rem; font-size: .8rem; min-height: 30px; width: auto; display: inline-block;">
+                  <option value="pendente" ${ord.status === 'pendente' ? 'selected' : ''}>Pendente</option>
+                  <option value="producao" ${ord.status === 'producao' ? 'selected' : ''}>Em Gravação</option>
+                  <option value="entregue" ${ord.status === 'entregue' ? 'selected' : ''}>Entregue</option>
+                </select>
+              </td>
+            </tr>
+          `).join("") : `
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 2rem;" class="muted small">
+                Nenhuma encomenda registrada ainda. As encomendas com personalização feitas no site aparecerão aqui.
+              </td>
+            </tr>
+          `}
+        </tbody>
+      </table>
+    </div>
   `;
 
-  // Bindings
+  // Bindings Produtos
   document.getElementById("btn-admin-add-produto")?.addEventListener("click", () => {
     openProductModal(null, store, showToast);
   });
@@ -684,6 +777,27 @@ async function renderTabLoja(container, store, showToast) {
         } catch (err) {
           showToast(err.message, true);
         }
+      }
+    });
+  });
+
+  // Bindings Status de Pedidos
+  container.querySelectorAll(".admin-order-status-select").forEach(sel => {
+    sel.addEventListener("change", async () => {
+      const id = sel.getAttribute("data-id");
+      const newStatus = sel.value;
+      try {
+        if (store.orders?.updateStatus) await store.orders.updateStatus(id, newStatus);
+        const stored = JSON.parse(localStorage.getItem("eca2_orders") || "[]");
+        const found = stored.find(x => String(x.id) === String(id));
+        if (found) {
+          found.status = newStatus;
+          localStorage.setItem("eca2_orders", JSON.stringify(stored));
+        }
+        showToast("Status da encomenda atualizado!");
+        await renderTabLoja(container, store, showToast);
+      } catch (err) {
+        showToast(err.message, true);
       }
     });
   });
