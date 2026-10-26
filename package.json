@@ -10,6 +10,7 @@
     "generate:pdfs": "node gerar_pdfs.js",
     "scrape:events": "node scripts/scrape_uergs_events.js",
     "scrape:weekly": "node scripts/auto_scrape_weekly.js",
+    "supabase:ping": "node scripts/supabase_keepalive.js",
     "check": "node --check site/js/app.js && node --check site/js/modules/admin.js && node --check site/js/store.js && node --check site/js/config.js"
   },
   "repository": {

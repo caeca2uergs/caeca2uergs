@@ -1,0 +1,23 @@
+name: Supabase Keep-Alive (Prevenção Automática de Pausa)
+
+on:
+  schedule:
+    # Executa a cada 3 dias às 12:00 UTC (09:00 Horário de Brasília)
+    - cron: '0 12 */3 * *'
+  workflow_dispatch: # Permite disparar manualmente pelo painel do GitHub Actions
+
+jobs:
+  keepalive:
+    name: Ping Banco Supabase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do Repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Executar Ping Anti-Pausa
+        run: node scripts/supabase_keepalive.js
