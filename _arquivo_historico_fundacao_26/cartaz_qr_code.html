@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Cartaz de Votação Oficial – Eca²</title>
+  <style>
+    @page { size: A4 portrait; margin: 15mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      text-align: center;
+      color: #0f172a;
+      padding: 10px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #0284c7;
+      color: white;
+      font-weight: 700;
+      border-radius: 999px;
+      font-size: 13pt;
+      margin-bottom: 15px;
+    }
+    h1 { font-size: 26pt; margin: 0 0 10px; line-height: 1.1; color: #0284c7; }
+    h2 { font-size: 16pt; margin: 0 0 20px; font-weight: 500; color: #475569; }
+    .qr-box {
+      border: 4px solid #0284c7;
+      border-radius: 20px;
+      padding: 25px;
+      display: inline-block;
+      margin: 20px auto;
+      background: #f8fafc;
+    }
+    .instrucoes {
+      max-width: 500px;
+      margin: 25px auto 0;
+      text-align: left;
+      background: #f1f5f9;
+      padding: 18px 24px;
+      border-radius: 12px;
+      font-size: 11pt;
+      line-height: 1.6;
+    }
+    .instrucoes ol { margin: 8px 0; padding-left: 20px; }
+    .rodape {
+      margin-top: 30px;
+      font-size: 10pt;
+      color: #64748b;
+      border-top: 1px dashed #cbd5e1;
+      padding-top: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="badge">ASSEMBLEIA GERAL · 26/10/2026</div>
+  <h1>Votação Oficial do CA Eca²</h1>
+  <h2>Engenharia de Controle & Automação – UERGS</h2>
+
+  <div class="qr-box">
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https%3A%2F%2Fseusite.com%2F%23eleicao" alt="QR Code de Votação" width="240" height="240" style="display: block;">
+    <p style="margin: 12px 0 0; font-family: monospace; font-size: 11pt; color: #0369a1; font-weight: bold;">
+      Aponte a câmera do celular para votar
+    </p>
+  </div>
+
+  <div class="instrucoes">
+    <strong>📋 Como Participar da Aclamação:</strong>
+    <ol>
+      <li>Conecte-se com o e-mail cadastrado no Google Forms / Salchipão;</li>
+      <li>Vote na <strong>Deliberação 1</strong> (Fundação do CA Eca²);</li>
+      <li>Vote na <strong>Deliberação 2</strong> (Aprovação da Comissão Transitória);</li>
+      <li>Os totais serão auditados e registrados na Ata de Fundação.</li>
+    </ol>
+  </div>
+
+  <div class="rodape">
+    Centro Acadêmico de Engenharia de Controle e Automação (Eca²) · Lei Federal 7.395/1985<br>
+    <em>"Sem feedback não há controle."</em>
+  </div>
+
+</body>
+</html>

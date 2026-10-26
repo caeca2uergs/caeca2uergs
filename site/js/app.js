@@ -1,13 +1,21 @@
 import { CONFIG } from "./config.js";
 import { CURSO, PRINCIPIOS, LINHA_DO_TEMPO, FAQ, CATEGORIAS_SUGESTAO, CATEGORIAS_FORUM, STATUS_SUGESTAO, PRODUTOS_SHOP, DOCUMENTOS_OFICIAIS, ARVORES_PPC, BENEFICIOS_UERGS, CALENDARIO_EVENTOS, ESTAGIOS_MERCADO } from "./content.js";
-import { createStore, onAuth, getAuth, isVotingEmailAllowed } from "./store.js";
+import { createStore, onAuth, getAuth } from "./store.js";
 import { renderAdminHtml, setupAdminInteractions } from "./modules/admin.js";
+import { parseTranscript, getAcademicMetrics, getEnrollmentOptimizer, detectScheduleConflicts } from "./modules/academic.js";
+import { fetchUergsPoaEvents, formatUergsEventToCard } from "./services/uergs-events.js";
 
 // Estado global do aplicativo
 let store;
 let currentRoute = "inicio";
 let topicDetailId = null;
 let currentCursoTab = "perfil";
+let currentProfileTab = "historico"; // "historico" | "matricula" | "cadastro"
+let uergsScrapedEvents = [];
+
+function getAllEventsCombined() {
+  return [...CALENDARIO_EVENTOS, ...uergsScrapedEvents];
+}
 
 // Helpers de Notificação (Toasts)
 function showToast(message, isError = false) {
@@ -61,10 +69,23 @@ function updateAuthNav(auth) {
   if (!slot) return;
   if (auth.user) {
     const name = auth.profile?.display_name || "Estudante";
+    const isSuper = !!auth.isSuperAdmin;
+    const isAdmin = !!auth.isAdmin;
+
+    let roleBadge = "";
+    let avatarStyle = "width:24px; height:24px; font-size:.7rem;";
+    if (isSuper) {
+      roleBadge = `<span class="badge" style="background: linear-gradient(135deg, #d97706, #b45309); color:#fff; font-size:.65rem; font-weight:700; padding:2px 6px; border-radius:4px; margin-left:4px;">👑 SUPER ADM</span>`;
+      avatarStyle += " background: linear-gradient(135deg, #d97706, #b45309); color:#fff;";
+    } else if (isAdmin) {
+      roleBadge = `<span class="badge" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #f59e0b; font-size: .65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 4px;">ADM</span>`;
+    }
+
     slot.innerHTML = `
-      <button type="button" class="btn btn-ghost btn-sm" id="btn-open-profile" title="Ver perfil">
-        <span class="avatar" style="width:24px; height:24px; font-size:.7rem;">${name.slice(0, 2).toUpperCase()}</span>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-open-profile" title="Ver perfil" style="display:inline-flex; align-items:center; gap:.4rem;">
+        <span class="avatar" style="${avatarStyle}">${isSuper ? '👑' : name.slice(0, 2).toUpperCase()}</span>
         <span>${escapeHtml(name)}</span>
+        ${roleBadge}
       </button>
     `;
     document.getElementById("btn-open-profile")?.addEventListener("click", () => {
@@ -74,7 +95,24 @@ function updateAuthNav(auth) {
       const admSec = document.getElementById("prof-admin-section");
       if (nameInput) nameInput.value = auth.profile?.display_name || "";
       if (semInput) semInput.value = auth.profile?.semester || "";
-      if (admSec) admSec.style.display = auth?.isAdmin ? "block" : "none";
+      if (admSec) {
+        admSec.style.display = auth?.isAdmin ? "block" : "none";
+        const badgeSpan = admSec.querySelector(".badge");
+        const descP = admSec.querySelector("p");
+        if (badgeSpan && descP) {
+          if (auth?.isSuperAdmin) {
+            badgeSpan.className = "badge";
+            badgeSpan.style = "background: linear-gradient(135deg, #d97706, #b45309); color:#fff; font-size: .75rem; font-weight:700; padding: 3px 8px; border-radius: 4px; box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);";
+            badgeSpan.textContent = "👑 SUPER ADMINISTRADOR (ACESSO TOTAL)";
+            descP.textContent = "Acesso irrestrito a todos os módulos, configurações e governança geral do sistema.";
+          } else {
+            badgeSpan.className = "badge amber";
+            badgeSpan.style = "font-size: .75rem;";
+            badgeSpan.textContent = "⭐ DIRETORIA HOMOLOGADA";
+            descP.textContent = "Acesso de gestão do Centro Acadêmico.";
+          }
+        }
+      }
       dlg?.showModal();
     });
 
@@ -96,6 +134,7 @@ function escapeHtml(text = "") {
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
   }[m]));
 }
+const esc = escapeHtml;
 
 // -------------------------------------------------------------
 // Roteador e Renderização de Páginas
@@ -106,6 +145,10 @@ function navigate(route, id = null) {
   topicDetailId = id;
   if (route === "curso") {
     currentCursoTab = id || "perfil";
+  } else if (route === "matricula") {
+    currentProfileTab = "matricula";
+  } else if (route === "registro") {
+    currentProfileTab = "cadastro";
   }
   window.location.hash = id ? `${route}/${id}` : route;
   
@@ -173,17 +216,16 @@ async function renderCurrentView() {
       root.innerHTML = renderHomeHtml();
       setupHomeInteractions();
       break;
+    case "perfil":
+    case "matricula":
     case "registro":
-      root.innerHTML = renderRegistroHtml();
-      await setupRegistroInteractions();
+      root.innerHTML = renderPerfilHtml();
+      await setupPerfilInteractions();
       break;
     case "eleicao":
-      root.innerHTML = renderEleicaoHtml();
-      await setupEleicaoInteractions();
-      break;
     case "urna":
-      root.innerHTML = renderUrnaHtml();
-      await setupUrnaInteractions();
+    case "fundacao":
+      root.innerHTML = renderArquivoHistoricoHtml();
       break;
     case "eventos":
       root.innerHTML = renderEventosHtml();
@@ -192,10 +234,6 @@ async function renderCurrentView() {
     case "shop":
       root.innerHTML = renderShopHtml();
       setupShopInteractions();
-      break;
-    case "fundacao":
-      root.innerHTML = renderFundacaoHtml();
-      setupFundacaoInteractions();
       break;
     case "documentos":
     case "estatutos":
@@ -239,56 +277,100 @@ async function renderCurrentView() {
 // -------------------------------------------------------------
 function renderHomeHtml() {
   return `
-    <section class="section hero">
+    <!-- Barra de Telemetria Industrial ao Vivo (Taste-Skill) -->
+    <div class="container" style="padding-top: 1.5rem;">
+      <div class="telemetry-ticker">
+        <div class="group">
+          <span class="led-dot green" title="Sistema Operacional"></span>
+          <span>SYS.ID: <strong>E(CA)² · UERGS POA</strong></span>
+          <span class="sep">//</span>
+          <span>CAMPUS: <strong>CENTRAL (WASHINGTON LUIZ)</strong></span>
+        </div>
+        <div class="group">
+          <span class="led-dot cyan" title="Malha Sincronizada"></span>
+          <span>MALHA: <strong>FECHADA [FEEDBACK ATIVO]</strong></span>
+          <span class="sep">//</span>
+          <span>CENSO: <strong>${CONFIG.STUDENTS_DATABASE ? CONFIG.STUDENTS_DATABASE.length : 203} DISCENTES</strong></span>
+          <span class="sep">//</span>
+          <span class="led-dot green" title="Gestão Eleita & Ativa"></span>
+          <span>GESTÃO: <strong>ATIVA 2026/2027</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="section hero" style="padding-top: .75rem;">
       <div class="container hero-grid">
         <div>
-          <span class="eyebrow">Engenharia de Controle & Automação · UERGS</span>
-          <h1>Sem feedback <span class="grad-text">não há controle.</span></h1>
-          <p class="slogan">E(CA)² · O Centro Acadêmico construído para e pelos estudantes.</p>
+          <span class="eyebrow"><span class="led-dot cyan"></span> ENGENHARIA DE CONTROLE & AUTOMAÇÃO // UERGS POÁ</span>
+          <h1>Sem feedback não há controle.</h1>
+          <p class="slogan">A plataforma de representação e instrumentação acadêmica.</p>
           <p class="lead">
-            Plataforma oficial de apoio acadêmico, matrizes curriculares dos PPCs, visitas técnicas na indústria, lojinha oficial e representação ativa para calouros ("bichos") e veteranos.
+            Plataforma oficial de apoio discente, matrizes curriculares com comparador de PPCs, planejamento e otimizador de matrícula, visitas técnicas industriais, lojinha do curso e representação discente legítima.
           </p>
-          <div class="row" style="flex-wrap: wrap; gap: .6rem; margin-bottom: 1.5rem;">
-            <a href="#fundacao" class="btn btn-primary" style="box-shadow: 0 0 20px hsl(189 94% 55% / .4);">🌭 Salchipão & Assinaturas (26/10)</a>
-            <a href="#curso" class="btn btn-ghost">🎓 Árvore de Matérias (PPCs)</a>
-            <a href="#eventos" class="btn btn-ghost">📅 Calendário 2026</a>
-            <a href="#shop" class="btn btn-ghost">☕ Lojinha E(CA)²</a>
+          
+          <div class="row" style="flex-wrap: wrap; gap: .65rem; margin-bottom: 1.75rem;">
+            <a href="#perfil" class="btn btn-primary">Meu Perfil & Matrícula</a>
+            <a href="#curso" class="btn btn-ghost">Matrizes PPCs (2019 vs 2024)</a>
+            <a href="#eventos" class="btn btn-ghost">Calendário 2026</a>
+            <a href="#documentos" class="btn btn-ghost">Documentos Oficiais</a>
           </div>
 
-          <!-- Contagem Regressiva para o Salchipão das 18h30 -->
-          <div class="countdown" id="event-countdown" aria-label="Contagem regressiva até o Salchipão de 26/10">
-            <div class="unit"><span class="num" id="cd-days">--</span><span class="lbl">Dias</span></div>
-            <div class="unit"><span class="num" id="cd-hours">--</span><span class="lbl">Horas</span></div>
-            <div class="unit"><span class="num" id="cd-mins">--</span><span class="lbl">Minutos</span></div>
-            <div class="unit"><span class="num" id="cd-secs">--</span><span class="lbl">Segundos</span></div>
-          </div>
-          <div class="event-meta">
-            <span>📅 Segunda-feira · 26 de Outubro · <strong>18:30 às 19:15</strong></span>
-            <span>📍 Refeitório da UERGS · Salchipão dos Estudantes & Coleta de Assinaturas</span>
+          <!-- Chassi de Status e Integralização Curricular -->
+          <div class="countdown-chassis tech-frame" id="event-countdown-container">
+            <div class="row" style="justify-content: space-between; align-items: center; margin-bottom: .85rem; flex-wrap: wrap; gap: .5rem;">
+              <span class="badge cyan" style="font-family: var(--font-mono);"><span class="led-dot green"></span> SIMULADOR DE MATRÍCULA ATIVO</span>
+              <span class="small muted" style="font-family: var(--font-mono);">UERGS // CAMPUS POA</span>
+            </div>
+            <div class="grid grid-3" style="gap: .75rem; text-align: center;">
+              <div style="background: hsl(222 35% 8% / .6); padding: .75rem; border-radius: 6px; border: 1px solid var(--border);">
+                <div style="font-size: 1.25rem; font-weight: 700; color: var(--cyan); font-family: var(--font-mono);">4.015h</div>
+                <div class="faint" style="font-size: .7rem; font-family: var(--font-mono);">PPC 2024 VIGENTE</div>
+              </div>
+              <div style="background: hsl(222 35% 8% / .6); padding: .75rem; border-radius: 6px; border: 1px solid var(--border);">
+                <div style="font-size: 1.25rem; font-weight: 700; color: var(--green); font-family: var(--font-mono);">410h</div>
+                <div class="faint" style="font-size: .7rem; font-family: var(--font-mono);">EXTENSÃO OBRIGATÓRIA</div>
+              </div>
+              <div style="background: hsl(222 35% 8% / .6); padding: .75rem; border-radius: 6px; border: 1px solid var(--border);">
+                <div style="font-size: 1.25rem; font-weight: 700; color: var(--amber); font-family: var(--font-mono);">10 MÓDULOS</div>
+                <div class="faint" style="font-size: .7rem; font-family: var(--font-mono);">GRADE INTEGRALIZADA</div>
+              </div>
+            </div>
+            <div class="event-meta" style="margin-top: .85rem; border-top: 1px dashed var(--border); padding-top: .65rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .5rem;">
+              <span class="small muted">Importe seu histórico e planeje sua próxima matrícula sem trancar matérias.</span>
+              <a href="#perfil" class="btn btn-ghost btn-sm" style="font-family: var(--font-mono);">Acessar Meu Perfil ↗</a>
+            </div>
           </div>
         </div>
 
-        <!-- Painel Visual com Imagem Real dos Estudantes no Lab -->
+        <!-- Painel Lateral: Imagem de Bancada & Diagrama de Feedback -->
         <div class="stack" style="gap: 1.25rem;">
-          <div class="card hover" style="padding: 0; overflow: hidden; border: 1px solid var(--border-strong);">
+          <div class="tech-frame" style="overflow: hidden; border: 1px solid var(--border-strong);">
             <div style="position: relative;">
               <img src="img/hero_estudantes.jpg" alt="Estudantes de Engenharia de Controle e Automação no Laboratório UERGS" style="width: 100%; height: 260px; object-fit: cover; display: block;">
-              <div style="position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, hsl(224 50% 6% / .95) 100%);"></div>
-              <span class="badge cyan" style="position: absolute; top: 14px; left: 14px; backdrop-filter: blur(8px);">Laboratório de Automação & Robótica</span>
+              <div style="position: absolute; inset: 0; background: linear-gradient(180deg, transparent 35%, hsl(224 50% 6% / .95) 100%) /* taste-skill-ignore */;"></div>
+              <span class="badge cyan" style="position: absolute; top: 14px; left: 14px; backdrop-filter: blur(10px);">
+                <span class="led-dot green"></span> LAB DE CONTROLE & AUTOMAÇÃO
+              </span>
             </div>
-            <div style="padding: 1.25rem 1.5rem 1.5rem;">
-              <h3 style="font-size: 1.15rem; margin-bottom: .3rem;">Construído por e para estudantes</h3>
+            <div style="padding: 1.2rem 1.4rem 1.35rem;">
+              <div class="row" style="justify-content: space-between; align-items: center; margin-bottom: .25rem;">
+                <h3 style="font-size: 1.15rem; margin: 0;">Construído por e para estudantes</h3>
+                <span style="font-family: var(--font-mono); font-size: .72rem; color: var(--cyan);">LAB 01</span>
+              </div>
               <p class="muted small" style="margin: 0;">
-                Da bancada de ensaios e CLPs até as conversas com a coordenação: o E(CA)² é a nossa plataforma ativa no campus.
+                Da bancada de ensaios com CLPs até a assembleia geral: o E(CA)² é a nossa plataforma ativa no campus central.
               </p>
             </div>
           </div>
 
-          <!-- Diagrama de Malha Fechada Interativo Compacto -->
-          <div class="card loop-card" style="padding: 1.25rem 1.5rem;">
-            <div class="row" style="margin-bottom: .6rem; justify-content: space-between;">
-              <span class="small" style="font-family: var(--font-mono); color: var(--cyan); font-weight: 600;">MALHA DE FEEDBACK DO CURSO</span>
-              <span class="badge amber" style="font-size: .7rem;">Ativa</span>
+          <!-- Diagrama de Malha Fechada com Graticule -->
+          <div class="card loop-card tech-frame">
+            <div class="row" style="margin-bottom: .75rem; justify-content: space-between; align-items: center;">
+              <span class="small" style="font-family: var(--font-mono); color: var(--cyan); font-weight: 700; display: inline-flex; align-items: center; gap: .4rem;">
+                <span class="led-dot cyan"></span> MALHA DE REALIMENTAÇÃO DO CURSO
+              </span>
+              <span class="badge amber" style="font-size: .68rem;">SINAL ESTÁVEL</span>
             </div>
             <svg class="loop-svg" viewBox="0 0 540 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagrama de Malha de Controle do E(CA)²">
               <defs>
@@ -310,101 +392,139 @@ function renderHomeHtml() {
               <text x="240" y="82" class="sub">Controlador</text>
               <rect x="360" y="45" width="120" height="50" rx="8" class="blk plant" />
               <text x="420" y="68">O Curso</text>
-              <text x="420" y="82" class="sub">Planta / Alunos</text>
-              <text x="310" y="180" class="sub">Feedback contínuo dos estudantes 🔁</text>
+              <text x="420" y="82" class="sub">Planta / Discentes</text>
+              <text x="310" y="180" class="sub">Realimentação contínua da comunidade acadêmica</text>
             </svg>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Central de Utilidades para Bichos e Veteranos -->
+    <!-- Módulos de Instrumentação de Bancada (Taste-Skill Mod Cards) -->
     <section class="section" style="padding-top: 1rem;">
       <div class="container">
         <div class="section-head">
-          <span class="eyebrow">Ferramentas & Vida Acadêmica</span>
-          <h2>A Plataforma do Estudante de Controle & Automação</h2>
-          <p>Tudo o que calouros e veteranos precisam para navegar no curso sem trancar disciplinas e aproveitar oportunidades.</p>
+          <span class="eyebrow"><span class="led-dot cyan"></span> MÓDULOS DE SUPORTE ACADÊMICO</span>
+          <h2>Instrumentação para Calouros & Veteranos</h2>
+          <p>Tudo o que você precisa para navegar no curso, acompanhar dependências de matrícula e participar das decisões.</p>
         </div>
 
-        <div class="grid grid-4" style="margin-bottom: 3rem;">
-          <a href="#curso" class="card hover" style="text-decoration: none; color: inherit; display: block;">
-            <div class="icon">🗺️</div>
-            <h3 style="font-size: 1.15rem; margin-bottom: .35rem;">Árvores de PPCs</h3>
-            <p class="muted small" style="margin: 0;">
-              Visualize a cadeia de dependências entre PPC 2019 e 2024. Saiba exatamente o que tranca o que antes da matrícula.
+        <div class="grid grid-4" style="margin-bottom: 3.5rem;">
+          <a href="#curso" class="mod-card">
+            <div class="mod-head">
+              <span class="channel-id"><span class="led-dot cyan"></span> MÓDULO 01 · CURRÍCULO</span>
+              <span class="channel-tag">REV 003</span>
+            </div>
+            <h3>Árvores de PPCs</h3>
+            <p>
+              Cadeia de dependências entre o PPC 2019 e 2024. Saiba exatamente o que tranca o que antes de enviar a rematrícula.
             </p>
+            <div class="mod-footer">
+              <span>STATUS: 4.015h</span>
+              <span class="action-hint">EXPLORAR &rarr;</span>
+            </div>
           </a>
 
-          <a href="#eventos" class="card hover" style="text-decoration: none; color: inherit; display: block;">
-            <div class="icon">📅</div>
-            <h3 style="font-size: 1.15rem; margin-bottom: .35rem;">Calendário 2026</h3>
-            <p class="muted small" style="margin: 0;">
-              Salchipão inaugural (26/10), visitas técnicas industriais com robôs e minicursos práticos de CLP com certificados.
+          <a href="#eventos" class="mod-card">
+            <div class="mod-head">
+              <span class="channel-id"><span class="led-dot amber"></span> MÓDULO 02 · CALENDÁRIO</span>
+              <span class="channel-tag">EVENTO 26/10</span>
+            </div>
+            <h3>Calendário 2026</h3>
+            <p>
+              Salchipão inaugural (26/10), visitas técnicas no Polo Petroquímico e minicursos práticos de CLP com emissão de certificados.
             </p>
+            <div class="mod-footer">
+              <span>CALENDÁRIO: ATIVO</span>
+              <span class="action-hint">VER AGENDA &rarr;</span>
+            </div>
           </a>
 
-          <a href="#shop" class="card hover" style="text-decoration: none; color: inherit; display: block;">
-            <div class="icon">☕</div>
-            <h3 style="font-size: 1.15rem; margin-bottom: .35rem;">Lojinha & Vestuário</h3>
-            <p class="muted small" style="margin: 0;">
-              Copos térmicos gravados a laser, moletons oficiais, canecas de laboratório e kits didáticos para estudantes.
+          <a href="#shop" class="mod-card">
+            <div class="mod-head">
+              <span class="channel-id"><span class="led-dot green"></span> MÓDULO 03 · LOJINHA</span>
+              <span class="channel-tag">OFICIAL</span>
+            </div>
+            <h3>Lojinha & Vestuário</h3>
+            <p>
+              Copos térmicos gravados a laser, moletons oficiais do curso, canecas para o lab e kits didáticos para estudantes.
             </p>
+            <div class="mod-footer">
+              <span>ESTOQUE: PRONTO</span>
+              <span class="action-hint">VER ITENS &rarr;</span>
+            </div>
           </a>
 
-          <a href="#mural" class="card hover" style="text-decoration: none; color: inherit; display: block;">
-            <div class="icon">💡</div>
-            <h3 style="font-size: 1.15rem; margin-bottom: .35rem;">Mural de Oportunidades</h3>
-            <p class="muted small" style="margin: 0;">
-              Vagas de estágio em Porto Alegre e Região, bolsas de iniciação científica e espaço para sugerir melhorias no curso.
+          <a href="#mural" class="mod-card">
+            <div class="mod-head">
+              <span class="channel-id"><span class="led-dot cyan"></span> MÓDULO 04 · OPORTUNIDADES</span>
+              <span class="channel-tag">CREA-RS</span>
+            </div>
+            <h3>Mural de Oportunidades</h3>
+            <p>
+              Vagas de estágio na Grande Porto Alegre, bolsas de IC, editais de monitoria e canal aberto de sugestões para a coordenação.
             </p>
+            <div class="mod-footer">
+              <span>CANAL: ABERTO</span>
+              <span class="action-hint">ACESSAR &rarr;</span>
+            </div>
           </a>
         </div>
       </div>
     </section>
 
-    <!-- Destaque Especial: Salchipão 26/10 -->
+    <!-- Destaque: Simulador Curricular & Otimizador de Matrícula -->
     <section class="section" style="padding-top: 0;">
       <div class="container">
-        <div class="card" style="padding: 2.5rem; background: linear-gradient(135deg, hsl(220 40% 14% / .85), hsl(190 70% 15% / .5)); border: 2px solid var(--cyan); box-shadow: 0 10px 30px -10px hsl(189 94% 55% / .3);">
-          <div class="row" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
-            <div style="max-width: 620px;">
-              <span class="badge amber" style="margin-bottom: .5rem;">Primeiro Grande Evento do Semestre</span>
-              <h2 style="font-size: 1.85rem; margin: 0 0 .5rem;">🌭 Salchipão de Confraternização & Coleta de Assinaturas</h2>
-              <p class="muted" style="line-height: 1.6; margin: 0 0 .75rem;">
-                <strong>Segunda-feira · 26 de Outubro · Das 18:30 às 19:15 · Refeitório da UERGS.</strong><br>
-                Distribuição gratuita de salchipães para todos os estudantes de Engenharia de Controle e Automação. Basta assinar a lista de presença da fundação do E(CA)², retirar seu pão e aproveitar o espaço para conversar com colegas de todos os semestres. Total liberdade para confraternizar no refeitório ou levar seu lanche!
+        <div class="tech-frame" style="padding: 2.25rem 2.5rem; background: var(--surface); border: 1px solid var(--border-strong);">
+          <div class="row" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.75rem;">
+            <div style="max-width: 640px;">
+              <div class="row" style="gap: .6rem; margin-bottom: .6rem;">
+                <span class="badge cyan"><span class="led-dot green"></span> FERRAMENTA ACADÊMICA DISCENTE</span>
+                <span class="badge amber">INTEGRALIZAÇÃO & PPC</span>
+              </div>
+              <h2 style="font-size: 1.85rem; margin: 0 0 .6rem;">Simulador Curricular & Otimizador de Matrícula</h2>
+              <p class="muted" style="line-height: 1.6; margin: 0 0 .85rem;">
+                Entre no seu perfil, cole seu histórico do Portal da UERGS e nosso sistema reconhecerá automaticamente seu <strong>PPC (2019 ou 2024)</strong> e todas as <strong>cadeiras aprovadas</strong>. Cruze seu progresso com as disciplinas ofertadas pela ADM no próximo semestre para escolher a melhor grade sem trancar pré-requisitos!
               </p>
-              <span class="small" style="color: var(--cyan);">✓ Demonstração do site nos celulares com simulador de Urna Eletrônica e Árvore Curricular.</span>
+              <div style="font-family: var(--font-mono); font-size: .8rem; color: var(--cyan); display: flex; align-items: center; gap: .5rem;">
+                <span class="led-dot cyan"></span>
+                <span>Análise de gargalos em tempo real · Cálculo de % de formatura · Oferta do semestre sincronizada</span>
+              </div>
             </div>
-            <div class="stack" style="gap: .75rem; min-width: 220px;">
-              <a href="#fundacao" class="btn btn-primary" style="text-align: center;">Confirmar Presença (RSVP) 🌭</a>
-              <a href="#eleicao" class="btn btn-ghost" style="text-align: center;">Ver Cédula & Urna Digital 🗳️</a>
+            <div class="stack" style="gap: .75rem; min-width: 230px;">
+              <a href="#perfil" class="btn btn-primary" style="text-align: center; width: 100%;">Acessar Meu Perfil</a>
+              <a href="#curso/arvore" class="btn btn-ghost" style="text-align: center; width: 100%;">Mapa de Dependências (CAD)</a>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Princípios Básicos -->
+    <!-- Princípios Básicos em Módulos -->
     <section class="section">
       <div class="container">
         <div class="section-head">
-          <span class="eyebrow">Nossos Pilares</span>
-          <h2>Um CA feito de forma correta e sem donos</h2>
-          <p>Transparência total, sem partidarismo e com participação aberta a cada semestre.</p>
+          <span class="eyebrow"><span class="led-dot cyan"></span> DIRETRIZES DE GOVERNANÇA</span>
+          <h2>Um Centro Acadêmico Feito com Rigor Técnico</h2>
+          <p>Transparência total, sem partidarismo político e com participação direta de cada semestre do curso.</p>
         </div>
 
         <div class="grid grid-4">
-          ${PRINCIPIOS.map(p => `
-            <div class="card hover">
-              <div class="icon">${p.icone}</div>
+          ${PRINCIPIOS.map((p, idx) => `
+            <div class="mod-card">
+              <div class="mod-head">
+                <span class="channel-id">PILAR-0${idx + 1}</span>
+                <span class="channel-tag">ESTATUTO</span>
+              </div>
+              <div style="font-size: 1.8rem; margin-bottom: .6rem;">${p.icone}</div>
               <h3>${p.titulo}</h3>
-              <p class="muted small">${p.texto}</p>
+              <p>${p.texto}</p>
             </div>
           `).join("")}
         </div>
       </div>
+    </section>
   `;
 }
 
@@ -436,1055 +556,791 @@ function updateCountdown() {
 }
 
 // -------------------------------------------------------------
-// VISTA: CADASTRO GERAL DE ALUNOS (REGISTRO ESTUDANTIL)
+// VISTA: PERFIL DO ESTUDANTE & SIMULADOR DE MATRÍCULA
 // -------------------------------------------------------------
-function renderRegistroHtml() {
+function renderPerfilHtml() {
   const auth = getAuth();
   const prof = auth.profile || {};
   const isLogged = !!auth.user;
+  const displayName = prof.display_name || (auth.user ? auth.user.email.split("@")[0] : "Estudante");
 
   return `
-    <section class="section">
-      <div class="container" style="max-width: 860px;">
-        <div class="section-head">
-          <span class="eyebrow">Censo & Associação Estudantil</span>
-          <h2>Cadastro Oficial de Estudantes · E(CA)²</h2>
-          <p>
-            O objetivo é registrar <strong>o máximo de alunos possível</strong> do curso de Engenharia de Controle e Automação da UERGS.
-            Com seu registro, o CA fortalece a representatividade do curso, identifica demandas de cada semestre e cria um canal direto para vagas de estágio, materiais e visitas técnicas.
-          </p>
-        </div>
-
-        <div class="card" style="border-left: 4px solid var(--cyan); margin-bottom: 2rem; background: hsl(189 94% 55% / .08);">
-          <div class="row">
-            <span style="font-size: 1.5rem;">🎓</span>
-            <div>
-              <strong>Habilitação de Voto para a Assembleia:</strong>
-              <p class="small muted" style="margin: .2rem 0 0;">
-                Se o seu e-mail não estiver na listagem inicial dos 235 alunos pré-cadastrados, este formulário homologa seu vínculo como estudante de <strong>Engenharia de Controle e Automação</strong> e habilita seu voto na cédula e na urna eletrônica!
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div class="grid grid-2" style="align-items: start; margin-bottom: 2.5rem;">
-          <!-- Formulário Principal -->
-          <div class="card" style="padding: 2rem;">
-            <h3>📝 Ficha de Registro Estudantil</h3>
-            <p class="muted small" style="margin-bottom: 1.5rem;">
-              ${isLogged ? `Você está conectado como <strong>${escapeHtml(auth.user.email)}</strong>. Revise ou atualize seus dados:` : `Cadastre-se para se conectar à comunidade do curso e ter voz ativa no portal:`}
-            </p>
-
-            <form id="form-registro-aluno" class="form">
-              <div class="field">
-                <label for="reg-nome">Nome Completo *</label>
-                <input type="text" id="reg-nome" name="display_name" required value="${escapeHtml(prof.display_name || '')}" placeholder="Seu nome completo">
+    <section class="section" style="padding-top: 1.5rem;">
+      <div class="container" style="max-width: 1060px;">
+        <!-- Header do Terminal Estudantil (Taste-Skill Tech Frame) -->
+        <div class="tech-frame" style="padding: 1.75rem 2rem; margin-bottom: 2rem; background: var(--surface); border: 1px solid var(--border-strong);">
+          <div class="row" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.25rem;">
+            <div style="display: flex; align-items: center; gap: 1.25rem;">
+              <div style="width: 58px; height: 58px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--cyan); font-family: var(--font-mono); font-size: 1.1rem;">ECA</div>
+              <div>
+                <div class="row" style="gap: .5rem; align-items: center; margin-bottom: .25rem;">
+                  <span class="badge cyan" style="font-family: var(--font-mono);">${isLogged ? 'DISCENTE IDENTIFICADO' : 'MODO SIMULAÇÃO ABERTO'}</span>
+                  ${prof.registration ? `<span class="badge" style="background: hsl(222 25% 18%); font-family: var(--font-mono);">MATRÍCULA: ${escapeHtml(prof.registration)}</span>` : ''}
+                  <span class="badge green" id="badge-ppc-header">PPC 2024 VIGENTE</span>
+                </div>
+                <h1 style="font-size: 1.6rem; margin: 0; color: var(--text); font-family: var(--font-head);">${escapeHtml(displayName)}</h1>
+                <div class="small muted" style="margin-top: .2rem; font-family: var(--font-mono);">
+                  ${auth.user ? escapeHtml(auth.user.email) : "Acesse com seu e-mail institucional para sincronizar seus dados permanentemente."} · <strong>${escapeHtml(prof.semester || "Semestre não informado")}</strong>
+                </div>
               </div>
+            </div>
 
+            <div class="row" style="gap: .6rem; flex-wrap: wrap;">
               ${!isLogged ? `
-                <div class="field">
-                  <label for="reg-email">E-mail para Acesso *</label>
-                  <input type="email" id="reg-email" name="email" required placeholder="seu.email@uergs.edu.br ou pessoal">
-                  <span class="hint">Usado para identificação segura no portal.</span>
-                </div>
-              ` : ''}
-
-              <div class="grid grid-2">
-                <div class="field">
-                  <label for="reg-semestre">Semestre Atual *</label>
-                  <select id="reg-semestre" name="semester" required>
-                    <option value="">Selecione...</option>
-                    <option value="1º semestre" ${prof.semester === '1º semestre' ? 'selected' : ''}>1º semestre (Calouro)</option>
-                    <option value="2º semestre" ${prof.semester === '2º semestre' ? 'selected' : ''}>2º semestre</option>
-                    <option value="3º semestre" ${prof.semester === '3º semestre' ? 'selected' : ''}>3º semestre</option>
-                    <option value="4º semestre" ${prof.semester === '4º semestre' ? 'selected' : ''}>4º semestre</option>
-                    <option value="5º semestre" ${prof.semester === '5º semestre' ? 'selected' : ''}>5º semestre</option>
-                    <option value="6º semestre" ${prof.semester === '6º semestre' ? 'selected' : ''}>6º semestre</option>
-                    <option value="7º semestre" ${prof.semester === '7º semestre' ? 'selected' : ''}>7º semestre</option>
-                    <option value="8º semestre" ${prof.semester === '8º semestre' ? 'selected' : ''}>8º semestre</option>
-                    <option value="9º semestre" ${prof.semester === '9º semestre' ? 'selected' : ''}>9º semestre</option>
-                    <option value="10º semestre" ${prof.semester === '10º semestre' ? 'selected' : ''}>10º semestre (Formando)</option>
-                    <option value="Irregular / TCC" ${prof.semester === 'Irregular / TCC' ? 'selected' : ''}>Grade livre / TCC</option>
-                  </select>
-                </div>
-
-                <div class="field">
-                  <label for="reg-matricula">Matrícula UERGS</label>
-                  <input type="text" id="reg-matricula" name="registration" value="${escapeHtml(prof.registration || '')}" placeholder="Opcional / Privado">
-                </div>
-              </div>
-
-              <div class="field">
-                <label for="reg-whatsapp">WhatsApp para Avisos</label>
-                <input type="text" id="reg-whatsapp" name="whatsapp" value="${escapeHtml(prof.whatsapp || '')}" placeholder="(51) 99999-9999 (Opcional)">
-                <span class="hint">Apenas para convites de eventos e comunidade oficial.</span>
-              </div>
-
-              <div class="field">
-                <label for="reg-interesses">Áreas de Maior Interesse no Curso</label>
-                <input type="text" id="reg-interesses" name="interests" value="${escapeHtml(prof.interests || '')}" placeholder="Ex: Robótica, CLP, Sistemas Supervisórios, IoT, Visão Computacional">
-              </div>
-
-              <div class="field" style="margin-top: .5rem;">
-                <label style="display: flex; gap: .6rem; align-items: start; cursor: pointer;">
-                  <input type="checkbox" id="reg-comprova-eca" name="comprova_eca" checked required style="margin-top: .25rem;">
-                  <span class="small" style="color: var(--cyan); font-weight: 500;">
-                    Declaro e comprovo matrícula ativa no curso de <strong>Engenharia de Controle e Automação</strong> da UERGS. *
-                  </span>
-                </label>
-              </div>
-
-              <div class="field" style="margin-top: .35rem;">
-                <label style="display: flex; gap: .6rem; align-items: start; cursor: pointer;">
-                  <input type="checkbox" id="reg-comissao" name="commission_interest" ${prof.commission_interest ? 'checked' : ''} style="margin-top: .25rem;">
-                  <span class="small" style="color: var(--muted);">
-                    Tenho interesse em colaborar com a <strong>Comissão Pró-CA E(CA)²</strong> (estatuto, palestras, comunicação ou eventos).
-                  </span>
-                </label>
-              </div>
-
-              <div class="field" style="margin-top: .5rem; padding: .8rem; border-radius: var(--radius-sm); background: hsl(220 40% 12% / .6); border: 1px solid var(--border);">
-                <p class="small muted" style="margin: 0; font-size: .8rem; line-height: 1.5;">
-                  🔒 <strong>Garantia de Privacidade & LGPD:</strong> Seus dados de contato e matrícula são confidenciais, usados unicamente para fins associativos discentes e nunca compartilhados com terceiros. <button type="button" class="btn-open-lgpd-modal" style="background: none; border: none; color: var(--cyan); text-decoration: underline; cursor: pointer; padding: 0; font-size: .8rem; font-family: inherit;">Ver Política de Privacidade (Lei 13.709/18)</button>.
-                </p>
-              </div>
-
-              <button type="submit" class="btn btn-primary" id="btn-submit-registro" style="margin-top: .5rem;">
-                ${isLogged ? 'Atualizar Meu Cadastro' : 'Finalizar Registro de Estudante'}
-              </button>
-            </form>
-          </div>
-
-          <!-- Painel Lateral: Por que se registrar? -->
-          <div class="stack" style="gap: 1.25rem;">
-            <div class="card">
-              <div class="icon">🎯</div>
-              <h3>Por que todos devem se cadastrar?</h3>
-              <ul class="muted small" style="padding-left: 1.1rem; line-height: 1.7; margin-bottom: 0;">
-                <li><strong>Representatividade Real:</strong> Quanto maior o número de registros, maior a legitimidade do CA perante a universidade.</li>
-                <li><strong>Oportunidades em 1ª mão:</strong> Vagas de estágio na Grande Porto Alegre filtradas para automação.</li>
-                <li><strong>Direito a Voto:</strong> Participação garantida nas consultas públicas do estatuto e na eleição da primeira diretoria.</li>
-                <li><strong>100% Gratuito:</strong> Livre associação garantida pela Constituição e Lei 7.395/1985.</li>
-              </ul>
-            </div>
-
-            <!-- Resumo do Censo em Tempo Real -->
-            <div class="card" id="censo-stats-card">
-              <span class="eyebrow" style="margin-bottom: .25rem;">Métricas do Curso</span>
-              <h3 style="margin-bottom: .75rem;">Estudantes no Portal</h3>
-              <div id="censo-stats-content">
-                <div class="skeleton" style="height: 60px;"></div>
-              </div>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-perfil-login">
+                  Entrar com E-mail
+                </button>
+              ` : `
+                <button type="button" class="btn btn-ghost btn-sm" id="btn-perfil-logout" style="color: var(--muted); font-family: var(--font-mono);">
+                  Desconectar
+                </button>
+              `}
             </div>
           </div>
+        </div>
+
+        <!-- Abas do Perfil Acadêmico -->
+        <nav class="academic-tabs" aria-label="Abas do perfil estudantil">
+          <button type="button" class="academic-tab-btn ${currentProfileTab === 'historico' ? 'active' : ''}" data-ptab="historico">
+            Meu Histórico & Integralização
+          </button>
+          <button type="button" class="academic-tab-btn ${currentProfileTab === 'matricula' ? 'active' : ''}" data-ptab="matricula">
+            Simulador de Matrícula (Oferta 2026/1)
+          </button>
+          <button type="button" class="academic-tab-btn ${currentProfileTab === 'cadastro' ? 'active' : ''}" data-ptab="cadastro">
+            Ficha Cadastral
+          </button>
+        </nav>
+
+        <!-- Conteúdo Dinâmico das Abas -->
+        <div id="perfil-tab-content">
+          <div class="skeleton" style="height: 350px;"></div>
         </div>
       </div>
     </section>
   `;
 }
 
-async function setupRegistroInteractions() {
-  const form = document.getElementById("form-registro-aluno");
-  const statsEl = document.getElementById("censo-stats-content");
+const renderRegistroHtml = renderPerfilHtml;
+const setupRegistroInteractions = setupPerfilInteractions;
 
-  // Carrega métricas agregadas do censo
+async function setupPerfilInteractions() {
+  const container = document.getElementById("perfil-tab-content");
+  if (!container) return;
+
+  // Botões de autenticação do perfil
+  document.getElementById("btn-perfil-login")?.addEventListener("click", () => {
+    document.getElementById("dlg-login")?.showModal();
+  });
+  document.getElementById("btn-perfil-logout")?.addEventListener("click", async () => {
+    await store.signOut();
+    showToast("Você foi desconectado.");
+    navigate("inicio");
+  });
+
+  // Carrega dados acadêmicos do aluno e matriz de ofertas
+  let academic = { ppc: "2024", completedCodes: [], transcriptRawText: "", plannedCodes: [] };
+  let offerings = { semester: "2026/1", courses: [] };
+
   try {
-    const summary = await store.listStudentsSummary();
-    if (statsEl) {
-      statsEl.innerHTML = `
-        <div class="stat" style="text-align: left; padding: 0; margin-bottom: 1rem;">
-          <div class="val grad-text">${summary.total}</div>
-          <div class="lbl">Alunos registrados no portal</div>
-        </div>
-        <p class="small muted" style="margin: 0;">
-          Meta até a assembleia de 26/10: <strong>engajar todos os semestres ativos</strong> do campus Porto Alegre.
-        </p>
-      `;
+    const loadedAc = await store.academic.get();
+    if (loadedAc && typeof loadedAc === "object") {
+      academic = { ...academic, ...loadedAc };
     }
-  } catch {
-    if (statsEl) statsEl.innerHTML = `<p class="small muted">Mapeando estudantes...</p>`;
+  } catch { /* demo fallback */ }
+
+  academic.ppc = academic.ppc || "2024";
+  academic.completedCodes = Array.isArray(academic.completedCodes) ? academic.completedCodes : [];
+  academic.plannedCodes = Array.isArray(academic.plannedCodes) ? academic.plannedCodes : [];
+  academic.transcriptRawText = typeof academic.transcriptRawText === "string" ? academic.transcriptRawText : "";
+
+  try {
+    const loadedOff = await store.offerings.get();
+    if (loadedOff && typeof loadedOff === "object") {
+      offerings = { ...offerings, ...loadedOff };
+    }
+  } catch { /* demo fallback */ }
+  offerings.courses = Array.isArray(offerings.courses) ? offerings.courses : [];
+
+  // Função interna para renderizar a aba ativa
+  async function renderTab() {
+    document.querySelectorAll(".academic-tab-btn").forEach(btn => {
+      if (btn.getAttribute("data-ptab") === currentProfileTab) btn.classList.add("active");
+      else btn.classList.remove("active");
+    });
+
+    // Atualiza badge de PPC no header
+    const ppcBadge = document.getElementById("badge-ppc-header");
+    if (ppcBadge) {
+      ppcBadge.textContent = academic.ppc === "2019" ? "PPC 2019 HISTÓRICO" : "PPC 2024 VIGENTE";
+      ppcBadge.className = academic.ppc === "2019" ? "badge amber" : "badge green";
+    }
+
+    if (currentProfileTab === "historico") {
+      renderTabHistorico();
+    } else if (currentProfileTab === "matricula") {
+      renderTabMatricula();
+    } else {
+      renderTabCadastro();
+    }
   }
 
-  form?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById("btn-submit-registro");
+  // -----------------------------------------------------------------
+  // ABA 1: MEU HISTÓRICO & INTEGRALIZAÇÃO
+  // -----------------------------------------------------------------
+  function renderTabHistorico() {
+    const metrics = getAcademicMetrics(academic.ppc, academic.completedCodes);
+    const ppcData = ARVORES_PPC[academic.ppc] || ARVORES_PPC["2024"];
 
-    const display_name = form.display_name.value.trim();
-    const email = form.email ? form.email.value.trim() : null;
-    const semester = form.semester.value;
-    const registration = form.registration ? form.registration.value.trim() : "";
-    const whatsapp = form.whatsapp ? form.whatsapp.value.trim() : "";
-    const interests = form.interests ? form.interests.value.trim() : "";
-    const commission_interest = form.commission_interest ? form.commission_interest.checked : false;
-
-    if (form.comprova_eca && !form.comprova_eca.checked) {
-      showToast("É obrigatório comprovar/declarar vínculo com o curso de Engenharia de Controle e Automação.", true);
-      return;
-    }
-
-    if (!display_name || !semester) {
-      showToast("Preencha nome completo e semestre.", true);
-      return;
-    }
-
-    try {
-      if (btn) btn.disabled = true;
-      const resp = await store.registerStudent({
-        display_name,
-        email,
-        semester,
-        registration,
-        whatsapp,
-        interests,
-        commission_interest,
-      });
-
-      showToast(resp || "Cadastro de estudante concluído com sucesso! 🎉");
-      navigate("registro");
-    } catch (err) {
-      showToast(err.message || "Erro ao salvar cadastro.", true);
-    } finally {
-      if (btn) btn.disabled = false;
-    }
-  });
-}
-
-// -------------------------------------------------------------
-// VISTA: VOTAÇÃO OFICIAL DA ASSEMBLEIA (CÉDULA ELETRÔNICA)
-// -------------------------------------------------------------
-function renderEleicaoHtml() {
-  const auth = getAuth();
-  const isLogged = !!auth.user;
-  const currentUrl = window.location.href.split('#')[0] + "#eleicao";
-
-  return `
-    <section class="section">
-      <div class="container" style="max-width: 900px;">
-        <div class="section-head">
-          <span class="eyebrow">Assembleia Geral de Fundação · 26/10/2026</span>
-          <h2>Cédula de Votação da Assembleia do E(CA)²</h2>
-          <p>
-            Votação oficial para deliberação da fundação e aclamação da <strong>Comissão Pró-CA Transitória</strong>.
-            Apenas estudantes cadastrados participam da contagem.
-          </p>
+    container.innerHTML = `
+      <!-- Métricas Principais (4 Cards) -->
+      <div class="grid grid-4" style="gap: 1rem; margin-bottom: 1.5rem;">
+        <div class="card" style="padding: 1.15rem; background: hsl(222 35% 8% / .8); border: 1px solid var(--border);">
+          <span class="eyebrow" style="margin-bottom: .25rem;">Currículo Identificado</span>
+          <div style="font-size: 1.45rem; font-weight: 700; color: var(--cyan); font-family: var(--font-head); margin-bottom: .25rem;">
+            PPC ${academic.ppc}
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-toggle-ppc-user" style="padding: .15rem .45rem; font-size: .75rem; font-family: var(--font-mono);">
+            Mudar para PPC ${academic.ppc === "2024" ? "2019" : "2024"}
+          </button>
         </div>
 
-        <!-- Alerta de Identificação -->
-        ${!isLogged ? `
-          <div class="card" style="border-left: 4px solid var(--amber); margin-bottom: 2rem; background: hsl(35 100% 58% / .08);">
-            <div class="row">
-              <span style="font-size: 1.6rem;">⚠️</span>
-              <div>
-                <strong style="color: var(--amber);">Você ainda não se identificou:</strong>
-                <p class="small muted" style="margin: .2rem 0 0;">
-                  Para votar nesta cédula, você precisa estar cadastrado. Caso tenha preenchido o Google Forms ou a lista do Salchipão, acesse com seu e-mail para validar seu voto único.
-                </p>
-              </div>
-              <button type="button" class="btn btn-primary btn-sm spacer" id="btn-eleicao-login" style="margin-left: auto;">
-                Identificar-se / Registrar
-              </button>
-            </div>
+        <div class="card" style="padding: 1.15rem; background: hsl(222 35% 8% / .8); border: 1px solid hsl(152 68% 52% / .3);">
+          <span class="eyebrow" style="margin-bottom: .25rem; color: var(--green);">Cadeiras Aprovadas</span>
+          <div style="font-size: 1.6rem; font-weight: 700; color: var(--green); font-family: var(--font-mono);">
+            ${metrics.passedDisciplines} <span class="muted" style="font-size: .95rem;">/ ${metrics.totalDisciplines}</span>
           </div>
-        ` : `
-          <div class="card" style="border-left: 4px solid var(--cyan); margin-bottom: 2rem; background: hsl(189 94% 55% / .08);">
-            <div class="row">
-              <span style="font-size: 1.4rem;">✅</span>
-              <div>
-                <strong>Eleitor identificado:</strong> <span style="color: var(--cyan);">${escapeHtml(auth.profile?.display_name || auth.user.email)}</span>
-                ${auth.profile?.semester ? `(${escapeHtml(auth.profile.semester)})` : ''}
-                <div class="small muted">Voto único auditável garantido.</div>
-              </div>
-            </div>
-          </div>
-        `}
+          <span class="small muted">${metrics.remainingDisciplines} disciplinas restantes</span>
+        </div>
 
-        <!-- Banner de Acesso à Cabine / Urna Eleitoral -->
-        <div class="card hover" style="background: linear-gradient(135deg, hsl(220 40% 12% / .9) 0%, hsl(222 45% 8% / .9) 100%); border: 2px solid var(--cyan); margin-bottom: 2.25rem; box-shadow: 0 10px 30px -10px hsl(189 94% 55% / .3); padding: 1.5rem 1.75rem;">
-          <div class="row" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.25rem;">
-            <div style="max-width: 580px;">
-              <span class="badge green" style="margin-bottom: .35rem;">Cabine Eletrônica Interativa</span>
-              <h3 style="margin: 0; font-size: 1.35rem;">Simulador de Urna Eleitoral do E(CA)²</h3>
-              <p class="small muted" style="margin: .35rem 0 0; line-height: 1.6;">
-                Prefere votar com a interface de urna eletrônica? Acesse a cabine digital com tela de deliberação, botões físicos <strong style="color: #22c55e;">SIM (Verde)</strong>, <strong style="color: #ef4444;">NÃO (Vermelho)</strong> e <strong>BRANCO</strong>, com áudio oficial da urna!
-              </p>
+        <div class="card" style="padding: 1.15rem; background: hsl(222 35% 8% / .8); border: 1px solid var(--border);">
+          <span class="eyebrow" style="margin-bottom: .25rem;">Carga Horária Total</span>
+          <div style="font-size: 1.6rem; font-weight: 700; color: var(--text); font-family: var(--font-mono);">
+            ${metrics.completedHours}h <span class="muted" style="font-size: .95rem;">/ ${metrics.totalHours}h</span>
+          </div>
+          <div class="academic-progress-track">
+            <div class="academic-progress-fill" style="width: ${metrics.progressPercent}%;"></div>
+          </div>
+        </div>
+
+        <div class="card" style="padding: 1.15rem; background: hsl(222 35% 8% / .8); border: 1px solid hsl(189 94% 55% / .3);">
+          <span class="eyebrow" style="margin-bottom: .25rem; color: var(--cyan);">Integralização</span>
+          <div style="font-size: 1.6rem; font-weight: 700; color: var(--cyan); font-family: var(--font-mono);">
+            ${metrics.progressPercent}%
+          </div>
+          <span class="small muted">${metrics.completedCredits} créditos obtidos</span>
+        </div>
+      </div>
+
+      <!-- Importador Inteligente de Histórico (Box com Textarea) -->
+      <div class="tech-frame" style="padding: 1.5rem; margin-bottom: 2rem; background: hsl(222 35% 7% / .8); border: 1px dashed var(--border-strong);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+          <div>
+            <div class="row" style="gap: .5rem; align-items: center; margin-bottom: .25rem;">
+              <span class="badge cyan"><span class="led-dot green"></span> PARSER INTELIGENTE DE HISTÓRICO</span>
+              <span class="small muted">Suporta texto do Portal da UERGS / Sigaa</span>
             </div>
-            <a href="#urna" class="btn btn-primary" style="font-size: 1rem; padding: .75rem 1.4rem; box-shadow: 0 0 20px hsl(189 94% 55% / .4); white-space: nowrap;">
-              🗳️ Abrir Urna Eleitoral ↗
+            <h3 style="font-size: 1.25rem; margin: 0; color: var(--text);">Importar Histórico Escolar</h3>
+            <p class="small muted" style="margin: .35rem 0 0; line-height: 1.5;">
+              Abra seu histórico escolar no portal da UERGS, selecione todo o texto (<kbd>Ctrl+A</kbd>), copie (<kbd>Ctrl+C</kbd>) e cole no campo abaixo. O algoritmo detectará seu PPC e marcará todas as cadeiras concluídas.
+            </p>
+          </div>
+          <div class="row" style="gap: .5rem;">
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-load-sample-transcript" style="font-family: var(--font-mono); font-size: .78rem;" title="Carrega um exemplo de histórico de 3 semestres para teste">
+              Carregar Exemplo de Teste
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-clear-transcript" style="font-family: var(--font-mono); font-size: .78rem; color: var(--red);">
+              Limpar
+            </button>
+          </div>
+        </div>
+
+        <textarea id="transcript-raw-input" rows="4" placeholder="Cole aqui o texto copiado do seu histórico escolar (ex: CALC-1 Cálculo 1 Aprovado, INTCON Introdução ao Controle Aprovado...)" style="width: 100%; padding: .85rem; font-family: var(--font-mono); font-size: .84rem; background: hsl(222 40% 5%); border: 1px solid var(--border); border-radius: 6px; color: var(--text); resize: vertical; margin-bottom: .85rem;">${escapeHtml(academic.transcriptRawText || "")}</textarea>
+
+        <div class="row" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .75rem;">
+          <button type="button" class="btn btn-primary" id="btn-process-transcript" style="font-family: var(--font-mono);">
+            Processar Histórico
+          </button>
+          <div id="transcript-feedback" class="small" style="font-family: var(--font-mono);"></div>
+        </div>
+      </div>
+
+      <!-- Checklist Curricular Interativo dos 10 Semestres -->
+      <div style="margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem;">
+          <div>
+            <h3 style="margin: 0; font-size: 1.3rem;">Matriz Curricular & Checklist de Cadeiras</h3>
+            <p class="small muted" style="margin: .2rem 0 0;">
+              Você também pode clicar em qualquer disciplina abaixo para marcar ou desmarcar como concluída manualmente:
+            </p>
+          </div>
+          <div class="row" style="gap: .65rem; font-family: var(--font-mono); font-size: .75rem;">
+            <span style="display: inline-flex; align-items: center; gap: .3rem;"><span class="badge green" style="padding: 2px 6px;">OK</span> Aprovada</span>
+            <span style="display: inline-flex; align-items: center; gap: .3rem;"><span class="badge cyan" style="padding: 2px 6px;">APTO</span> Pronta p/ Cursar</span>
+            <span style="display: inline-flex; align-items: center; gap: .3rem;"><span class="badge slate" style="padding: 2px 6px;">PEND</span> Trancada</span>
+          </div>
+        </div>
+
+        <div class="stack" style="gap: 1.5rem;">
+          ${ppcData.semestres.map(sem => {
+            return `
+              <div class="card" style="padding: 1.15rem; background: hsl(222 35% 8% / .6); border: 1px solid var(--border);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: .85rem; border-bottom: 1px dashed var(--border); padding-bottom: .5rem;">
+                  <span style="font-weight: 700; color: var(--cyan); font-family: var(--font-mono); font-size: .95rem;">
+                    ${sem.titulo} · <span class="muted">${sem.ch}</span>
+                  </span>
+                  <span class="faint" style="font-size: .75rem; font-family: var(--font-mono);">
+                    ${sem.disciplinas.filter(d => academic.completedCodes.includes(d.codigo)).length} de ${sem.disciplinas.length} concluídas
+                  </span>
+                </div>
+
+                <div class="grid grid-2" style="gap: .65rem;">
+                  ${sem.disciplinas.map(disc => {
+                    const isDone = academic.completedCodes.includes(disc.codigo);
+                    const prereqs = disc.pre || [];
+                    const missing = prereqs.filter(p => !academic.completedCodes.includes(p));
+                    const isEligible = !isDone && missing.length === 0;
+
+                    let statusClass = "is-blocked";
+                    let badgeHtml = `<span class="badge slate" style="font-size: .7rem;">TRANCADA</span>`;
+
+                    if (isDone) {
+                      statusClass = "is-passed";
+                      badgeHtml = `<span class="badge green" style="font-size: .7rem;">APROVADA</span>`;
+                    } else if (isEligible) {
+                      statusClass = "is-eligible";
+                      badgeHtml = `<span class="badge cyan" style="font-size: .7rem;">APTO</span>`;
+                    }
+
+                    return `
+                      <div class="academic-disc-item ${statusClass}" data-code="${disc.codigo}" style="cursor: pointer;" title="Clique para alternar aprovação">
+                        <div style="min-width: 0;">
+                          <div class="row" style="gap: .4rem; align-items: baseline;">
+                            <strong style="font-family: var(--font-mono); font-size: .85rem; color: var(--cyan);">${disc.codigo}</strong>
+                            <span class="faint" style="font-size: .7rem; font-family: var(--font-mono);">${disc.ch}</span>
+                          </div>
+                          <div style="font-size: .88rem; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            ${escapeHtml(disc.nome)}
+                          </div>
+                          ${!isDone && missing.length > 0 ? `
+                            <div class="faint" style="font-size: .7rem; font-family: var(--font-mono); margin-top: .15rem;">
+                              Falta: ${missing.join(", ")}
+                            </div>
+                          ` : ''}
+                        </div>
+                        <div style="flex-shrink: 0;">
+                          ${badgeHtml}
+                        </div>
+                      </div>
+                    `;
+                  }).join("")}
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+
+    // Eventos da Aba Histórico
+    // 1. Processar Texto do Histórico
+    document.getElementById("btn-process-transcript")?.addEventListener("click", async () => {
+      const raw = document.getElementById("transcript-raw-input")?.value || "";
+      const result = parseTranscript(raw);
+      const fb = document.getElementById("transcript-feedback");
+
+      if (!result.success) {
+        if (fb) fb.innerHTML = `<span style="color: var(--amber);">${result.message}</span>`;
+        return;
+      }
+
+      academic.ppc = result.detectedPpc;
+      academic.completedCodes = result.completedCodes;
+      academic.transcriptRawText = raw;
+
+      await store.academic.save(academic);
+      showToast(`Histórico analisado com sucesso! ${result.completedCodes.length} matérias reconhecidas no PPC ${result.detectedPpc}.`);
+      renderTab();
+    });
+
+    // 2. Carregar Exemplo de Teste
+    document.getElementById("btn-load-sample-transcript")?.addEventListener("click", async () => {
+      const sample = `
+UNIVERSIDADE ESTADUAL DO RIO GRANDE DO SUL - UERGS
+HISTÓRICO ESCOLAR DE GRADUAÇÃO
+CURSO: ENGENHARIA DE CONTROLE E AUTOMAÇÃO
+PPC 2024 VIGENTE - RES. CONEPE 016/2023
+
+1º SEMESTRE
+DESTEC Desenho Técnico 1 - 60h - Aprovado com Nota 8.5
+INTCON Introdução ao Controle e Automação - 60h - Aprovado com Nota 9.0
+CALC-1 Cálculo 1 - 60h - Aprovado com Nota 7.5
+ALGPRO Algoritmos e Programação - 60h - Aprovado com Nota 8.0
+ALGEOM Álgebra Linear e Geometria Analítica - 60h - Aprovado com Nota 8.0
+
+2º SEMESTRE
+DESCAD Desenho Técnico 2 - CAD - 60h - Aprovado com Nota 9.0
+ELEDIG Eletrônica Digital - 60h - Aprovado com Nota 8.5
+CALC-2 Cálculo 2 - 60h - Aprovado com Nota 7.0
+PROFUN Programação em Funções - 60h - Aprovado com Nota 8.5
+QUIGER Química Geral - 60h - Aprovado com Nota 8.0
+FIS-1 Física 1 - Mecânica - 60h - Aprovado com Nota 7.5
+
+3º SEMESTRE
+PROGOO Programação Orientada a Objetos - 60h - Aprovado com Nota 9.0
+ESTAT Probabilidade e Estatística - 60h - Aprovado com Nota 8.0
+METCIEN Metodologia Científica - 30h - Aprovado com Nota 9.5
+      `.trim();
+
+      const input = document.getElementById("transcript-raw-input");
+      if (input) input.value = sample;
+      showToast("Exemplo de histórico de 3 semestres carregado! Clique em 'Processar'.");
+    });
+
+    // 3. Limpar Histórico
+    document.getElementById("btn-clear-transcript")?.addEventListener("click", async () => {
+      if (confirm("Deseja limpar as matérias salvas no seu histórico?")) {
+        academic.completedCodes = [];
+        academic.transcriptRawText = "";
+        academic.plannedCodes = [];
+        await store.academic.save(academic);
+        showToast("Histórico redefinido.");
+        renderTab();
+      }
+    });
+
+    // 4. Alternar PPC Manualmente
+    document.getElementById("btn-toggle-ppc-user")?.addEventListener("click", async () => {
+      academic.ppc = academic.ppc === "2024" ? "2019" : "2024";
+      await store.academic.save(academic);
+      showToast(`PPC alternado para ${academic.ppc}!`);
+      renderTab();
+    });
+
+    // 5. Clique nos Cards do Checklist para alternar aprovação individual
+    container.querySelectorAll(".academic-disc-item").forEach(item => {
+      item.addEventListener("click", async () => {
+        const code = item.getAttribute("data-code");
+        if (academic.completedCodes.includes(code)) {
+          academic.completedCodes = academic.completedCodes.filter(c => c !== code);
+          showToast(`${code} desmarcada.`);
+        } else {
+          academic.completedCodes.push(code);
+          showToast(`${code} marcada como APROVADA!`);
+        }
+        await store.academic.save(academic);
+        renderTab();
+      });
+    });
+  }
+
+  // -----------------------------------------------------------------
+  // ABA 2: SIMULADOR DE MATRÍCULA (OFERTA SEMESTRAL)
+  // -----------------------------------------------------------------
+  function renderTabMatricula() {
+    const optimizer = getEnrollmentOptimizer(academic.ppc, academic.completedCodes, offerings.courses || []);
+    academic.plannedCodes ??= [];
+
+    // Localiza os objetos das disciplinas selecionadas para validar conflito
+    const selectedCourseObjects = (offerings.courses || []).filter(c => academic.plannedCodes.includes(c.code));
+    const conflicts = detectScheduleConflicts(selectedCourseObjects);
+    const totalWeeklyHours = selectedCourseObjects.length * 4; // média 4h por cadeira
+
+    container.innerHTML = `
+      <div class="tech-frame" style="padding: 1.5rem; margin-bottom: 1.5rem; background: hsl(222 35% 8% / .8); border: 1px solid var(--border);">
+        <div class="row" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <div class="row" style="gap: .5rem; align-items: center; margin-bottom: .25rem;">
+              <span class="badge cyan"><span class="led-dot green"></span> OFERTA OFICIAL DISPONIBILIZADA</span>
+              <span class="badge amber">SEMESTRE ${esc(offerings.semester || "2026/1")}</span>
+            </div>
+            <h2 style="font-size: 1.4rem; margin: 0; color: var(--text); font-family: var(--font-head);">Simulador de Matrícula & Seleção de Grade</h2>
+            <p class="small muted" style="margin: .25rem 0 0;">
+              O sistema cruzou seu histórico com as disciplinas ofertadas pelo corpo docente para indicar a grade ideal.
+            </p>
+          </div>
+          <div class="row" style="gap: .65rem;">
+            <a href="#curso/arvore" class="btn btn-ghost btn-sm" style="font-family: var(--font-mono);">
+              Ver Mapa de Pré-Requisitos (CAD)
             </a>
           </div>
         </div>
+      </div>
 
-        <div class="grid grid-2" style="align-items: start; margin-bottom: 3rem;">
-          <!-- Cédulas Oficiais da Assembleia -->
-          <div class="stack" style="gap: 1.5rem;" id="box-cedulas-oficiais">
-            <div class="card">
-              <div class="row" style="margin-bottom: .6rem;">
-                <span class="badge cyan">Deliberação 1</span>
-                <span class="small muted">Item 4 da Pauta</span>
-              </div>
-              <h3 style="font-size: 1.15rem; line-height: 1.35; margin-bottom: 1rem;">
-                "Fica fundado o Centro Acadêmico de Engenharia de Controle e Automação da UERGS – E(CA)², entidade representativa, autônoma e apartidária?"
-              </h3>
-              <div id="eleicao-poll-1"><div class="skeleton" style="height: 120px;"></div></div>
-            </div>
-
-            <div class="card">
-              <div class="row" style="margin-bottom: .6rem;">
-                <span class="badge amber">Deliberação 2</span>
-                <span class="small muted">Item 5 da Pauta</span>
-              </div>
-              <h3 style="font-size: 1.15rem; line-height: 1.35; margin-bottom: 1rem;">
-                "Aprova a criação da Comissão Pró-CA provisória"
-              </h3>
-              <div id="eleicao-poll-2"><div class="skeleton" style="height: 120px;"></div></div>
-            </div>
-          </div>
-
-          <!-- Coluna Lateral: QR CODE e Transparência -->
-          <div class="stack" style="gap: 1.5rem;">
-            <!-- Painel do QR Code para o dia -->
-            <div class="card" style="text-align: center; padding: 2rem;">
-              <span class="eyebrow" style="margin-bottom: .4rem;">Para Espalhar no Dia</span>
-              <h3 style="margin-bottom: .5rem;">QR Code da Votação</h3>
-              <p class="muted small" style="margin-bottom: 1.25rem;">
-                Abra este QR Code nos celulares ou imprima para colocar nas mesas do salchipão:
-              </p>
-
-              <div style="background: #fff; padding: 14px; border-radius: 14px; display: inline-block; margin-bottom: 1rem; box-shadow: 0 8px 30px rgba(0,0,0,.5);">
-                <img id="qr-code-img" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(currentUrl)}" alt="QR Code para Votação Oficial" width="180" height="180" style="display: block; margin: 0 auto;">
-              </div>
-
-              <div class="small muted" style="word-break: break-all; margin-bottom: 1rem;">
-                Link: <code>${escapeHtml(currentUrl)}</code>
-              </div>
-
-              <button type="button" class="btn btn-ghost btn-sm" id="btn-imprimir-qr">
-                🖨️ Imprimir Cartaz com QR Code
-              </button>
-            </div>
-
-            <!-- Regras de Auditoria -->
-            <div class="card">
-              <h3>🛡️ Transparência da Votação</h3>
-              <ul class="muted small" style="padding-left: 1.1rem; line-height: 1.7; margin: 0 0 1.25rem;">
-                <li><strong>Cruzamento com a Lista:</strong> O secretário da mesa confere a lista física de presença antes de homologar os totais.</li>
-                <li><strong>Registro na Ata:</strong> Os percentuais aprovados aqui serão lidos e anexados na <a href="pdf/04_Ata_de_Fundacao.pdf" target="_blank" style="color: var(--accent); text-decoration: underline;">Ata Oficial</a>.</li>
-                <li><strong>Prevenção de Voto Duplo:</strong> Cada estudante autenticado só pode registrar um voto por proposta.</li>
-                <li><strong>Sigilo do Voto (LGPD Art. 7º):</strong> O voto individual é criptografado e 100% secreto; apenas a chave de participação é auditada para quórum.</li>
-              </ul>
-              <button type="button" class="btn btn-primary btn-sm" id="btn-exportar-extrato-ata" style="width: 100%; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: .4rem;">
-                📜 Gerar Extrato Oficial da Urna para a Ata
-              </button>
-            </div>
+      <!-- Alertas de Choque de Horário -->
+      ${conflicts.length > 0 ? `
+        <div class="conflict-alert">
+          <span class="badge amber" style="font-size: .8rem;">CONFLITO</span>
+          <div>
+            <strong>Atenção: Choque de Horários Detectado na sua Seleção!</strong>
+            <ul style="margin: .25rem 0 0; padding-left: 1.1rem; font-size: .82rem; font-family: var(--font-mono);">
+              ${conflicts.map(c => `<li>${c.motivo}</li>`).join("")}
+            </ul>
           </div>
         </div>
-      </div>
-    </section>
-  `;
-}
+      ` : ''}
 
-async function setupEleicaoInteractions() {
-  document.getElementById("btn-eleicao-login")?.addEventListener("click", () => {
-    document.getElementById("dlg-auth")?.showModal();
-  });
+      <!-- Layout em Grid: Disciplinas Ofertadas (Esquerda) + Meu Plano de Matrícula (Direita) -->
+      <div class="grid grid-2" style="gap: 1.5rem; align-items: start;">
+        
+        <!-- Coluna Esquerda: Disciplinas Ofertadas pela ADM -->
+        <div>
+          <!-- Grupo 1: Recomendadas & Aptas -->
+          <div style="margin-bottom: 1.75rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: .85rem;">
+              <h3 style="font-size: 1.15rem; margin: 0; color: var(--green); display: flex; align-items: center; gap: .4rem;">
+                <span class="led-dot green"></span> Recomendadas & Aptas para Você
+              </h3>
+              <span class="badge green">${optimizer.recommended.length} disciplinas</span>
+            </div>
 
-  document.getElementById("btn-imprimir-qr")?.addEventListener("click", () => {
-    window.print();
-  });
+            ${optimizer.recommended.length === 0 ? `
+              <div class="card" style="padding: 1.25rem; text-align: center;">
+                <p class="small muted" style="margin: 0;">Você já concluiu todas as disciplinas abertas nesta oferta ou não há matérias com pré-requisitos cumpridos.</p>
+              </div>
+            ` : `
+              <div class="stack" style="gap: .75rem;">
+                ${optimizer.recommended.map(offer => {
+                  const isSelected = academic.plannedCodes.includes(offer.code);
+                  return `
+                    <div class="card hover" style="padding: 1rem; border: 1px solid ${isSelected ? 'var(--cyan)' : 'var(--border)'}; background: ${isSelected ? 'hsl(189 94% 55% / .08)' : 'hsl(222 35% 8% / .6)'};">
+                      <div class="row" style="justify-content: space-between; align-items: flex-start; gap: .5rem; margin-bottom: .4rem;">
+                        <div>
+                          <div class="row" style="gap: .4rem; align-items: center;">
+                            <strong style="color: var(--cyan); font-family: var(--font-mono);">${esc(offer.code)}</strong>
+                            <span class="badge" style="background: hsl(222 25% 18%); font-size: .72rem;">${esc(offer.turma || 'Turma A')}</span>
+                            <span class="badge ${offer.priorityClass}" style="font-size: .7rem; font-family: var(--font-mono);">${offer.priorityTag}</span>
+                          </div>
+                          <h4 style="margin: .25rem 0 0; font-size: 1.05rem; color: var(--text);">${esc(offer.name)}</h4>
+                        </div>
+                        <button type="button" class="btn ${isSelected ? 'btn-primary' : 'btn-ghost'} btn-sm btn-toggle-plan" data-code="${esc(offer.code)}" style="font-family: var(--font-mono); font-size: .78rem; padding: .3rem .65rem;">
+                          ${isSelected ? 'Na Grade' : 'Adicionar'}
+                        </button>
+                      </div>
 
-  document.getElementById("btn-exportar-extrato-ata")?.addEventListener("click", async () => {
-    await gerarExtratoOficialAta(store);
-  });
-
-  // Carrega as duas enquetes oficiais da assembleia
-  async function carregarCedulas() {
-    try {
-      const polls = await store.polls.list();
-      const p1 = polls.find(p => p.question.includes("PROPOSTA 1") || p.question.includes("fundado")) || polls[0];
-      const p2 = polls.find(p => p.question.includes("Comissão Pró-CA") || p.id === 104) || polls[1];
-
-      function renderPollBlock(poll, containerId) {
-        const el = document.getElementById(containerId);
-        if (!el || !poll) return;
-
-        const total = poll.options.reduce((a, b) => a + b.vote_count, 0);
-
-        el.innerHTML = `
-          <div class="stack" style="gap: .6rem;">
-            ${poll.options.map(opt => {
-              const pct = total > 0 ? Math.round((opt.vote_count / total) * 100) : 0;
-              const isMine = poll.myOption === opt.id;
-
-              return poll.is_open && !poll.myOption ? `
-                <button type="button" class="poll-opt" data-poll-id="${poll.id}" data-opt-id="${opt.id}" style="font-weight: 500;">
-                  <span class="bar" style="--pct: 0%;"></span>
-                  <span>${escapeHtml(opt.label)}</span>
-                </button>
-              ` : `
-                <div class="poll-opt ${isMine ? 'mine' : ''}">
-                  <span class="bar" style="--pct: ${pct}%;"></span>
-                  <span>${escapeHtml(opt.label)} ${isMine ? '✓ (Seu voto)' : ''}</span>
-                  <span class="pct">${pct}% (${opt.vote_count})</span>
-                </div>
-              `;
-            }).join("")}
+                      <div class="row" style="justify-content: space-between; align-items: center; font-size: .8rem; font-family: var(--font-mono); border-top: 1px dashed var(--border); padding-top: .5rem; margin-top: .5rem;">
+                        <span style="color: var(--amber);">${esc(offer.dia)} · ${esc(offer.horario)}</span>
+                        <span class="muted">Prof. ${esc(offer.professor)}</span>
+                      </div>
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            `}
           </div>
-          <div class="row" style="margin-top: .75rem; justify-content: space-between;">
-            <span class="small muted">${total} voto(s) registrado(s)</span>
-            <span class="badge ${poll.is_open ? 'green' : 'slate'}">${poll.is_open ? 'Cédula Aberta' : 'Encerrada'}</span>
-          </div>
-        `;
 
-        el.querySelectorAll("button.poll-opt").forEach(btn => {
-          btn.addEventListener("click", async () => {
-            const auth = getAuth();
-            if (!auth.user) {
-              showToast("Por favor, identifique-se com seu e-mail para votar.");
-              document.getElementById("dlg-auth")?.showModal();
-              return;
-            }
-            const pId = Number(btn.getAttribute("data-poll-id"));
-            const oId = Number(btn.getAttribute("data-opt-id"));
-            try {
-              await store.polls.vote(pId, oId);
-              showToast("Voto computado com sucesso! 🗳️");
-              await carregarCedulas();
-            } catch (err) {
-              showToast(err.message, true);
-            }
-          });
-        });
-      }
-
-      renderPollBlock(p1, "eleicao-poll-1");
-      renderPollBlock(p2, "eleicao-poll-2");
-
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  await carregarCedulas();
-}
-
-/**
- * Emite o Extrato Oficial de Apuração da Urna formatado para A4 / Impressão / Ata Oficial
- */
-export async function gerarExtratoOficialAta(store) {
-  const polls = await store.polls.list();
-  const p1 = polls.find(p => p.question.includes("PROPOSTA 1") || p.question.includes("fundado")) || polls[0];
-  const p2 = polls.find(p => p.question.includes("Comissão Pró-CA") || p.id === 104) || polls[1];
-
-  const totalCenso = CONFIG.STUDENTS_DATABASE ? CONFIG.STUDENTS_DATABASE.length : 235;
-  const t1 = p1 ? p1.options.reduce((a, b) => a + b.vote_count, 0) : 0;
-  const t2 = p2 ? p2.options.reduce((a, b) => a + b.vote_count, 0) : 0;
-  const quorum = Math.max(t1, t2);
-  const pctQuorum = totalCenso > 0 ? ((quorum / totalCenso) * 100).toFixed(1) : "0.0";
-  const dataHora = new Date().toLocaleString("pt-BR", { dateStyle: "long", timeStyle: "medium" });
-
-  const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <title>Extrato Oficial de Apuração da Urna Eletrônica - E(CA)² UERGS</title>
-  <style>
-    @page { size: A4 portrait; margin: 20mm 15mm; }
-    body { font-family: "Segoe UI", Roboto, Arial, sans-serif; color: #0f172a; line-height: 1.5; font-size: 11pt; margin: 0; padding: 25px; }
-    .header { text-align: center; border-bottom: 2px solid #0284c7; padding-bottom: 12px; margin-bottom: 20px; }
-    .header h1 { font-size: 15pt; margin: 4px 0; text-transform: uppercase; color: #0284c7; }
-    .header h2 { font-size: 11.5pt; margin: 0 0 3px; font-weight: 600; color: #334155; }
-    .header p { margin: 0; font-size: 9pt; color: #64748b; }
-    .box { border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px 16px; margin: 15px 0; background: #f8fafc; font-size: 10pt; line-height: 1.6; }
-    .table { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: 10pt; }
-    .table th, .table td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; }
-    .table th { background: #f1f5f9; font-weight: 600; color: #1e293b; }
-    .signatures { margin-top: 45px; display: grid; grid-template-columns: 1fr 1fr; gap: 35px; }
-    .sig-line { border-top: 1px solid #0f172a; padding-top: 6px; text-align: center; font-size: 9.5pt; margin-top: 35px; }
-    .footer { margin-top: 30px; font-size: 8pt; color: #64748b; text-align: center; border-top: 1px dashed #cbd5e1; padding-top: 10px; }
-    @media print { .no-print { display: none; } body { padding: 0; } }
-  </style>
-</head>
-<body>
-  <div class="no-print" style="margin-bottom: 20px; text-align: right;">
-    <button onclick="window.print()" style="padding: 10px 22px; font-size: 12pt; font-weight: bold; background: #0284c7; color: #fff; border: none; border-radius: 6px; cursor: pointer; box-shadow: 0 4px 12px rgba(2,132,199,.3);">🖨️ Imprimir / Salvar como PDF</button>
-  </div>
-
-  <div class="header">
-    <h2>UNIVERSIDADE ESTADUAL DO RIO GRANDE DO SUL – UERGS</h2>
-    <h2>CURSO DE ENGENHARIA DE CONTROLE E AUTOMAÇÃO · UNIDADE PORTO ALEGRE</h2>
-    <h1>EXTRATO OFICIAL DE APURAÇÃO DA URNA ELETRÔNICA</h1>
-    <p>ASSEMBLEIA GERAL DE FUNDAÇÃO DO CENTRO ACADÊMICO E(CA)² · 26 DE OUTUBRO DE 2026</p>
-  </div>
-
-  <div class="box">
-    <strong>CERTIFICADO DE AUDITORIA & QUÓRUM REGULAMENTAR:</strong><br>
-    • <strong>Data/Hora do Registro:</strong> ${dataHora}<br>
-    • <strong>Censo Oficial Discente:</strong> ${totalCenso} estudantes regulares de Engenharia de Controle e Automação<br>
-    • <strong>Total de Votos Depositados (Quórum):</strong> ${quorum} eleitores (${pctQuorum}% do corpo discente homologado)<br>
-    • <strong>Garantia de Sigilo:</strong> Votação auditada com segregação de credencial conforme Art. 7º da LGPD (Lei 13.709/2018).
-  </div>
-
-  <h3 style="margin-top: 20px; margin-bottom: 4px; color: #0f172a; font-size: 11pt;">1. DELIBERAÇÃO: FUNDAÇÃO DO CENTRO ACADÊMICO E(CA)²</h3>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Opção de Voto</th>
-        <th style="text-align: right; width: 140px;">Quantidade</th>
-        <th style="text-align: right; width: 120px;">Percentual (%)</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${p1 ? p1.options.map(opt => {
-        const pct = t1 > 0 ? ((opt.vote_count / t1) * 100).toFixed(1) : "0.0";
-        return `<tr>
-          <td><strong>${opt.label}</strong></td>
-          <td style="text-align: right;">${opt.vote_count} voto(s)</td>
-          <td style="text-align: right; font-weight: bold;">${pct}%</td>
-        </tr>`;
-      }).join("") : '<tr><td colspan="3">Sem dados apurados</td></tr>'}
-      <tr style="background: #f1f5f9; font-weight: bold;">
-        <td>TOTAL APURADO</td>
-        <td style="text-align: right;">${t1} voto(s)</td>
-        <td style="text-align: right;">100.0%</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <h3 style="margin-top: 20px; margin-bottom: 4px; color: #0f172a; font-size: 11pt;">2. DELIBERAÇÃO: ACLAMAÇÃO DA COMISSÃO PRÓ-CA TRANSITÓRIA</h3>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Opção de Voto</th>
-        <th style="text-align: right; width: 140px;">Quantidade</th>
-        <th style="text-align: right; width: 120px;">Percentual (%)</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${p2 ? p2.options.map(opt => {
-        const pct = t2 > 0 ? ((opt.vote_count / t2) * 100).toFixed(1) : "0.0";
-        return `<tr>
-          <td><strong>${opt.label}</strong></td>
-          <td style="text-align: right;">${opt.vote_count} voto(s)</td>
-          <td style="text-align: right; font-weight: bold;">${pct}%</td>
-        </tr>`;
-      }).join("") : '<tr><td colspan="3">Sem dados apurados</td></tr>'}
-      <tr style="background: #f1f5f9; font-weight: bold;">
-        <td>TOTAL APURADO</td>
-        <td style="text-align: right;">${t2} voto(s)</td>
-        <td style="text-align: right;">100.0%</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div style="margin-top: 20px; font-size: 9pt; text-align: justify; color: #334155; line-height: 1.55;">
-    <strong>TERMO DE HOMOLOGAÇÃO DA MESA DIRETORA:</strong><br>
-    Certificamos para os devidos fins de direito perante a Universidade Estadual do Rio Grande do Sul (UERGS), entidades estudantis parceiras e órgãos competentes que a presente apuração eletrônica transcorreu em perfeita conformidade estatutária, quórum regulamentar e sob estrita lisura democrática. Este extrato é rubricado e passa a integrar formalmente como <strong>Anexo Oficial da Ata de Fundação do E(CA)²</strong>.
-  </div>
-
-  <div class="signatures">
-    <div>
-      <div class="sig-line">
-        <strong>Presidente da Assembleia Geral</strong><br>
-        Discente de Eng. de Controle e Automação – UERGS
-      </div>
-    </div>
-    <div>
-      <div class="sig-line">
-        <strong>1º Secretário(a) da Mesa</strong><br>
-        Discente de Eng. de Controle e Automação – UERGS
-      </div>
-    </div>
-  </div>
-
-  <div class="footer">
-    Documento emitido eletronicamente pela Plataforma Oficial do E(CA)² · Base Legal: Lei Federal nº 7.395/1985 e Lei Federal nº 13.709/2018 (LGPD) · Hash de Integridade: ${Math.random().toString(36).substring(2, 12).toUpperCase()}
-  </div>
-</body>
-</html>`;
-
-  const win = window.open("", "_blank");
-  if (win) {
-    win.document.write(html);
-    win.document.close();
-  }
-}
-
-// -------------------------------------------------------------
-// VISTA OCULTA: CABINE DE VOTAÇÃO (SIMULADOR DE URNA ELEITORAL)
-// -------------------------------------------------------------
-function renderUrnaHtml() {
-  const auth = getAuth();
-  const isLogged = !!auth.user;
-  const userName = auth.profile?.display_name || auth.user?.email || "ELEITOR NÃO IDENTIFICADO";
-
-  return `
-    <section class="section urna-section">
-      <div class="container" style="max-width: 980px;">
-        <!-- Topbar de Navegação da Cabine -->
-        <div class="row" style="justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: .75rem;">
-          <a href="#eleicao" class="btn btn-ghost btn-sm" id="btn-sair-urna">
-            ← Sair da Cabine / Ver Apuração
-          </a>
-          <div class="row" style="gap: .6rem; align-items: center;">
-            <span class="badge cyan" style="font-family: var(--font-mono);">CABINE ELEITORAL FECHADA</span>
-            <span class="small muted">Voto Secreto & Auditável · E(CA)² UERGS</span>
-          </div>
+          <!-- Grupo 2: Ofertadas com Pré-requisitos Pendentes -->
+          ${optimizer.blocked.length > 0 ? `
+            <div style="margin-bottom: 1.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: .75rem;">
+                <h3 style="font-size: 1.05rem; margin: 0; color: var(--muted); display: flex; align-items: center; gap: .4rem;">
+                  Ofertadas com Pré-requisito Pendente
+                </h3>
+                <span class="badge slate">${optimizer.blocked.length}</span>
+              </div>
+              <div class="stack" style="gap: .65rem; opacity: .75;">
+                ${optimizer.blocked.map(b => `
+                  <div class="card" style="padding: .85rem; background: hsl(222 35% 6% / .4); border: 1px solid var(--border);">
+                    <div class="row" style="justify-content: space-between; align-items: baseline;">
+                      <div>
+                        <strong style="color: var(--muted); font-family: var(--font-mono); font-size: .88rem;">${esc(b.code)} · ${esc(b.name)}</strong>
+                        <div class="small" style="color: var(--amber); font-family: var(--font-mono); margin-top: .2rem;">
+                          Falta cursar: ${b.missingNames.join(", ")}
+                        </div>
+                      </div>
+                      <span class="faint" style="font-size: .75rem; font-family: var(--font-mono);">${esc(b.dia)}</span>
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          ` : ''}
         </div>
 
-        <!-- Chassi Oficial da Urna Eletrônica -->
-        <div class="urna-chassis">
-          <div class="urna-chassis-header">
-            <div class="urna-brasao">
-              <span style="font-size: 1.8rem;" aria-hidden="true">⚙️</span>
+        <!-- Coluna Direita: Meu Plano de Matrícula (Chassi de Resumo) -->
+        <div>
+          <div class="tech-frame" style="padding: 1.35rem; background: hsl(222 35% 8% / .9); border: 2px solid hsl(189 94% 55% / .4); position: sticky; top: 80px;">
+            <div class="row" style="justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px dashed var(--border); padding-bottom: .65rem;">
               <div>
-                <div class="urna-header-title">JUSTIÇA ELEITORAL ACADÊMICA</div>
-                <div class="urna-header-sub">CENTRO ACADÊMICO DE ENGENHARIA DE CONTROLE E AUTOMAÇÃO · UERGS</div>
+                <span class="eyebrow" style="margin-bottom: .2rem; color: var(--cyan);">Meu Plano de Matrícula</span>
+                <h3 style="margin: 0; font-size: 1.25rem;">Semestre ${esc(offerings.semester || "2026/1")}</h3>
               </div>
+              <span class="badge cyan" style="font-size: .85rem; font-family: var(--font-mono);">${academic.plannedCodes.length} Cadeiras</span>
             </div>
-            <div class="urna-serial">URNA MODELO CA-2026 · Nº 04015-RS</div>
-          </div>
 
-          <div class="urna-body-grid">
-            <!-- MONITOR DIGITAL DA URNA (Esquerda) -->
-            <div class="urna-screen-wrap">
-              <div class="urna-screen" id="urna-screen" role="region" aria-label="Tela da Urna Eletrônica">
-                <!-- Topbar do Monitor -->
-                <div class="urna-screen-topbar">
-                  <span id="urna-pauta-badge">DELIBERAÇÃO 1 DE 2</span>
-                  <span id="urna-eleitor-tag">${isLogged ? `ELEITOR: ${escapeHtml(userName)}` : '⚠️ NÃO IDENTIFICADO'}</span>
-                </div>
-
-                <!-- Conteúdo Dinâmico da Tela -->
-                <div class="urna-screen-content" id="urna-screen-content">
-                  <div class="skeleton" style="height: 200px;"></div>
-                </div>
-
-                <!-- Rodapé de Instrução no Monitor -->
-                <div class="urna-screen-footer" id="urna-screen-footer">
-                  <div class="urna-screen-instruction">
-                    Aperte a tecla correspondente no teclado ao lado:
+            ${academic.plannedCodes.length === 0 ? `
+              <div style="text-align: center; padding: 2rem 1rem; color: var(--muted);">
+                <div style="font-size: 1rem; font-weight: 600; color: var(--muted); margin-bottom: .5rem;">[ GRADE VAZIA ]</div>
+                <p class="small" style="margin: 0;">Nenhuma cadeira adicionada ao seu plano ainda. Clique em <strong>+ Adicionar</strong> nas disciplinas recomendadas ao lado.</p>
+              </div>
+            ` : `
+              <div class="stack" style="gap: .6rem; margin-bottom: 1.25rem;">
+                ${selectedCourseObjects.map(course => `
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: .65rem .75rem; background: hsl(222 35% 6%); border-radius: 6px; border: 1px solid var(--border);">
+                    <div>
+                      <strong style="color: var(--cyan); font-family: var(--font-mono); font-size: .85rem;">${esc(course.code)}</strong>
+                      <div style="font-size: .84rem; color: var(--text);">${esc(course.name)}</div>
+                      <div class="faint" style="font-size: .72rem; font-family: var(--font-mono); color: var(--amber);">${esc(course.dia)} · ${esc(course.horario)}</div>
+                    </div>
+                    <button type="button" class="btn btn-ghost btn-sm btn-remove-planned" data-code="${esc(course.code)}" title="Remover da grade" style="color: var(--red); padding: .2rem .4rem; font-size: .8rem;">
+                      &times;
+                    </button>
                   </div>
-                  <div class="urna-screen-hints">
-                    <span><strong style="color: #22c55e;">VERDE:</strong> SIM</span>
-                    <span><strong style="color: #ef4444;">VERMELHO:</strong> NÃO</span>
-                    <span><strong style="color: #f8fafc;">BRANCO:</strong> ABSTENÇÃO</span>
-                  </div>
+                `).join("")}
+              </div>
+
+              <!-- Resumo da Carga Semanal -->
+              <div style="background: hsl(222 35% 10% / .6); padding: .85rem; border-radius: 6px; margin-bottom: 1.25rem; font-family: var(--font-mono); font-size: .82rem;">
+                <div class="row" style="justify-content: space-between; margin-bottom: .3rem;">
+                  <span class="muted">Carga Horária Semanal:</span>
+                  <strong style="color: var(--cyan);">${totalWeeklyHours}h / semana</strong>
+                </div>
+                <div class="row" style="justify-content: space-between; margin-bottom: .3rem;">
+                  <span class="muted">Total de Disciplinas:</span>
+                  <strong>${selectedCourseObjects.length} matérias</strong>
+                </div>
+                <div class="row" style="justify-content: space-between;">
+                  <span class="muted">Conflito de Turno:</span>
+                  <strong style="color: ${conflicts.length > 0 ? 'var(--amber)' : 'var(--green)'};">${conflicts.length > 0 ? 'Com Choque de Horário' : 'Compatível'}</strong>
                 </div>
               </div>
-            </div>
 
-            <!-- TECLADO FÍSICO DA URNA (Direita) -->
-            <div class="urna-keypad-wrap">
-              <div class="urna-keypad-brand" style="display: flex; flex-direction: column; align-items: center; gap: .35rem;">
-                <img src="img/logo_option2_microchip.jpg" alt="Logo E(CA)²" class="brand-logo-img" width="36" height="36" style="width: 36px; height: 36px;">
-                <div class="brand-text">E(CA)<sup>2</sup> · UERGS</div>
-                <div class="small faint" style="font-size: .68rem; text-align: center;">TECLADO DA URNA ELETRÔNICA</div>
-              </div>
-
-              <!-- Seletor de Pautas da Assembleia -->
-              <div class="urna-pauta-selector" id="urna-pauta-tabs" role="tablist">
-                <button type="button" class="urna-tab-btn active" data-pauta-idx="0">Item 1 (Fundação)</button>
-                <button type="button" class="urna-tab-btn" data-pauta-idx="1">Item 2 (Comissão)</button>
-              </div>
-
-              <!-- Teclas de Voto Solicitadas: BRANCO, NÃO (Vermelho), SIM (Verde) -->
-              <div class="urna-action-keys">
-                <!-- Tecla BRANCO -->
-                <button type="button" class="urna-btn urna-btn-branco" id="btn-urna-branco" aria-label="Votar em Branco ou Abstenção">
-                  <span>BRANCO</span>
+              <div class="stack" style="gap: .6rem;">
+                <button type="button" class="btn btn-primary" id="btn-save-enrollment-plan" style="width: 100%; font-family: var(--font-mono);">
+                  Salvar Meu Plano de Matrícula
                 </button>
-
-                <!-- Tecla NÃO (Vermelha) -->
-                <button type="button" class="urna-btn urna-btn-nao" id="btn-urna-nao" aria-label="Votar Não">
-                  <span>NÃO</span>
-                </button>
-
-                <!-- Tecla SIM (Verde) -->
-                <button type="button" class="urna-btn urna-btn-sim" id="btn-urna-sim" aria-label="Votar Sim">
-                  <span>SIM</span>
+                <button type="button" class="btn btn-ghost btn-sm" id="btn-export-enrollment-plan" style="width: 100%; font-family: var(--font-mono);">
+                  Imprimir / Exportar Comprovante
                 </button>
               </div>
-
-              <!-- Teclas de Controle: CORRIGE e CONFIRMA -->
-              <div class="urna-control-keys">
-                <button type="button" class="urna-btn urna-btn-corrige" id="btn-urna-corrige" title="Limpar seleção para escolher de novo">
-                  <span>CORRIGE</span>
-                </button>
-                <button type="button" class="urna-btn urna-btn-confirma" id="btn-urna-confirma" title="Confirmar e gravar voto definitivamente">
-                  <span>CONFIRMA</span>
-                </button>
-              </div>
-
-              <div class="urna-keypad-notes">
-                1. Escolha <strong>BRANCO</strong>, <strong>NÃO</strong> ou <strong>SIM</strong>.<br>
-                2. Aperte <strong>CONFIRMA</strong> para registrar na ata digital.
-              </div>
-            </div>
+            `}
           </div>
         </div>
-      </div>
-    </section>
-  `;
-}
 
-async function setupUrnaInteractions() {
-  // Síntese de áudio autêntica da Urna Eletrônica via Web Audio API
-  function playUrnaBeep() {
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(550, ctx.currentTime);
-      gain.gain.setValueAtTime(0.12, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.06);
-    } catch (e) {}
-  }
-
-  function playUrnaConfirmationTone() {
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
-      const now = ctx.currentTime;
-      // Toque clássico e inconfundível da urna eletrônica brasileira
-      const tones = [
-        { freq: 1100, start: 0.0, dur: 0.12 },
-        { freq: 1100, start: 0.16, dur: 0.12 },
-        { freq: 1760, start: 0.32, dur: 0.75 }
-      ];
-      tones.forEach(t => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(t.freq, now + t.start);
-        gain.gain.setValueAtTime(0.2, now + t.start);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + t.start + t.dur);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now + t.start);
-        osc.stop(now + t.start + t.dur);
-      });
-    } catch (e) {}
-  }
-
-  let activeIdx = 0;
-  let selectedChoice = null; // 'sim' | 'nao' | 'branco'
-  let isDisplayingFim = false;
-  let pollsList = [];
-
-  const screenContent = document.getElementById("urna-screen-content");
-  const pautaBadge = document.getElementById("urna-pauta-badge");
-  const eleitorTag = document.getElementById("urna-eleitor-tag");
-  const pautaTabs = document.querySelectorAll("#urna-pauta-tabs .urna-tab-btn");
-
-  async function loadPolls() {
-    try {
-      const allPolls = await store.polls.list();
-      const p1 = allPolls.find(p => p.question.includes("PROPOSTA 1") || p.question.includes("fundado")) || allPolls[0];
-      const p2 = allPolls.find(p => p.question.includes("Comissão Pró-CA") || p.id === 104) || allPolls[1];
-      pollsList = [p1, p2].filter(Boolean);
-    } catch (err) {
-      console.error("Erro ao carregar cédulas para a urna:", err);
-    }
-  }
-
-  function updateScreen() {
-    if (isDisplayingFim || !screenContent) return;
-
-    const auth = getAuth();
-    const isLogged = !!auth.user;
-    const currentPoll = pollsList[activeIdx];
-
-    if (pautaBadge) {
-      pautaBadge.textContent = `DELIBERAÇÃO ${activeIdx + 1} DE ${pollsList.length || 2}`;
-    }
-
-    if (eleitorTag) {
-      eleitorTag.textContent = isLogged 
-        ? `ELEITOR: ${escapeHtml(auth.profile?.display_name || auth.user.email)}`
-        : '⚠️ NÃO IDENTIFICADO';
-    }
-
-    // Atualiza aba ativa no teclado
-    pautaTabs.forEach((tab, idx) => {
-      tab.classList.toggle("active", idx === activeIdx);
-    });
-
-    if (!currentPoll) {
-      screenContent.innerHTML = `<p class="muted">Nenhuma deliberação ativa encontrada no sistema.</p>`;
-      return;
-    }
-
-    // 1. Caso o eleitor não esteja logado
-    if (!isLogged) {
-      screenContent.innerHTML = `
-        <div style="text-align: center; padding: 1.5rem .5rem;">
-          <div style="font-size: 2.2rem; margin-bottom: .5rem;">🔒</div>
-          <h4 style="color: var(--amber); margin: 0 0 .5rem; font-size: 1.15rem;">Identificação Necessária</h4>
-          <p class="small muted" style="max-width: 440px; margin: 0 auto 1.25rem; line-height: 1.6;">
-            A urna eletrônica é auditável e requer identificação prévia para garantir que cada estudante vote apenas uma vez.
-          </p>
-          <button type="button" class="btn btn-primary btn-sm" id="btn-urna-login-action" style="font-size: .95rem; padding: .6rem 1.4rem;">
-            🔑 Identificar com E-mail
-          </button>
-        </div>
-      `;
-      document.getElementById("btn-urna-login-action")?.addEventListener("click", () => {
-        document.getElementById("dlg-auth")?.showModal();
-      });
-      return;
-    }
-
-    // 2. Caso haja lista de e-mails autorizados (Whitelist) e o eleitor não esteja nela
-    if (Array.isArray(CONFIG.VOTING_ALLOWED_EMAILS) && CONFIG.VOTING_ALLOWED_EMAILS.length > 0) {
-      if (!isVotingEmailAllowed(auth.user.email, auth.profile)) {
-        screenContent.innerHTML = `
-          <div style="text-align: center; padding: 1.5rem .5rem;">
-            <div style="font-size: 2.2rem; margin-bottom: .5rem;">⚠️</div>
-            <h4 style="color: var(--amber); margin: 0 0 .5rem; font-size: 1.15rem;">Vínculo com o Curso Necessário</h4>
-            <p class="small muted" style="max-width: 460px; margin: 0 auto 1.25rem; line-height: 1.6;">
-              O e-mail <strong>${escapeHtml(auth.user.email)}</strong> não consta na lista inicial de 235 estudantes. Qualquer estudante de <strong>Engenharia de Controle e Automação</strong> da UERGS pode votar após cadastrar-se e confirmar vínculo com o curso.
-            </p>
-            <div class="row" style="justify-content: center; gap: .75rem; flex-wrap: wrap;">
-              <a href="#registro" class="btn btn-primary btn-sm" id="btn-urna-cadastrar-eca">Comprovar Vínculo & Cadastrar →</a>
-              <button type="button" class="btn btn-ghost btn-sm" id="btn-urna-trocar-conta">Trocar de Conta</button>
-            </div>
-          </div>
-        `;
-        document.getElementById("btn-urna-trocar-conta")?.addEventListener("click", () => {
-          document.getElementById("dlg-auth")?.showModal();
-        });
-        return;
-      }
-    }
-
-    // 3. Caso o eleitor já tenha votado nesta deliberação
-    if (currentPoll.myOption) {
-      const myOpt = currentPoll.options.find(o => o.id === currentPoll.myOption);
-      const isOtherPending = pollsList.some(p => !p.myOption);
-
-      screenContent.innerHTML = `
-        <div style="text-align: center; padding: 1rem .5rem;">
-          <div style="font-size: 2.2rem; margin-bottom: .4rem;">✅</div>
-          <div class="badge green" style="margin-bottom: .6rem; font-size: .85rem;">VOTO JÁ COMPUTADO</div>
-          <div class="urna-screen-question" style="margin-bottom: .85rem; font-size: 1rem;">
-            ${escapeHtml(currentPoll.question)}
-          </div>
-          <div class="urna-screen-choice-box sim" style="margin-bottom: 1rem;">
-            <div class="small faint" style="font-size: .75rem; text-transform: uppercase;">Seu Voto Registrado nesta Cédula:</div>
-            <div class="urna-screen-choice-label" style="font-size: 1.25rem;">${escapeHtml(myOpt ? myOpt.label : 'Voto Registrado')}</div>
-          </div>
-          ${isOtherPending ? `
-            <button type="button" class="btn btn-primary btn-sm" id="btn-urna-ir-proxima" style="font-size: .85rem;">
-              Ir para a outra Deliberação →
-            </button>
-          ` : `
-            <p class="small muted" style="margin: 0;">Você já votou em todas as deliberações desta assembleia! Obrigado.</p>
-          `}
-        </div>
-      `;
-
-      document.getElementById("btn-urna-ir-proxima")?.addEventListener("click", () => {
-        activeIdx = (activeIdx === 0) ? 1 : 0;
-        selectedChoice = null;
-        updateScreen();
-      });
-      return;
-    }
-
-    // 4. Fluxo normal de votação na deliberação
-    let choiceBoxHtml = "";
-    if (!selectedChoice) {
-      choiceBoxHtml = `
-        <div class="urna-screen-choice-box pending">
-          <div class="urna-screen-choice-label" style="font-size: 1.1rem; color: #94a3b8;">
-            AGUARDANDO ESCOLHA...
-          </div>
-          <div class="urna-screen-choice-sub">
-            Clique em <strong>SIM</strong>, <strong>NÃO</strong> ou <strong>BRANCO</strong> no teclado ao lado.
-          </div>
-        </div>
-      `;
-    } else if (selectedChoice === "sim") {
-      choiceBoxHtml = `
-        <div class="urna-screen-choice-box sim">
-          <div class="urna-screen-choice-label">✓ [ SIM ]</div>
-          <div class="urna-screen-choice-sub">APROVO A PROPOSTA DESTA DELIBERAÇÃO</div>
-        </div>
-      `;
-    } else if (selectedChoice === "nao") {
-      choiceBoxHtml = `
-        <div class="urna-screen-choice-box nao">
-          <div class="urna-screen-choice-label">✗ [ NÃO ]</div>
-          <div class="urna-screen-choice-sub">SOU CONTRÁRIO À PROPOSTA DESTA DELIBERAÇÃO</div>
-        </div>
-      `;
-    } else if (selectedChoice === "branco") {
-      choiceBoxHtml = `
-        <div class="urna-screen-choice-box branco">
-          <div class="urna-screen-choice-label">○ [ BRANCO ]</div>
-          <div class="urna-screen-choice-sub">VOTO EM BRANCO / ABSTENÇÃO DESTA DELIBERAÇÃO</div>
-        </div>
-      `;
-    }
-
-    screenContent.innerHTML = `
-      <div>
-        <div class="urna-screen-pauta-title">Pauta da Assembleia · Item ${activeIdx === 0 ? '4' : '5'}</div>
-        <div class="urna-screen-question">
-          ${escapeHtml(currentPoll.question)}
-        </div>
-        ${choiceBoxHtml}
-        ${selectedChoice ? `
-          <div style="text-align: center; font-size: .82rem; color: var(--cyan); margin-top: .5rem; font-family: var(--font-mono);">
-            👉 Aperte a tecla verde <strong>CONFIRMA</strong> para gravar seu voto.
-          </div>
-        ` : ''}
       </div>
     `;
+
+    // Eventos da Aba Simulador de Matrícula
+    container.querySelectorAll(".btn-toggle-plan").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const code = btn.getAttribute("data-code");
+        if (academic.plannedCodes.includes(code)) {
+          academic.plannedCodes = academic.plannedCodes.filter(c => c !== code);
+        } else {
+          academic.plannedCodes.push(code);
+        }
+        await store.academic.save(academic);
+        renderTabMatricula();
+      });
+    });
+
+    container.querySelectorAll(".btn-remove-planned").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const code = btn.getAttribute("data-code");
+        academic.plannedCodes = academic.plannedCodes.filter(c => c !== code);
+        await store.academic.save(academic);
+        renderTabMatricula();
+      });
+    });
+
+    document.getElementById("btn-save-enrollment-plan")?.addEventListener("click", async () => {
+      await store.academic.save(academic);
+      showToast("Plano de Matrícula 2026/1 salvo com sucesso no seu perfil!");
+    });
+
+    document.getElementById("btn-export-enrollment-plan")?.addEventListener("click", () => {
+      window.print();
+    });
   }
 
-  // Alternador de abas no teclado da urna
-  pautaTabs.forEach((tab) => {
-    tab.addEventListener("click", () => {
-      playUrnaBeep();
-      activeIdx = Number(tab.getAttribute("data-pauta-idx")) || 0;
-      selectedChoice = null;
-      updateScreen();
+  // -----------------------------------------------------------------
+  // ABA 3: FICHA CADASTRAL DO ALUNO
+  // -----------------------------------------------------------------
+  function renderTabCadastro() {
+    const auth = getAuth();
+    const prof = auth.profile || {};
+    const isLogged = !!auth.user;
+
+    container.innerHTML = `
+      <div class="grid grid-2" style="align-items: start; gap: 1.5rem;">
+        <div class="card" style="padding: 2rem;">
+          <h3 style="margin-top: 0;">Dados Cadastrais do Estudante</h3>
+          <p class="muted small" style="margin-bottom: 1.5rem;">
+            ${isLogged ? `Conectado como <strong>${escapeHtml(auth.user.email)}</strong>. Atualize suas preferências:` : `Cadastre-se para sincronizar seus dados permanentemente no portal:`}
+          </p>
+
+          <form id="form-registro-aluno" class="form">
+            <div class="field">
+              <label for="reg-nome">Nome Completo *</label>
+              <input type="text" id="reg-nome" name="display_name" required value="${escapeHtml(prof.display_name || '')}" placeholder="Seu nome completo">
+            </div>
+
+            ${!isLogged ? `
+              <div class="field">
+                <label for="reg-email">E-mail para Acesso *</label>
+                <input type="email" id="reg-email" name="email" required placeholder="seu.email@uergs.edu.br ou pessoal">
+                <span class="hint">Usado para identificação segura no portal.</span>
+              </div>
+            ` : ''}
+
+            <div class="grid grid-2">
+              <div class="field">
+                <label for="reg-semestre">Semestre Atual *</label>
+                <select id="reg-semestre" name="semester" required>
+                  <option value="">Selecione...</option>
+                  <option value="1º semestre" ${prof.semester === '1º semestre' ? 'selected' : ''}>1º semestre (Calouro)</option>
+                  <option value="2º semestre" ${prof.semester === '2º semestre' ? 'selected' : ''}>2º semestre</option>
+                  <option value="3º semestre" ${prof.semester === '3º semestre' ? 'selected' : ''}>3º semestre</option>
+                  <option value="4º semestre" ${prof.semester === '4º semestre' ? 'selected' : ''}>4º semestre</option>
+                  <option value="5º semestre" ${prof.semester === '5º semestre' ? 'selected' : ''}>5º semestre</option>
+                  <option value="6º semestre" ${prof.semester === '6º semestre' ? 'selected' : ''}>6º semestre</option>
+                  <option value="7º semestre" ${prof.semester === '7º semestre' ? 'selected' : ''}>7º semestre</option>
+                  <option value="8º semestre" ${prof.semester === '8º semestre' ? 'selected' : ''}>8º semestre</option>
+                  <option value="9º semestre" ${prof.semester === '9º semestre' ? 'selected' : ''}>9º semestre</option>
+                  <option value="10º semestre" ${prof.semester === '10º semestre' ? 'selected' : ''}>10º semestre (Formando)</option>
+                  <option value="Irregular / TCC" ${prof.semester === 'Irregular / TCC' ? 'selected' : ''}>Grade livre / TCC</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="reg-matricula">Matrícula UERGS</label>
+                <input type="text" id="reg-matricula" name="registration" value="${escapeHtml(prof.registration || '')}" placeholder="Opcional / Privado">
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="reg-whatsapp">WhatsApp para Avisos</label>
+              <input type="text" id="reg-whatsapp" name="whatsapp" value="${escapeHtml(prof.whatsapp || '')}" placeholder="(51) 99999-9999 (Opcional)">
+            </div>
+
+            <div class="field">
+              <label for="reg-interesses">Áreas de Maior Interesse no Curso</label>
+              <input type="text" id="reg-interesses" name="interests" value="${escapeHtml(prof.interests || '')}" placeholder="Ex: Robótica, CLP, Sistemas Supervisórios, IoT, Visão Computacional">
+            </div>
+
+            <div class="field" style="margin-top: .5rem;">
+              <label style="display: flex; gap: .6rem; align-items: start; cursor: pointer;">
+                <input type="checkbox" id="reg-comprova-eca" name="comprova_eca" checked required style="margin-top: .25rem;">
+                <span class="small" style="color: var(--cyan); font-weight: 500;">
+                  Declaro e comprovo matrícula ativa no curso de <strong>Engenharia de Controle e Automação</strong> da UERGS. *
+                </span>
+              </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="btn-submit-registro" style="margin-top: .5rem;">
+              ${isLogged ? 'Atualizar Meu Cadastro' : 'Finalizar Registro de Estudante'}
+            </button>
+          </form>
+        </div>
+
+        <div class="stack" style="gap: 1.25rem;">
+          <div class="card">
+            <div class="badge cyan" style="margin-bottom: .5rem;">VANTAGENS</div>
+            <h3>Benefícios do Cadastro Oficial</h3>
+            <ul class="muted small" style="padding-left: 1.1rem; line-height: 1.7; margin-bottom: 0;">
+              <li><strong>Sincronização na Nuvem:</strong> Seu histórico e planos de matrícula salvos em qualquer dispositivo.</li>
+              <li><strong>Representação Estudantil:</strong> Legitimidade perante os colegiados e departamentos da UERGS.</li>
+              <li><strong>Oportunidades em 1ª mão:</strong> Vagas de estágio filtradas para automação industrial na Grande Porto Alegre.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Evento de envio do formulário de cadastro
+    const form = document.getElementById("form-registro-aluno");
+    form?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("btn-submit-registro");
+
+      const display_name = form.display_name.value.trim();
+      const email = form.email ? form.email.value.trim() : null;
+      const semester = form.semester.value;
+      const registration = form.registration ? form.registration.value.trim() : "";
+      const whatsapp = form.whatsapp ? form.whatsapp.value.trim() : "";
+      const interests = form.interests ? form.interests.value.trim() : "";
+
+      if (!display_name || !semester) {
+        showToast("Preencha nome completo e semestre.", true);
+        return;
+      }
+
+      try {
+        if (btn) btn.disabled = true;
+        const resp = await store.registerStudent({
+          display_name,
+          email,
+          semester,
+          registration,
+          whatsapp,
+          interests,
+        });
+
+        showToast(resp || "Cadastro de estudante atualizado com sucesso!");
+        navigate("perfil");
+      } catch (err) {
+        showToast(err.message || "Erro ao salvar cadastro.", true);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    });
+  }
+
+  // Navegação entre as abas do perfil
+  document.querySelectorAll(".academic-tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      currentProfileTab = btn.getAttribute("data-ptab");
+      renderTab();
     });
   });
 
-  // Botão BRANCO
-  document.getElementById("btn-urna-branco")?.addEventListener("click", () => {
-    playUrnaBeep();
-    const cur = pollsList[activeIdx];
-    if (cur?.myOption) return;
-    selectedChoice = "branco";
-    updateScreen();
-  });
+  // Render inicial da aba
+  await renderTab();
+}
 
-  // Botão NÃO (Vermelho)
-  document.getElementById("btn-urna-nao")?.addEventListener("click", () => {
-    playUrnaBeep();
-    const cur = pollsList[activeIdx];
-    if (cur?.myOption) return;
-    selectedChoice = "nao";
-    updateScreen();
-  });
+// -------------------------------------------------------------
+// VISTA: ARQUIVO HISTÓRICO DA FUNDAÇÃO (26/10/2026)
+// -------------------------------------------------------------
+function renderArquivoHistoricoHtml() {
+  return `
+    <section class="section">
+      <div class="container" style="max-width: 860px;">
+        <div class="tech-frame" style="padding: 2.75rem 2rem; text-align: center; background: hsl(222 45% 8% / .85); border: 1px solid var(--border-strong);">
+          <div style="display: inline-flex; align-items: center; justify-content: center; width: 68px; height: 68px; border-radius: 50%; background: hsl(152 68% 52% / .1); color: var(--green); font-size: 1.1rem; font-family: var(--font-mono); font-weight: 700; margin-bottom: 1.25rem; border: 1px solid hsl(152 68% 52% / .3);">
+            UERGS
+          </div>
+          <br>
+          <span class="badge green" style="margin-bottom: .6rem;"><span class="led-dot green"></span> DELIBERAÇÃO CONCLUÍDA & REGISTRADA</span>
+          <h2 style="font-size: 1.85rem; margin-bottom: .85rem; font-family: var(--font-head);">Assembleia Geral de Fundação Realizada</h2>
+          <p class="muted" style="line-height: 1.6; max-width: 620px; margin: 0 auto 1.75rem;">
+            A Assembleia Geral de Fundação realizada em <strong>26 de Outubro de 2026</strong> foi concluída com sucesso. Os votos e deliberações foram formalmente homologados e os documentos oficiais encontram-se devidamente arquivados nos anais do Centro Acadêmico.
+          </p>
 
-  // Botão SIM (Verde)
-  document.getElementById("btn-urna-sim")?.addEventListener("click", () => {
-    playUrnaBeep();
-    const cur = pollsList[activeIdx];
-    if (cur?.myOption) return;
-    selectedChoice = "sim";
-    updateScreen();
-  });
-
-  // Botão CORRIGE (Laranja)
-  document.getElementById("btn-urna-corrige")?.addEventListener("click", () => {
-    playUrnaBeep();
-    selectedChoice = null;
-    updateScreen();
-  });
-
-  // Botão CONFIRMA
-  document.getElementById("btn-urna-confirma")?.addEventListener("click", async () => {
-    const auth = getAuth();
-    if (!auth.user) {
-      showToast("Por favor, identifique-se com seu e-mail para votar.");
-      document.getElementById("dlg-auth")?.showModal();
-      return;
-    }
-
-    const currentPoll = pollsList[activeIdx];
-    if (!currentPoll) return;
-
-    if (currentPoll.myOption) {
-      playUrnaBeep();
-      showToast("Você já votou nesta deliberação.");
-      return;
-    }
-
-    if (!selectedChoice) {
-      playUrnaBeep();
-      showToast("Selecione primeiro SIM, NÃO ou BRANCO antes de confirmar.", true);
-      return;
-    }
-
-    // Mapeia a escolha para a opção correspondente da enquete
-    let targetOption = null;
-    if (selectedChoice === "sim") {
-      targetOption = currentPoll.options.find(o => o.label.toUpperCase().includes("SIM")) || currentPoll.options[0];
-    } else if (selectedChoice === "nao") {
-      targetOption = currentPoll.options.find(o => o.label.toUpperCase().includes("NÃO") || o.label.toUpperCase().includes("NAO")) || currentPoll.options[1];
-    } else if (selectedChoice === "branco") {
-      targetOption = currentPoll.options.find(o => o.label.toUpperCase().includes("ABSTENÇÃO") || o.label.toUpperCase().includes("BRANCO")) || currentPoll.options[2];
-    }
-
-    if (!targetOption) {
-      targetOption = currentPoll.options[0];
-    }
-
-    try {
-      await store.polls.vote(currentPoll.id, targetOption.id);
-      
-      // Toca o som lendário da Urna Eletrônica
-      playUrnaConfirmationTone();
-
-      // Exibe a tela clássica de FIM
-      isDisplayingFim = true;
-      if (screenContent) {
-        screenContent.innerHTML = `
-          <div class="urna-fim-container">
-            <div class="urna-fim-text">FIM</div>
-            <div style="font-family: var(--font-mono); font-size: 1rem; color: var(--cyan); letter-spacing: .05em;">
-              VOTO GRAVADO COM SUCESSO
+          <div class="grid grid-2" style="gap: 1rem; text-align: left; max-width: 650px; margin: 0 auto 2rem;">
+            <div style="background: hsl(222 35% 10% / .6); padding: 1rem; border-radius: 6px; border: 1px solid var(--border);">
+              <div class="small" style="color: var(--cyan); font-weight: 700; margin-bottom: .3rem; font-family: var(--font-mono);">01 // PPC 2024 VIGENTE</div>
+              <p class="small muted" style="margin: 0 0 .6rem;">Projeto Pedagógico e matriz curricular oficial do curso.</p>
+              <a href="pdf/PPC_Controle_Automacao_2024_Vigente.pdf" target="_blank" class="btn btn-ghost btn-sm" style="font-family: var(--font-mono);">Baixar PPC (PDF) ↗</a>
             </div>
-            <div class="small muted" style="margin-top: .5rem;">
-              Justiça Eleitoral Acadêmica · E(CA)² UERGS
+            <div style="background: hsl(222 35% 10% / .6); padding: 1rem; border-radius: 6px; border: 1px solid var(--border);">
+              <div class="small" style="color: var(--amber); font-weight: 700; margin-bottom: .3rem; font-family: var(--font-mono);">02 // ESTATUTO VIGENTE</div>
+              <p class="small muted" style="margin: 0 0 .6rem;">Estatuto social aprovado pela comunidade estudantil.</p>
+              <a href="pdf/Estatuto_ECA2_2026.pdf" target="_blank" class="btn btn-ghost btn-sm" style="font-family: var(--font-mono);">Baixar Estatuto (PDF) ↗</a>
             </div>
           </div>
-        `;
-      }
 
-      showToast("Voto computado com sucesso na Urna Eletrônica! 🗳️");
-
-      // Recarrega as enquetes
-      await loadPolls();
-
-      // Após 2.4 segundos, avança para a outra proposta pendente ou encerra
-      setTimeout(() => {
-        isDisplayingFim = false;
-        const otherIdx = (activeIdx === 0) ? 1 : 0;
-        const otherPoll = pollsList[otherIdx];
-        if (otherPoll && !otherPoll.myOption) {
-          activeIdx = otherIdx;
-        }
-        selectedChoice = null;
-        updateScreen();
-      }, 2400);
-
-    } catch (err) {
-      showToast(err.message, true);
-    }
-  });
-
-  // Atualização em tempo real de autenticação
-  onAuth(() => {
-    updateScreen();
-  });
-
-  await loadPolls();
-  updateScreen();
+          <div class="row" style="justify-content: center; gap: .75rem; flex-wrap: wrap;">
+            <a href="#documentos" class="btn btn-primary">Acervo Documental Completo</a>
+            <a href="#perfil" class="btn btn-ghost">Meu Perfil & Matrícula</a>
+            <a href="#inicio" class="btn btn-ghost">← Voltar ao Início</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
 }
+
+// (Módulos de apuração da fundação e urna de 26/10 foram concluídos e arquivados em _arquivo_historico_fundacao_26)
 
 
 // -------------------------------------------------------------
@@ -1505,14 +1361,15 @@ function renderMonthCalendarHtml(year, month, selectedDate, categoryFilter) {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const daysInPrevMonth = new Date(year, month, 0).getDate();
 
+  const allEvents = getAllEventsCombined();
   const eventsByDate = {};
-  CALENDARIO_EVENTOS.forEach(ev => {
+  allEvents.forEach(ev => {
     if (!eventsByDate[ev.data]) eventsByDate[ev.data] = [];
     eventsByDate[ev.data].push(ev);
   });
 
   const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
-  const eventsThisMonth = CALENDARIO_EVENTOS.filter(ev => {
+  const eventsThisMonth = allEvents.filter(ev => {
     const matchesMonth = ev.data.startsWith(monthPrefix);
     const matchesCat = categoryFilter === "todos" || ev.categoria === categoryFilter;
     return matchesMonth && matchesCat;
@@ -1538,12 +1395,14 @@ function renderMonthCalendarHtml(year, month, selectedDate, categoryFilter) {
     const hasEvent = evs.length > 0;
     const hasCa = evs.some(e => e.categoria === "ca");
     const hasInst = evs.some(e => e.categoria === "institucional");
+    const hasPoa = evs.some(e => e.categoria === "uergs-poa");
     const isSelected = selectedDate === dayIso;
 
     let eventClass = "";
     if (hasEvent) {
-      if (hasCa && hasInst) eventClass = "has-event has-both-events";
+      if (hasCa && (hasInst || hasPoa)) eventClass = "has-event has-both-events";
       else if (hasCa) eventClass = "has-event has-ca-event";
+      else if (hasPoa) eventClass = "has-event has-poa-event";
       else eventClass = "has-event has-inst-event";
     }
 
@@ -1557,7 +1416,7 @@ function renderMonthCalendarHtml(year, month, selectedDate, categoryFilter) {
           <!-- Pílulas Desktop -->
           <div class="month-cal-events-list">
             ${evs.map(e => `
-              <span class="month-cal-event-pill ${e.categoria === 'ca' ? 'ca' : 'inst'}">
+              <span class="month-cal-event-pill ${e.categoria === 'ca' ? 'ca' : (e.categoria === 'uergs-poa' ? 'uergs-poa' : 'inst')}">
                 ${e.icone} ${e.titulo.length > 20 ? e.titulo.slice(0, 18) + '…' : e.titulo}
               </span>
             `).join("")}
@@ -1566,6 +1425,7 @@ function renderMonthCalendarHtml(year, month, selectedDate, categoryFilter) {
           <!-- Marcadores Luminosos Mobile -->
           <div class="month-cal-dots-wrap">
             ${hasCa ? `<span class="month-cal-mini-dot ca" title="Evento E(CA)²"></span>` : ''}
+            ${hasPoa ? `<span class="month-cal-mini-dot uergs-poa" title="UERGS Porto Alegre"></span>` : ''}
             ${hasInst ? `<span class="month-cal-mini-dot inst" title="Data Institucional UERGS"></span>` : ''}
           </div>
         ` : ''}
@@ -1590,14 +1450,14 @@ function renderMonthCalendarHtml(year, month, selectedDate, categoryFilter) {
     selectedBannerHtml = `
       <div class="month-cal-selected-banner">
         <div style="display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;">
-          <span style="font-size: 1.1rem;">📌</span>
+          <span class="badge amber" style="font-size: .75rem;">AGENDA</span>
           <div>
             <strong style="color: var(--text);">Dia Selecionado: ${formattedDate}</strong>
             <span class="muted small" style="margin-left: .5rem;">(${selectedEvs.length} ${selectedEvs.length === 1 ? 'evento marcado' : 'eventos marcados'})</span>
           </div>
         </div>
         <button type="button" class="btn btn-ghost btn-sm" id="btn-clear-date-filter" style="font-size: .8rem; padding: .3rem .8rem;">
-          ✕ Mostrar Todos os Dias
+          Mostrar Todos os Dias
         </button>
       </div>
     `;
@@ -1609,7 +1469,7 @@ function renderMonthCalendarHtml(year, month, selectedDate, categoryFilter) {
       <div class="month-cal-header">
         <div class="month-cal-title-wrap">
           <h3 class="month-cal-title">
-            📅 ${monthName} de ${year}
+            ${monthName} de ${year}
           </h3>
           <span class="badge ${eventsThisMonth.length > 0 ? 'cyan' : 'slate'}">
             ${eventsThisMonth.length} ${eventsThisMonth.length === 1 ? 'evento neste mês' : 'eventos neste mês'}
@@ -1636,8 +1496,12 @@ function renderMonthCalendarHtml(year, month, selectedDate, categoryFilter) {
             <span>E(CA)² (Curso)</span>
           </div>
           <div class="month-cal-legend-item">
+            <span class="month-cal-legend-dot uergs-poa"></span>
+            <span>UERGS Porto Alegre</span>
+          </div>
+          <div class="month-cal-legend-item">
             <span class="month-cal-legend-dot inst"></span>
-            <span>Institucional UERGS</span>
+            <span>Institucional Geral</span>
           </div>
         </div>
       </div>
@@ -1683,20 +1547,42 @@ function renderEventosHtml() {
           <div class="grid grid-2" style="align-items: center; gap: 0;">
             <div style="position: relative; height: 100%; min-height: 300px;">
               <img src="img/evento_salchipao.jpg" alt="Estudantes de Engenharia de Controle e Automação da UERGS no Salchipão" style="width: 100%; height: 100%; object-fit: cover; display: block;">
-              <span class="badge amber" style="position: absolute; top: 14px; left: 14px; backdrop-filter: blur(8px);">Evento Inaugural do Semestre</span>
+              <span class="badge amber" style="position: absolute; top: 14px; left: 14px;">Integração Estudantil</span>
             </div>
             <div style="padding: 2.5rem;">
               <span class="eyebrow" style="margin-bottom: .4rem;">Segunda-feira · 26 de Outubro · 18:30 às 19:15</span>
-              <h3 style="font-size: 1.6rem; margin-bottom: .8rem;">1º Encontro & Salchipão Inaugural do E(CA)² 🌭</h3>
+              <h3 style="font-size: 1.6rem; margin-bottom: .8rem;">Encontro & Salchipão de Recepção do E(CA)²</h3>
               <p class="muted" style="margin-bottom: 1.25rem; line-height: 1.6;">
-                Distribuição gratuita de salchipães para todos os estudantes de Engenharia de Controle e Automação da UERGS.
-                Basta assinar a lista de presença da fundação do E(CA)², retirar seu pão e aproveitar o refeitório para conversar com colegas de todos os semestres. Total liberdade para confraternizar ou levar seu lanche se tiver aula!
+                Confraternização aberta com distribuição gratuita de salchipão para todos os estudantes de Engenharia de Controle e Automação da UERGS.
+                Aproveite o refeitório para conversar com colegas de todos os semestres, conhecer veteranos e conferir os novos recursos do portal acadêmico!
               </p>
               <div class="row" style="gap: .75rem; flex-wrap: wrap;">
-                <a href="#fundacao" class="btn btn-primary btn-sm">Confirmar Presença (RSVP) 🌭</a>
-                <a href="#eleicao" class="btn btn-ghost btn-sm">Ver Cédula & Urna 🗳️</a>
+                <a href="#curso/labs" class="btn btn-primary btn-sm">Conhecer os Laboratórios</a>
+                <a href="#mural" class="btn btn-ghost btn-sm">Mural de Oportunidades</a>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Banner de Integração: Agenda UERGS Campus Porto Alegre -->
+        <div class="card" style="margin-bottom: 2rem; background: linear-gradient(135deg, hsl(220 40% 12% / .9), hsl(220 40% 8% / .95)); border: 1px solid var(--border); padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <span style="font-size: 2.2rem;">🏛️</span>
+            <div>
+              <div class="row" style="gap: .5rem; align-items: center; margin-bottom: .25rem; flex-wrap: wrap;">
+                <span class="badge amber" style="font-size: .72rem; font-weight: 700;">CAMPUS PORTO ALEGRE</span>
+                <span class="badge green" style="font-size: .72rem; font-weight: 700;">📡 RASPAGEM OFICIAL ATIVA</span>
+              </div>
+              <h3 style="margin: 0; font-size: 1.15rem;">Agenda Oficial UERGS · Unidade Porto Alegre / Campus Central</h3>
+              <p class="small muted" style="margin: .25rem 0 0; line-height: 1.5;">
+                Eventos raspados e sincronizados em tempo real diretamente da reitoria e campus central (Rua Washington Luiz, 675).
+              </p>
+            </div>
+          </div>
+          <div class="row" style="gap: .5rem; align-items: center;">
+            <a href="https://www.uergs.edu.br/agenda" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="font-size: .8rem; white-space: nowrap;">
+              Portal UERGS Oficial ↗
+            </a>
           </div>
         </div>
 
@@ -1713,26 +1599,30 @@ function renderEventosHtml() {
         </div>
 
         <!-- Barra de Filtros da Lista -->
-        <div class="calendar-filter-bar" style="margin-top: 1.5rem;">
+        <div class="calendar-filter-bar" style="margin-top: 1.5rem; flex-wrap: wrap; gap: .5rem;">
           <span class="small muted" style="font-weight: 600; margin-right: .5rem;">Filtrar Categoria:</span>
           <button type="button" class="chip ${calCategoryFilter === 'todos' ? 'active' : ''}" data-cal-filter="todos">
-            📅 Todos os Eventos (${CALENDARIO_EVENTOS.length})
+            Todos os Eventos (${getAllEventsCombined().length})
           </button>
           <button type="button" class="chip ${calCategoryFilter === 'ca' ? 'active' : ''}" data-cal-filter="ca">
-            🌭 Eventos E(CA)² (${CALENDARIO_EVENTOS.filter(e => e.categoria === 'ca').length})
+            Eventos E(CA)² (${CALENDARIO_EVENTOS.filter(e => e.categoria === 'ca').length})
+          </button>
+          <button type="button" class="chip ${calCategoryFilter === 'uergs-poa' ? 'active' : ''}" data-cal-filter="uergs-poa" style="${calCategoryFilter === 'uergs-poa' ? 'border-color: #10b981; color: #34d399;' : ''}">
+            🏛️ Agenda UERGS Porto Alegre (${uergsScrapedEvents.length})
           </button>
           <button type="button" class="chip ${calCategoryFilter === 'institucional' ? 'active' : ''}" data-cal-filter="institucional">
-            🏛️ Datas Institucionais UERGS (${CALENDARIO_EVENTOS.filter(e => e.categoria === 'institucional').length})
+            Datas Acadêmicas UERGS (${CALENDARIO_EVENTOS.filter(e => e.categoria === 'institucional').length})
           </button>
         </div>
 
         <!-- Lista Cronológica de Eventos -->
         <div id="calendar-events-list" style="margin-bottom: 3.5rem;">
-          ${CALENDARIO_EVENTOS.map(ev => {
+          ${getAllEventsCombined().map(ev => {
             const dateParts = ev.data.split("-");
-            const dayNum = dateParts[2];
+            const dayNum = dateParts[2] || "01";
             const monthNames = ["", "JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
             const monthStr = monthNames[parseInt(dateParts[1], 10)] || "MES";
+            const badgeClass = ev.categoria === 'ca' ? 'cyan' : (ev.categoria === 'uergs-poa' ? 'green' : 'amber');
 
             return `
               <div class="calendar-item ${ev.destaque ? 'destaque' : ''}" data-categoria="${ev.categoria}" data-date="${ev.data}">
@@ -1740,22 +1630,29 @@ function renderEventosHtml() {
                   <span class="day">${dayNum}</span>
                   <span class="month">${monthStr}</span>
                 </div>
-                <div>
-                  <div class="row" style="margin-bottom: .3rem; gap: .5rem; flex-wrap: wrap;">
-                    <span class="badge ${ev.categoria === 'ca' ? 'cyan' : 'amber'}">${ev.categoriaLabel}</span>
-                    <span class="small muted">🕒 ${ev.horario} · 📍 ${ev.local}</span>
+                <div style="flex: 1; min-width: 220px;">
+                  <div class="row" style="margin-bottom: .3rem; gap: .5rem; flex-wrap: wrap; align-items: center;">
+                    <span class="badge ${badgeClass}">${escapeHtml(ev.categoriaLabel || 'Evento')}</span>
+                    <span class="small muted">${escapeHtml(ev.horario || '')} · 📍 ${escapeHtml(ev.local || 'Porto Alegre')}</span>
                   </div>
-                  <h3 style="margin: 0 0 .35rem; font-size: 1.15rem;">${ev.icone} ${ev.titulo}</h3>
-                  <p class="muted small" style="margin: 0; line-height: 1.55;">${ev.descricao}</p>
+                  <div style="display: flex; gap: 1rem; align-items: flex-start; margin-top: .4rem;">
+                    ${ev.imagem ? `
+                      <img src="${ev.imagem}" alt="${escapeHtml(ev.titulo)}" style="width: 76px; height: 56px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); flex-shrink: 0;" loading="lazy" onerror="this.style.display='none'">
+                    ` : ''}
+                    <div>
+                      <h3 style="margin: 0 0 .35rem; font-size: 1.15rem;">${ev.icone || '📅'} ${escapeHtml(ev.titulo)}</h3>
+                      <p class="muted small" style="margin: 0; line-height: 1.55;">${escapeHtml(ev.descricao)}</p>
+                    </div>
+                  </div>
                 </div>
                 <div>
                   ${ev.linkAcao.startsWith('http') ? `
                     <a href="${ev.linkAcao}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="white-space: nowrap;">
-                      ${ev.textoAcao} ↗
+                      ${escapeHtml(ev.textoAcao || 'Ver Mais')} ↗
                     </a>
                   ` : `
                     <a href="${ev.linkAcao}" class="btn ${ev.destaque ? 'btn-primary' : 'btn-ghost'} btn-sm" style="white-space: nowrap;">
-                      ${ev.textoAcao}
+                      ${escapeHtml(ev.textoAcao || 'Ver Mais')}
                     </a>
                   `}
                 </div>
@@ -1764,7 +1661,7 @@ function renderEventosHtml() {
           }).join("")}
 
           <div id="calendar-empty-notice" class="empty" style="display: none; padding: 2rem 1rem;">
-            <div class="big">📅</div>
+            <div class="badge cyan">CALENDÁRIO</div>
             <h3>Nenhum evento encontrado para a data/categoria selecionada.</h3>
             <p class="muted small">Tente selecionar outro mês ou limpar os filtros de data.</p>
           </div>
@@ -1772,12 +1669,12 @@ function renderEventosHtml() {
 
         <!-- Card de Sugestão de Pautas e Visitas -->
         <div class="card" style="padding: 2.5rem; background: hsl(220 40% 12% / .6); text-align: center; border: 1px solid var(--border);">
-          <div class="icon" style="font-size: 2.2rem; margin-bottom: .5rem;">💡</div>
+          <div class="badge amber" style="margin-bottom: .5rem;">SUGESTÃO</div>
           <h3 style="font-size: 1.35rem; margin-bottom: .4rem;">Tem sugestão de visita técnica, palestra ou curso?</h3>
           <p class="muted small" style="max-width: 540px; margin: 0 auto 1.25rem; line-height: 1.6;">
             O Centro Acadêmico existe para colocar as demandas dos alunos em prática. Deixe sua ideia de empresa ou tema de minicurso no mural aberto.
           </p>
-          <a href="#mural" class="btn btn-ghost btn-sm">Publicar Sugestão no Mural 💡</a>
+          <a href="#mural" class="btn btn-ghost btn-sm">Publicar Sugestão no Mural</a>
         </div>
       </div>
     </section>
@@ -1913,9 +1810,9 @@ function renderShopHtml() {
         <div class="toolbar" style="margin-bottom: 2rem;">
           <div class="chips" id="shop-filter-chips">
             <button type="button" class="chip" data-shop-filter="todos" aria-pressed="true">Todos os Itens (5)</button>
-            <button type="button" class="chip" data-shop-filter="Utensílios" aria-pressed="false">Utensílios & Canecas ☕</button>
-            <button type="button" class="chip" data-shop-filter="Vestuário" aria-pressed="false">Vestuário 👕</button>
-            <button type="button" class="chip" data-shop-filter="DIY & Laboratório" aria-pressed="false">DIY & Laboratório ⚡</button>
+            <button type="button" class="chip" data-shop-filter="Utensílios" aria-pressed="false">Utensílios & Canecas</button>
+            <button type="button" class="chip" data-shop-filter="Vestuário" aria-pressed="false">Vestuário</button>
+            <button type="button" class="chip" data-shop-filter="DIY & Laboratório" aria-pressed="false">DIY & Laboratório</button>
           </div>
           <div class="spacer"></div>
           <span class="small muted" style="align-self: center;">Lote Inaugural 2026/2 · Encomendas Abertas</span>
@@ -1930,7 +1827,7 @@ function renderShopHtml() {
                   <img src="${prod.foto}" alt="${escapeHtml(prod.nome)}" loading="lazy">
                 ` : `
                   <div style="display: grid; place-items: center; height: 100%; font-size: 4.5rem; background: hsl(220 40% 12%);">
-                    ${prod.icone || '📦'}
+                    ${prod.categoria || 'ITEM'}
                   </div>
                 `}
                 <span class="badge ${prod.destaque ? 'amber' : 'cyan'}" style="position: absolute; top: 12px; left: 12px; backdrop-filter: blur(8px);">
@@ -1938,7 +1835,7 @@ function renderShopHtml() {
                 </span>
                 ${prod.permitePersonalizacao ? `
                   <span class="badge amber" style="position: absolute; top: 12px; right: 12px; backdrop-filter: blur(8px); box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);">
-                    ✨ Personalizável
+                    Personalizável
                   </span>
                 ` : ''}
                 <span class="badge" style="position: absolute; bottom: 12px; right: 12px; background: hsl(224 50% 6% / .88); color: var(--cyan); border-color: var(--cyan); font-weight: 700; font-size: .88rem;">
@@ -1963,7 +1860,7 @@ function renderShopHtml() {
                 ` : ''}
 
                 <button type="button" class="btn btn-primary btn-sm btn-open-order" data-prod-id="${prod.id}" style="width: 100%;">
-                  ${prod.permitePersonalizacao ? 'Personalizar & Encomendar ✨' : 'Reservar este Item ⚡'}
+                  ${prod.permitePersonalizacao ? 'Personalizar & Encomendar' : 'Reservar este Item'}
                 </button>
               </div>
             </div>
@@ -1974,7 +1871,7 @@ function renderShopHtml() {
         <div class="card" style="border-left: 4px solid var(--cyan); padding: 1.75rem;">
           <div class="grid grid-2" style="align-items: center; gap: 1.5rem;">
             <div class="row" style="gap: 1.25rem;">
-              <span style="font-size: 2.2rem;">💡</span>
+              <span class="badge amber">IDEIA</span>
               <div>
                 <strong>Prestação de Contas Aberta & Preço de Custo Social</strong>
                 <p class="small muted" style="margin: .3rem 0 0;">
@@ -2115,7 +2012,7 @@ function setupShopInteractions() {
 
     if (laserIndicator && laserText) {
       if (isCustom) {
-        laserText.textContent = currentProd.tipoPersonalizacao || "Gravação Personalizada ✨";
+        laserText.textContent = currentProd.tipoPersonalizacao || "Gravação Personalizada";
         laserIndicator.style.borderColor = "var(--cyan)";
       } else {
         laserText.textContent = "Padrão Oficial E(CA)²";
@@ -2161,7 +2058,7 @@ function setupShopInteractions() {
               <img src="${prod.foto}" alt="${escapeHtml(prod.nome)}" class="studio-mockup-img" id="studio-mockup-img">
             ` : `
               <div style="font-size: 5.5rem; user-select: none;">
-                ${prod.icone || '📦'}
+                ${prod.categoria || 'ITEM'}
               </div>
             `}
             <div class="studio-live-overlay pos-frente" id="studio-overlay-text" style="display: none; font-family: ${selectedFont.family};">
@@ -2407,22 +2304,22 @@ function setupShopInteractions() {
     // Se selecionou envio no WhatsApp do CA
     if (submitTarget === "whatsapp") {
       const msg = [
-        `🛍️ *NOVA ENCOMENDA · LOJINHA E(CA)² UERGS*`,
+        `*NOVA ENCOMENDA · LOJINHA E(CA)² UERGS*`,
         `----------------------------------------`,
-        `📦 *Produto:* ${currentProd.nome}`,
-        `💰 *Valor Total:* ${finalPriceStr}`,
-        isCustom ? `✨ *Personalização:* SIM (${currentProd.tipoPersonalizacao || 'Gravação'})` : `🛡️ *Personalização:* Não (Padrão Oficial)`,
-        isCustom ? `🔤 *Texto Gravado:* ${customText}` : null,
-        isCustom ? `📐 *Posição:* ${selectedPos.label}` : null,
-        isCustom ? `🖋️ *Fonte:* ${selectedFont.label}` : null,
-        selectedSize ? `👕 *Tamanho:* ${selectedSize}` : null,
+        `*Produto:* ${currentProd.nome}`,
+        `*Valor Total:* ${finalPriceStr}`,
+        isCustom ? `*Personalização:* SIM (${currentProd.tipoPersonalizacao || 'Gravação'})` : `*Personalização:* Não (Padrão Oficial)`,
+        isCustom ? `*Texto Gravado:* ${customText}` : null,
+        isCustom ? `*Posição:* ${selectedPos.label}` : null,
+        isCustom ? `*Fonte:* ${selectedFont.label}` : null,
+        selectedSize ? `*Tamanho:* ${selectedSize}` : null,
         `----------------------------------------`,
-        `👤 *Estudante:* ${name}`,
-        `🎓 *Semestre:* ${semester}`,
-        `📱 *WhatsApp:* ${whatsapp}`,
-        obs ? `📝 *Obs:* ${obs}` : null,
+        `*Estudante:* ${name}`,
+        `*Semestre:* ${semester}`,
+        `*WhatsApp:* ${whatsapp}`,
+        obs ? `*Obs:* ${obs}` : null,
         `----------------------------------------`,
-        `💳 *Chave PIX:* ca.eca2.uergs@gmail.com`,
+        `*Chave PIX:* ca.eca2.uergs@gmail.com`,
         `_Estou enviando este pedido oficial com personalização configurada no site._`
       ].filter(Boolean).join("\n");
 
@@ -2432,7 +2329,7 @@ function setupShopInteractions() {
 
     dlgOrder?.close();
     formOrder.reset();
-    showToast(`🎉 Encomenda de ${currentProd.nome} ${isCustom ? 'personalizada ' : ''}registrada com sucesso!`);
+    showToast(`Encomenda de ${currentProd.nome} ${isCustom ? 'personalizada ' : ''}registrada com sucesso!`);
   });
 }
 
@@ -2440,8 +2337,7 @@ function setupShopInteractions() {
 // VISTA: DOCUMENTOS OFICIAIS & ESTATUTOS (PDFs)
 // -------------------------------------------------------------
 function renderDocumentosHtml() {
-  const estatutos = DOCUMENTOS_OFICIAIS.filter(d => d.destaque);
-  const outrosDocs = DOCUMENTOS_OFICIAIS.filter(d => !d.destaque);
+  const docs = DOCUMENTOS_OFICIAIS;
 
   return `
     <section class="section">
@@ -2450,14 +2346,14 @@ function renderDocumentosHtml() {
           <span class="eyebrow">Transparência & Base Jurídica</span>
           <h2>Estatutos & Documentos Oficiais</h2>
           <p>
-            Baixe e consulte os estatutos, editais de convocação e atas em PDF.
+            Consulte os Projetos Pedagógicos de Curso (PPCs 2024 e 2019), o Estatuto Social do E(CA)² e as resoluções institucionais em formato PDF padronizado.
             Garantia de conformidade com a Lei Federal nº 7.395/1985 e transparência total para todos os estudantes de Engenharia de Controle e Automação da UERGS.
           </p>
         </div>
 
-        <!-- Banner com os 2 Estatutos Principais em Alta Evidência -->
-        <div class="grid grid-2" style="margin-bottom: 3.5rem; align-items: stretch;">
-          ${estatutos.map(doc => `
+        <!-- Grade com os Documentos Oficiais do Curso e do Centro Acadêmico -->
+        <div class="grid grid-2" style="margin-bottom: 3.5rem; align-items: stretch; gap: 1.5rem;">
+          ${docs.map(doc => `
             <div class="card doc-card featured" style="padding: 2rem;">
               <div>
                 <div class="row" style="margin-bottom: .75rem; justify-content: space-between;">
@@ -2482,48 +2378,12 @@ function renderDocumentosHtml() {
                     ⬇ Baixar PDF (${doc.tamanho})
                   </a>
                   <button type="button" class="btn btn-ghost btn-sm btn-preview-pdf" data-pdf-url="${doc.arquivo}" data-pdf-title="${escapeHtml(doc.titulo)}" style="flex: 1;">
-                    👁️ Visualizar no Portal
+                    Visualizar no Portal
                   </button>
                 </div>
                 <a href="${doc.arquivo}" target="_blank" rel="noopener noreferrer" class="small muted" style="text-align: center; display: block; text-decoration: underline;">
                   Abrir arquivo PDF em nova aba do navegador ↗
                 </a>
-              </div>
-            </div>
-          `).join("")}
-        </div>
-
-        <!-- Grade com Todos os Demais Documentos da Fundação -->
-        <div class="section-head" style="margin-bottom: 1.5rem;">
-          <span class="eyebrow">Atos da Assembleia & Roteiros</span>
-          <h2>Editais, Roteiro e Material de Apoio</h2>
-          <p>Documentos preparados para a assembleia geral de 26/10/2026 e mobilização acadêmica.</p>
-        </div>
-
-        <div class="grid grid-3" style="align-items: stretch; margin-bottom: 3.5rem;">
-          ${outrosDocs.map(doc => `
-            <div class="card doc-card" style="padding: 1.5rem;">
-              <div>
-                <div class="row" style="margin-bottom: .6rem; justify-content: space-between;">
-                  <span class="badge slate" style="font-size: .72rem;">${doc.categoria}</span>
-                  <span class="small muted">${doc.tamanho}</span>
-                </div>
-                <div class="row" style="align-items: center; gap: .75rem; margin-bottom: .5rem;">
-                  <span style="font-size: 1.5rem;">${doc.icone}</span>
-                  <h3 style="font-size: 1.1rem; margin: 0; line-height: 1.3;">${doc.titulo}</h3>
-                </div>
-                <p class="muted small" style="line-height: 1.6; margin-bottom: 1.25rem;">
-                  ${doc.descricao}
-                </p>
-              </div>
-
-              <div class="row" style="gap: .5rem; margin-top: auto;">
-                <a href="${doc.arquivo}" download="${doc.titulo}.pdf" class="btn btn-primary btn-sm" style="flex: 1; font-size: .8rem;">
-                  ⬇ Baixar
-                </a>
-                <button type="button" class="btn btn-ghost btn-sm btn-preview-pdf" data-pdf-url="${doc.arquivo}" data-pdf-title="${escapeHtml(doc.titulo)}" style="font-size: .8rem;">
-                  👁️ Ler
-                </button>
               </div>
             </div>
           `).join("")}
@@ -2541,7 +2401,7 @@ function renderDocumentosHtml() {
               </p>
             </div>
             <div style="text-align: right;">
-              <a href="#fundacao" class="btn btn-primary">Participar da Assembleia em 26/10 🌭</a>
+              <a href="#perfil" class="btn btn-primary">Meu Perfil & Matrícula</a>
             </div>
           </div>
         </div>
@@ -2588,196 +2448,7 @@ function setupDocumentosInteractions() {
   bindPdfPreviewButtons();
 }
 
-// -------------------------------------------------------------
-// VISTA: FUNDAÇÃO E SALCHIPÃO
-// -------------------------------------------------------------
-function renderFundacaoHtml() {
-  return `
-    <section class="section">
-      <div class="container">
-        <div class="section-head">
-          <span class="eyebrow">1º Encontro Oficial · Refeitório UERGS</span>
-          <h2>26 de Outubro · Salchipão dos Estudantes & Fundação do E(CA)²</h2>
-          <p>
-            Distribuição de salchipão das <strong>18:30 às 19:15</strong> no refeitório. Coleta de assinaturas da lista oficial, demonstração do novo portal e criação da gestão provisória.
-          </p>
-        </div>
-
-        <div class="grid grid-2" style="align-items: start; margin-bottom: 3rem;">
-          <!-- Card de Confirmação (RSVP) -->
-          <div class="card">
-            <h3>🌭 Confirme seu Salchipão (18h30 às 19h15)</h3>
-            <p class="muted small">
-              O salchipão é 100% gratuito para todos os estudantes de Engenharia de Controle e Automação da UERGS. Confirmar nos ajuda a dimensionar a quantidade de pães e refrigerantes!
-            </p>
-
-            <form id="form-rsvp" class="form">
-              <div class="field">
-                <label for="rsvp-name">Seu Nome Completo *</label>
-                <input type="text" id="rsvp-name" name="name" required placeholder="Como quer ser chamado">
-              </div>
-
-              <div class="field">
-                <label for="rsvp-sem">Semestre ou ano de ingresso *</label>
-                <input type="text" id="rsvp-sem" name="semester" required placeholder="Ex: 1º semestre (bicho) ou veterano">
-              </div>
-
-              <div class="field">
-                <label for="rsvp-diet">Restrição Alimentar</label>
-                <select id="rsvp-diet" name="diet">
-                  <option value="nenhuma">Nenhuma (salchipão tradicional)</option>
-                  <option value="vegetariano">Vegetariano</option>
-                  <option value="vegano">Vegano</option>
-                  <option value="outra">Outra restrição</option>
-                </select>
-              </div>
-
-              <fieldset class="field">
-                <legend>Interesse em colaborar na gestão/estruturação do CA?</legend>
-                <div class="radio-row">
-                  <label class="radio-pill">
-                    <input type="radio" name="commission" value="sim">
-                    <span>Quero colaborar!</span>
-                  </label>
-                  <label class="radio-pill">
-                    <input type="radio" name="commission" value="talvez" checked>
-                    <span>Talvez</span>
-                  </label>
-                  <label class="radio-pill">
-                    <input type="radio" name="commission" value="nao">
-                    <span>Apenas participar do evento</span>
-                  </label>
-                </div>
-              </fieldset>
-
-              <button type="submit" class="btn btn-primary" id="btn-submit-rsvp">Garantir Meu Salchipão 🌭</button>
-              <div class="muted small" id="rsvp-confirmed-count">Carregando confirmações...</div>
-            </form>
-          </div>
-
-          <!-- Dinâmica do Evento e Pauta -->
-          <div class="card">
-            <h3>📋 Dinâmica do Encontro no Refeitório</h3>
-            <p class="muted small">Horário: das 18:30 às 19:15 · Refeitório da UERGS Porto Alegre.</p>
-
-            <ul style="padding-left: 1.2rem; color: var(--muted); font-size: .95rem; line-height: 1.8;">
-              <li><strong>18:30 às 19:15 · Acolhimento & Assinaturas:</strong> Estudantes de Controle e Automação assinam a lista física de presença da fundação e retiram seu salchipão.</li>
-              <li><strong>Confraternização Aberta:</strong> Espaço livre no refeitório para calouros ("bichos") e veteranos conversarem, tirarem dúvidas de matérias e comerem juntos. Total liberdade para ficar no refeitório ou levar seu lanche se tiver aula.</li>
-              <li><strong>Apresentação da Plataforma E(CA)²:</strong> Demonstração do site nos celulares (Árvores dos PPCs 2019/2024, Calendário 2026 e Simulador de Urna).</li>
-              <li><strong>Deliberação 1:</strong> Aprovação da fundação oficial do Centro Acadêmico E(CA)².</li>
-              <li><strong>Deliberação 2:</strong> Aprovação da criação da Comissão Pró-CA provisória para estruturação jurídica, redação do estatuto social e obtenção de CNPJ.</li>
-            </ul>
-
-            <div style="margin-top: 1.5rem; padding: 1.1rem; border-radius: var(--radius-sm); background: hsl(190 90% 40% / .1); border: 1px solid var(--border);">
-              <strong style="color: var(--cyan); font-size: .95rem;">🎯 Propósito Estratégico do E(CA)²:</strong>
-              <p class="small muted" style="margin: .35rem 0 0; line-height: 1.6;">
-                Formalizar o CA com personalidade jurídica e CNPJ próprio para disputar <strong>editais de ciência, inovação, cultura e assistência estudantil</strong>, captar patrocínios industriais e financiar materiais de bancada, visitas técnicas e projetos dos alunos.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Linha do Tempo Visual -->
-        <div class="section-head">
-          <span class="eyebrow">Etapas do Processo</span>
-          <h2>Do Salchipão até a Primeira Diretoria</h2>
-        </div>
-        <div class="timeline">
-          ${LINHA_DO_TEMPO.map(t => `
-            <div class="tl-item ${t.destaque ? 'destaque' : ''}">
-              <div class="card">
-                <span class="tl-date">${t.data}</span>
-                <h3 style="margin: .25rem 0 .4rem;">${t.titulo}</h3>
-                <p class="muted small" style="margin: 0;">${t.texto}</p>
-              </div>
-            </div>
-          `).join("")}
-        </div>
-
-        <!-- Bloco de Acesso Direto aos Estatutos e Documentos -->
-        <div class="card" style="margin-top: 3.5rem; padding: 2.25rem; border: 1px solid var(--border-strong); background: linear-gradient(180deg, hsl(189 94% 55% / .08) 0%, var(--surface) 100%);">
-          <div class="grid grid-2" style="align-items: center; gap: 2rem;">
-            <div>
-              <span class="badge cyan" style="margin-bottom: .6rem;">Transparência & Acesso Livre</span>
-              <h3 style="font-size: 1.45rem; margin-bottom: .6rem;">Estatutos & Documentação Legal do E(CA)²</h3>
-              <p class="muted small" style="line-height: 1.7; margin-bottom: 1.25rem;">
-                Consulte o <strong>Estatuto Social do E(CA)² 2026</strong>, o <strong>Estatuto da Representação Discente UERGS</strong>, o <strong>Edital de Convocação</strong> e o <strong>Roteiro da Assembleia</strong>. Nenhum documento fica em segredo: tudo está disponível para leitura e download em formato PDF A4 padronizado.
-              </p>
-              <div class="row" style="gap: .75rem;">
-                <a href="pdf/Estatuto_ECA2_2026.pdf" download="Estatuto_ECA2_2026.pdf" class="btn btn-primary btn-sm">
-                  ⬇ Baixar Estatuto do CA (PDF)
-                </a>
-                <a href="#documentos" class="btn btn-ghost btn-sm">
-                  Ver Todos os Estatutos & PDFs 📂
-                </a>
-              </div>
-            </div>
-            <div class="stack" style="gap: .75rem;">
-              <a href="pdf/Estatuto_Representacao_Discente.pdf" target="_blank" class="card" style="padding: 1rem; border-color: var(--border); background: hsl(220 40% 12% / .8); display: flex; align-items: center; justify-content: space-between;">
-                <div>
-                  <strong style="display: block; font-size: .95rem; color: var(--text);">🏛️ Estatuto da Representação Discente UERGS</strong>
-                  <span class="small muted">Regulamento dos órgãos colegiados · 371 KB PDF</span>
-                </div>
-                <span class="badge slate">Abrir ↗</span>
-              </a>
-              <a href="pdf/02_Edital_de_Convocacao.pdf" target="_blank" class="card" style="padding: 1rem; border-color: var(--border); background: hsl(220 40% 12% / .8); display: flex; align-items: center; justify-content: space-between;">
-                <div>
-                  <strong style="display: block; font-size: .95rem; color: var(--text);">📢 Edital de Convocação Oficial (26/10)</strong>
-                  <span class="small muted">Ordem do dia e normas legais · 270 KB PDF</span>
-                </div>
-                <span class="badge slate">Abrir ↗</span>
-              </a>
-              <a href="pdf/03_Roteiro_da_Assembleia.pdf" target="_blank" class="card" style="padding: 1rem; border-color: var(--border); background: hsl(220 40% 12% / .8); display: flex; align-items: center; justify-content: space-between;">
-                <div>
-                  <strong style="display: block; font-size: .95rem; color: var(--text);">⏱️ Roteiro da Assembleia Minuto a Minuto</strong>
-                  <span class="small muted">Condução consensual sem conflitos · 363 KB PDF</span>
-                </div>
-                <span class="badge slate">Abrir ↗</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  `;
-}
-
-function setupFundacaoInteractions() {
-  const form = document.getElementById("form-rsvp");
-  const countEl = document.getElementById("rsvp-confirmed-count");
-
-  // Atualiza contagem inicial
-  store.rsvp.count().then(n => {
-    if (countEl) countEl.textContent = `🎉 Mais de ${n} estudantes já confirmaram presença!`;
-  }).catch(() => {});
-
-  form?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById("btn-submit-rsvp");
-    const name = form.name.value.trim();
-    const semester = form.semester.value.trim();
-    const diet = form.diet.value;
-    const commission = form.commission.value;
-
-    if (!name || !semester) {
-      showToast("Por favor, preencha nome e semestre.", true);
-      return;
-    }
-
-    try {
-      if (btn) btn.disabled = true;
-      await store.rsvp.add({ name, semester, diet, commission });
-      showToast("Presença confirmada! Nos vemos dia 26/10 🌭");
-      form.reset();
-      const n = await store.rsvp.count();
-      if (countEl) countEl.textContent = `🎉 Mais de ${n} estudantes já confirmaram presença!`;
-    } catch (err) {
-      showToast(err.message || "Erro ao registrar confirmação.", true);
-    } finally {
-      if (btn) btn.disabled = false;
-    }
-  });
-}
+// (Módulos da assembleia de fundação e salchipão foram concluídos e arquivados em _arquivo_historico_fundacao_26)
 
 // -------------------------------------------------------------
 // VISTA: MURAL DE SUGESTÕES
@@ -2886,7 +2557,7 @@ async function setupMuralInteractions() {
 
     try {
       await store.suggestions.create({ title, body, category });
-      showToast("Proposta publicada com sucesso! 🚀");
+      showToast("Proposta publicada com sucesso!");
       form.reset();
       box.style.display = "none";
       await carregarSugestoes();
@@ -2905,7 +2576,7 @@ async function setupMuralInteractions() {
       if (filtered.length === 0) {
         listEl.innerHTML = `
           <div class="card empty">
-            <div class="big">💡</div>
+            <div class="badge amber">IDEIA</div>
             <p>Nenhuma sugestão nesta categoria ainda. Seja o primeiro a propor!</p>
           </div>
         `;
@@ -2932,7 +2603,7 @@ async function setupMuralInteractions() {
               ${s.ca_reply ? `
                 <div class="ca-official-reply" style="margin-top: .85rem; padding: .85rem 1.15rem; border-radius: var(--radius-sm); background: hsl(189 94% 55% / .08); border-left: 3px solid var(--cyan);">
                   <div class="row" style="gap: .5rem; margin-bottom: .3rem; align-items: center; flex-wrap: wrap;">
-                    <span class="badge cyan" style="font-size: .72rem; padding: .15rem .55rem;">⚡ Resposta Oficial da Diretoria E(CA)²</span>
+                    <span class="badge cyan" style="font-size: .72rem; padding: .15rem .55rem;">Resposta Oficial da Diretoria E(CA)²</span>
                     <span class="small muted">${s.ca_replied_at ? formatRelativeTime(s.ca_replied_at) : ''} ${s.ca_replied_by ? `· ${escapeHtml(s.ca_replied_by)}` : ''}</span>
                   </div>
                   <p class="small" style="margin: 0; line-height: 1.55; color: var(--text);">${escapeHtml(s.ca_reply)}</p>
@@ -3066,7 +2737,7 @@ async function setupEnquetesInteractions() {
                 ` : `
                   <div class="poll-opt ${isMyVote ? 'mine' : ''}">
                     <span class="bar" style="--pct: ${pct}%;"></span>
-                    <span>${escapeHtml(opt.label)} ${isMyVote ? '✓' : ''}</span>
+                    <span>${escapeHtml(opt.label)} ${isMyVote ? '(Seu voto)' : ''}</span>
                     <span class="pct">${pct}%</span>
                   </div>
                 `;
@@ -3223,7 +2894,7 @@ async function setupForumInteractions() {
           <div>
             <div class="row" style="margin-bottom: .25rem; align-items: center; gap: .4rem;">
               <span class="badge slate">${escapeHtml(t.category)}</span>
-              ${isPinned ? '<span class="badge amber" style="font-size: .68rem;">📌 Destaque · Oficial</span>' : ''}
+              ${isPinned ? '<span class="badge amber" style="font-size: .68rem;">Destaque · Oficial</span>' : ''}
               <span class="small muted">por ${escapeHtml(t.author || 'Membro E(CA)²')} ${t.semester ? `(${escapeHtml(t.semester)})` : ''} · ${formatRelativeTime(t.created_at)}</span>
             </div>
             <h3 style="font-size: 1.15rem; margin-top: .15rem;"><a href="#forum/${t.id}" data-topic-link="${t.id}">${escapeHtml(t.title)}</a></h3>
@@ -3358,7 +3029,7 @@ function renderCursoHtml(tab = currentCursoTab) {
   if (activeTab === "arvore") {
     tabContentHtml = `
       <!-- Banner de Acesso aos Documentos Oficiais dos PPCs -->
-      <div class="card" style="margin-bottom: 2.5rem; background: linear-gradient(135deg, hsl(220 40% 12% / .9) 0%, hsl(222 45% 8% / .9) 100%); border: 1px solid hsl(189 94% 55% / .3); box-shadow: 0 10px 30px -10px hsl(189 94% 55% / .15);">
+      <div class="card" style="margin-bottom: 2.5rem; background: var(--surface); border: 1px solid var(--border-strong);">
         <div class="row" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
           <div>
             <span class="eyebrow" style="color: var(--cyan);">Documentação Pedagógica Oficial</span>
@@ -3374,7 +3045,7 @@ function renderCursoHtml(tab = currentCursoTab) {
           <div style="background: hsl(222 35% 14% / .7); border: 1px solid hsl(189 94% 55% / .4); border-radius: var(--radius-sm); padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;">
             <div>
               <div class="row" style="justify-content: space-between; align-items: flex-start; margin-bottom: .5rem;">
-                <span style="font-size: 1.75rem;">📘</span>
+                <span class="badge cyan">PPC 2024</span>
                 <span class="badge" style="background: hsl(152 68% 52% / .2); color: var(--green); border: 1px solid hsl(152 68% 52% / .4); font-size: .75rem;">GRADE VIGENTE</span>
               </div>
               <h4 style="margin: 0 0 .35rem; font-size: 1.05rem;">PPC 2024 (Resolução CONEPE 016/2023)</h4>
@@ -3384,7 +3055,7 @@ function renderCursoHtml(tab = currentCursoTab) {
             </div>
             <div class="row" style="gap: .6rem; flex-wrap: wrap;">
               <button type="button" class="btn btn-primary btn-sm btn-preview-pdf" data-pdf-url="pdf/PPC_Controle_Automacao_2024_Vigente.pdf" data-pdf-title="PPC 2024 Vigente - Eng. de Controle e Automação UERGS">
-                👁️ Ler no Navegador
+                Ler no Navegador
               </button>
               <a href="pdf/PPC_Controle_Automacao_2024_Vigente.pdf" download="PPC_Controle_Automacao_2024_Vigente.pdf" class="btn btn-ghost btn-sm">
                 ⬇️ Baixar (3.4 MB)
@@ -3396,7 +3067,7 @@ function renderCursoHtml(tab = currentCursoTab) {
           <div style="background: hsl(222 35% 14% / .7); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;">
             <div>
               <div class="row" style="justify-content: space-between; align-items: flex-start; margin-bottom: .5rem;">
-                <span style="font-size: 1.75rem;">📙</span>
+                <span class="badge amber">PPC 2019</span>
                 <span class="badge" style="background: hsl(222 25% 20%); color: var(--muted); border: 1px solid var(--border); font-size: .75rem;">GRADE HISTÓRICA</span>
               </div>
               <h4 style="margin: 0 0 .35rem; font-size: 1.05rem;">PPC 2019 (Resolução CONEPE 037/2019)</h4>
@@ -3406,7 +3077,7 @@ function renderCursoHtml(tab = currentCursoTab) {
             </div>
             <div class="row" style="gap: .6rem; flex-wrap: wrap;">
               <button type="button" class="btn btn-ghost btn-sm btn-preview-pdf" data-pdf-url="pdf/PPC_Controle_Automacao_2019_Antigo.pdf" data-pdf-title="PPC 2019 Histórico - Eng. de Controle e Automação UERGS">
-                👁️ Ler no Navegador
+                Ler no Navegador
               </button>
               <a href="pdf/PPC_Controle_Automacao_2019_Antigo.pdf" download="PPC_Controle_Automacao_2019_Antigo.pdf" class="btn btn-ghost btn-sm">
                 ⬇️ Baixar (3.7 MB)
@@ -3431,10 +3102,10 @@ function renderCursoHtml(tab = currentCursoTab) {
           <div>
             <div class="dep-ppc-pills" role="tablist" aria-label="Escolher versão do PPC">
               <button type="button" class="dep-ppc-btn active" id="btn-ppc-2024" data-ppc="2024">
-                📘 PPC 2024 (Vigente · 4.015h)
+                PPC 2024 (Vigente · 4.015h)
               </button>
               <button type="button" class="dep-ppc-btn" id="btn-ppc-2019" data-ppc="2019">
-                📙 PPC 2019 (Histórico · 3.765h)
+                PPC 2019 (Histórico · 3.765h)
               </button>
             </div>
           </div>
@@ -3443,21 +3114,21 @@ function renderCursoHtml(tab = currentCursoTab) {
           <div class="dep-areas-bar" id="dep-area-filters">
             <span class="small faint" style="margin-right: .25rem;">Área:</span>
             <button type="button" class="dep-area-btn active" data-area="all">Todas</button>
-            <button type="button" class="dep-area-btn" data-area="matematica">🧮 Matemática</button>
-            <button type="button" class="dep-area-btn" data-area="fisica">⚡ Física & Térmica</button>
-            <button type="button" class="dep-area-btn" data-area="computacao">💻 Computação</button>
-            <button type="button" class="dep-area-btn" data-area="eletronica">🔌 Eletrônica</button>
-            <button type="button" class="dep-area-btn" data-area="controle">🦾 Controle & Robótica</button>
-            <button type="button" class="dep-area-btn" data-area="mecanica">⚙️ Mecânica</button>
+            <button type="button" class="dep-area-btn" data-area="matematica">Matemática</button>
+            <button type="button" class="dep-area-btn" data-area="fisica">Física & Térmica</button>
+            <button type="button" class="dep-area-btn" data-area="computacao">Computação</button>
+            <button type="button" class="dep-area-btn" data-area="eletronica">Eletrônica</button>
+            <button type="button" class="dep-area-btn" data-area="controle">Controle & Robótica</button>
+            <button type="button" class="dep-area-btn" data-area="mecanica">Mecânica</button>
           </div>
 
           <!-- Botões de Ação -->
           <div class="row" style="gap: .5rem; flex-wrap: wrap;">
             <button type="button" class="btn btn-ghost btn-sm" id="btn-export-dep-svg" title="Baixar imagem vetorial SVG da árvore do PPC selecionado">
-              📷 Baixar Imagem (SVG)
+              Baixar Imagem (SVG)
             </button>
             <button type="button" class="btn btn-ghost btn-sm" id="btn-reset-dep-selection" style="display: none;">
-              ✕ Limpar Seleção
+              Limpar Seleção
             </button>
           </div>
         </div>
@@ -3467,17 +3138,17 @@ function renderCursoHtml(tab = currentCursoTab) {
 
         <!-- Inspetor de Disciplina Selecionada -->
         <div class="dep-inspector-box empty" id="dep-inspector">
-          💡 <strong>Instrução Interativa:</strong> Clique em qualquer matéria no mapa abaixo para traçar automaticamente sua cadeia de pré-requisitos (<span style="color: var(--green); font-weight: 600;">verde</span>) e as matérias que ela destrava (<span style="color: var(--amber); font-weight: 600;">laranja</span>).
+          <strong>Instrução:</strong> Clique em qualquer matéria no mapa abaixo para traçar automaticamente sua cadeia de pré-requisitos (<span style="color: var(--green); font-weight: 600;">verde</span>) e as matérias que ela destrava (<span style="color: var(--amber); font-weight: 600;">laranja</span>).
         </div>
 
         <!-- Dica móvel de navegação -->
         <div class="dep-mobile-scroll-hint small muted" style="display: none; align-items: center; gap: .4rem; margin-bottom: .6rem; font-size: .82rem;">
-          <span>👉</span> <em>Deslize horizontalmente para navegar pelos 10 módulos</em>
+          <em>Deslize horizontalmente para navegar pelos 10 módulos</em>
         </div>
 
         <!-- Visualizador Gráfico com Scroll Horizontal -->
         <div class="dep-graph-scroll" id="dep-graph-scroll">
-          <svg class="dep-svg-canvas" id="dep-svg-canvas"></svg>
+          <svg class="dep-svg-canvas" id="dep-svg-canvas" style="display: none !important;"></svg>
           <div class="dep-columns-grid" id="dep-columns-grid"></div>
         </div>
       </div>
@@ -3494,7 +3165,7 @@ function renderCursoHtml(tab = currentCursoTab) {
       <!-- Toolbar de Busca e Abas -->
       <div style="margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
         <div>
-          <input type="search" id="curso-search-input" class="input" placeholder="🔍 Filtrar disciplinas por código, nome ou pré-requisito (ex: Cálculo, CLP, ROBOT, Física)..." style="width: 100%; max-width: 500px; padding: .65rem 1rem;">
+          <input type="search" id="curso-search-input" class="input" placeholder="Filtrar disciplinas por código, nome ou pré-requisito (ex: Cálculo, CLP, ROBOT, Física)..." style="width: 100%; max-width: 500px; padding: .65rem 1rem;">
         </div>
         
         <div class="module-tabs" id="curso-module-tabs" role="tablist" aria-label="Módulos do curso">
@@ -3509,7 +3180,7 @@ function renderCursoHtml(tab = currentCursoTab) {
       <div id="curso-modules-container">
         <!-- Placeholder inicial quando nenhum semestre está selecionado -->
         <div id="curso-placeholder" class="card" style="text-align: center; padding: 2.75rem 1.5rem; border: 1px dashed var(--border); background: hsl(222 35% 10% / .5); margin-bottom: 2rem;">
-          <div style="font-size: 2.2rem; margin-bottom: .5rem;">📚</div>
+          <div class="badge cyan" style="margin-bottom: .5rem;">CURRÍCULO</div>
           <h3 style="margin: 0 0 .35rem; font-size: 1.15rem;">Nenhum semestre selecionado</h3>
           <p class="muted small" style="max-width: 520px; margin: 0 auto; font-size: .88rem; line-height: 1.6;">
             Clique em qualquer um dos botões acima (do <strong>1º ao 10º Módulo</strong> ou <strong>Eletivas</strong>) para abrir e visualizar a grade curricular, créditos e pré-requisitos correspondentes.
@@ -3525,7 +3196,7 @@ function renderCursoHtml(tab = currentCursoTab) {
                   <span class="badge" style="background: hsl(189 94% 55% / .1); color: var(--cyan); border: 1px solid hsl(189 94% 55% / .3); font-size: .8rem;">${m.chTotal} · ${m.creditos} créditos</span>
                 </h3>
                 <div class="small muted" style="margin-top: .25rem;">
-                  🎯 <strong>Foco:</strong> ${m.foco}
+                  <strong>Foco:</strong> ${m.foco}
                 </div>
               </div>
               <span class="small faint">${m.disciplinas.length} componentes curriculares</span>
@@ -3571,7 +3242,7 @@ function renderCursoHtml(tab = currentCursoTab) {
                 <span class="badge">Mínimo 60h exigidas</span>
               </h3>
               <div class="small muted" style="margin-top: .25rem;">
-                🎯 Componentes optativos para aprofundamento específico em áreas de interesse do estudante.
+                Componentes optativos para aprofundamento específico em áreas de interesse do estudante.
               </div>
             </div>
             <span class="small faint">${CURSO.eletivas.length} opções disponíveis</span>
@@ -3610,7 +3281,7 @@ function renderCursoHtml(tab = currentCursoTab) {
       <div class="card" style="margin-top: 3rem; margin-bottom: 3.5rem;">
         <div class="row" style="justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: .5rem; margin-bottom: .75rem;">
           <div class="row" style="gap: .6rem; align-items: center;">
-            <span style="font-size: 1.5rem;">🌱</span>
+            <span class="badge green">EXTENSÃO</span>
             <h3 style="margin: 0;">Extensão Universitária Obrigatória (410 horas · 10,21%)</h3>
           </div>
           <span class="badge" style="background: hsl(152 68% 52% / .15); color: var(--green); border: 1px solid hsl(152 68% 52% / .3);">MEC Res. 07/2018</span>
@@ -3632,7 +3303,7 @@ function renderCursoHtml(tab = currentCursoTab) {
         </div>
 
         <div style="margin-top: 1.5rem; padding: 1rem; background: hsl(189 94% 55% / .08); border-radius: var(--radius-sm); border: 1px solid hsl(189 94% 55% / .25);">
-          <div class="small" style="color: var(--cyan); font-weight: 700; margin-bottom: .25rem;">🤝 Papel Ativo do Centro Acadêmico E(CA)²:</div>
+          <div class="small" style="color: var(--cyan); font-weight: 700; margin-bottom: .25rem;">Papel Ativo do Centro Acadêmico E(CA)²:</div>
           <p class="small muted" style="margin: 0; line-height: 1.6;">
             ${CURSO.extensao.papelDoCA}
           </p>
@@ -3662,7 +3333,7 @@ function renderCursoHtml(tab = currentCursoTab) {
               ${pt.ppc2019}
             </div>
             <div class="small" style="color: var(--text);">
-              <strong style="color: var(--cyan);">✓</strong> ${pt.ppc2024}
+              ${pt.ppc2024}
             </div>
           </div>
         `).join("")}
@@ -3680,10 +3351,10 @@ function renderCursoHtml(tab = currentCursoTab) {
       </div>
 
       <!-- Banner de Orientação Geral -->
-      <div class="card" style="margin-bottom: 2.5rem; background: linear-gradient(135deg, hsl(222 45% 12%) 0%, hsl(222 50% 8%) 100%); border: 1px solid hsl(189 94% 55% / .3);">
+      <div class="card" style="margin-bottom: 2.5rem; background: var(--surface); border: 1px solid var(--border-strong);">
         <div class="row" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
           <div>
-            <h3 style="margin: 0 0 .35rem; font-size: 1.25rem;">🤝 Oportunidades Oficiais da UERGS para Engenharia</h3>
+            <h3 style="margin: 0 0 .35rem; font-size: 1.25rem;">Oportunidades Oficiais da UERGS para Engenharia</h3>
             <p class="small muted" style="margin: 0; max-width: 820px; line-height: 1.6;">
               Estudantes de Engenharia de Controle e Automação podem pleitear bolsas institucionais de ensino, pesquisa e extensão, além dos programas de permanência da Pró-Reitoria de Assuntos Estudantis (PRAE).
             </p>
@@ -3709,7 +3380,7 @@ function renderCursoHtml(tab = currentCursoTab) {
             <div class="beneficio-modalidades-list">
               ${cat.modalidades.map(m => `
                 <div class="beneficio-modalidade-box">
-                  <div class="modalidade-title">🔹 ${m.nome}</div>
+                  <div class="modalidade-title">${m.nome}</div>
                   <div class="modalidade-desc">${m.detalhes}</div>
                   <div class="modalidade-req"><strong>Requisitos:</strong> ${m.requisitos}</div>
                 </div>
@@ -3717,7 +3388,7 @@ function renderCursoHtml(tab = currentCursoTab) {
             </div>
 
             <div class="beneficio-inscricao-box">
-              <strong>📝 Como se inscrever / Editais:</strong>
+              <strong>Como se inscrever / Editais:</strong>
               <p style="margin: .35rem 0 0; font-size: .85rem; line-height: 1.5; color: var(--text);">${cat.comoInscrever}</p>
             </div>
           </div>
@@ -3725,17 +3396,17 @@ function renderCursoHtml(tab = currentCursoTab) {
       </div>
 
       <!-- Caixa de Apoio do Centro Acadêmico -->
-      <div class="card" style="border: 1px solid hsl(35 100% 58% / .3); background: linear-gradient(135deg, hsl(35 100% 58% / .08) 0%, transparent 100%); margin-bottom: 3.5rem;">
+      <div class="card" style="border: 1px solid var(--border-strong); background: var(--surface); margin-bottom: 3.5rem;">
         <div class="row" style="align-items: flex-start; gap: 1rem;">
-          <span style="font-size: 2.25rem; flex-shrink: 0;">📢</span>
+          <span class="badge amber">COMUNICADO</span>
           <div style="flex: 1; min-width: 0;">
             <h3 style="margin: 0 0 .35rem; color: var(--amber);">Como o Centro Acadêmico E(CA)² atua nos Benefícios?</h3>
             <p class="small muted" style="margin: 0 0 1rem; line-height: 1.6;">
               O Centro Acadêmico tem assento e voz ativa nas instâncias deliberativas da UERGS. Defendemos a abertura periódica de editais de monitoria remunerada em disciplinas com alta taxa de retenção (como Cálculo e CLP), cobramos celeridade nos repasses de auxílio PRAE e auxiliamos novos alunos no preenchimento de recursos e cadastros socioeconômicos.
             </p>
             <div class="row" style="gap: .75rem; flex-wrap: wrap;">
-              <a href="#mural" class="btn btn-primary btn-sm">💡 Sugerir Demanda de Monitoria no Mural</a>
-              <a href="#forum" class="btn btn-ghost btn-sm">💬 Tirar Dúvidas no Fórum de Estudantes</a>
+              <a href="#mural" class="btn btn-primary btn-sm">Sugerir Demanda de Monitoria no Mural</a>
+              <a href="#forum" class="btn btn-ghost btn-sm">Tirar Dúvidas no Fórum</a>
             </div>
           </div>
         </div>
@@ -3774,7 +3445,7 @@ function renderCursoHtml(tab = currentCursoTab) {
         <p class="small muted" style="max-width: 600px; margin: .5rem auto 1.5rem;">
           O Centro Acadêmico canaliza os pedidos de reposição de componentes, pontas de osciloscópio, placas de CLP e ferramentas junto à coordenação de curso e direção de unidade.
         </p>
-        <a href="#mural" class="btn btn-primary btn-sm">💡 Registrar Demanda de Laboratório no Mural</a>
+        <a href="#mural" class="btn btn-primary btn-sm">Registrar Demanda de Laboratório no Mural</a>
       </div>
     `;
   } else if (activeTab === "perfil") {
@@ -3817,7 +3488,7 @@ function renderCursoHtml(tab = currentCursoTab) {
       <div class="grid grid-2" style="margin-bottom: 2.5rem; align-items: stretch;">
         <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
           <div>
-            <h3>📌 Ficha Técnica do Curso</h3>
+            <h3>Ficha Técnica do Curso</h3>
             <dl class="fact-list" style="margin-top: 1.25rem;">
               <div><dt>Grau Acadêmico</dt><dd>${CURSO.grau}</dd></div>
               <div><dt>Campus / Unidade</dt><dd>${CURSO.unidade}</dd></div>
@@ -3835,20 +3506,20 @@ function renderCursoHtml(tab = currentCursoTab) {
 
         <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
           <div>
-            <h3>🎯 Perfil da Engenheira e do Engenheiro UERGS</h3>
+            <h3>Perfil da Engenheira e do Engenheiro UERGS</h3>
             <p class="muted small" style="margin-top: .75rem; line-height: 1.7;">
               ${CURSO.perfilEgresso}
             </p>
             <div style="margin-top: 1.25rem; padding: 1rem; background: hsl(222 30% 12% / .6); border-radius: var(--radius-sm); border: 1px solid var(--border);">
-              <div class="small" style="font-weight: 600; color: var(--cyan); margin-bottom: .25rem;">💡 Integração Multidisciplinar:</div>
+              <div class="small" style="font-weight: 600; color: var(--cyan); margin-bottom: .25rem;">Integração Multidisciplinar:</div>
               <div class="small muted">
                 O curso une o rigor da Mecânica e Termofluidos, a precisão da Eletrônica de Potência e Instrumentação, e a vanguarda dos Sistemas Ciber-físicos, Robótica e Inteligência Artificial.
               </div>
             </div>
           </div>
           <div class="row" style="margin-top: 1.5rem; gap: .5rem; flex-wrap: wrap;">
-            <a href="#mural" class="btn btn-ghost btn-sm">💡 Sugerir Melhoria de Laboratório</a>
-            <a href="#forum" class="btn btn-ghost btn-sm">💬 Debates do Curso</a>
+            <a href="#mural" class="btn btn-ghost btn-sm">Sugerir Melhoria de Laboratório</a>
+            <a href="#forum" class="btn btn-ghost btn-sm">Debates do Curso</a>
           </div>
         </div>
       </div>
@@ -3856,7 +3527,7 @@ function renderCursoHtml(tab = currentCursoTab) {
       <!-- Gráfico / Barra de Distribuição de Horas -->
       <div class="card" style="margin-bottom: 3.5rem;">
         <div class="row" style="justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: .5rem;">
-          <h3>📊 Distribuição da Carga Horária Curricular</h3>
+          <h3>Distribuição da Carga Horária Curricular</h3>
           <span class="small muted">Total: 4.015 horas letivas (PPC 2024)</span>
         </div>
 
@@ -3912,10 +3583,10 @@ function renderCursoHtml(tab = currentCursoTab) {
       </div>
 
       <!-- Banner Informativo Rápido -->
-      <div class="card" style="margin-bottom: 2.5rem; background: linear-gradient(135deg, hsl(222 45% 12%) 0%, hsl(222 50% 8%) 100%); border: 1px solid hsl(189 94% 55% / .35);">
+      <div class="card" style="margin-bottom: 2.5rem; background: var(--surface); border: 1px solid var(--border-strong);">
         <div class="row" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
           <div>
-            <h3 style="margin: 0 0 .35rem; font-size: 1.25rem;">💼 Conexão Direta entre Academia e Indústria</h3>
+            <h3 style="margin: 0 0 .35rem; font-size: 1.25rem;">Conexão Direta entre Academia e Indústria</h3>
             <p class="small muted" style="margin: 0; max-width: 820px; line-height: 1.6;">
               O curso de Engenharia de Controle e Automação da UERGS prepara o estudante para liderar a transformação digital das fábricas gaúchas. Conheça as regras para validação do estágio curricular e sua habilitação profissional perante o Conselho de Classe (CREA-RS).
             </p>
@@ -3935,14 +3606,14 @@ function renderCursoHtml(tab = currentCursoTab) {
         <!-- Card Estágio Obrigatório -->
         <div class="card" style="border: 1px solid hsl(189 94% 55% / .3); background: hsl(222 35% 11% / .8); display: flex; flex-direction: column;">
           <div class="row" style="justify-content: space-between; align-items: flex-start; margin-bottom: .75rem;">
-            <span style="font-size: 1.75rem;">📋</span>
+            <span class="badge cyan">OBRIGATÓRIO</span>
             <span class="badge" style="background: hsl(189 94% 55% / .15); color: var(--cyan); border: 1px solid hsl(189 94% 55% / .3); font-size: .75rem;">
               ${ESTAGIOS_MERCADO.estagios.obrigatorio.badge}
             </span>
           </div>
           <h3 style="margin: 0 0 .25rem; font-size: 1.2rem;">${ESTAGIOS_MERCADO.estagios.obrigatorio.titulo}</h3>
           <div class="small" style="color: var(--cyan); font-family: var(--font-mono); margin-bottom: .75rem;">
-            ⏱️ ${ESTAGIOS_MERCADO.estagios.obrigatorio.ch} · 📅 ${ESTAGIOS_MERCADO.estagios.obrigatorio.semestreRecomendado}
+            ${ESTAGIOS_MERCADO.estagios.obrigatorio.ch} · ${ESTAGIOS_MERCADO.estagios.obrigatorio.semestreRecomendado}
           </div>
           <p class="small muted" style="margin-bottom: 1rem; line-height: 1.6;">
             ${ESTAGIOS_MERCADO.estagios.obrigatorio.descricao}
@@ -3958,14 +3629,14 @@ function renderCursoHtml(tab = currentCursoTab) {
         <!-- Card Estágio Não-Obrigatório -->
         <div class="card" style="border: 1px solid hsl(152 68% 52% / .3); background: hsl(222 35% 11% / .8); display: flex; flex-direction: column;">
           <div class="row" style="justify-content: space-between; align-items: flex-start; margin-bottom: .75rem;">
-            <span style="font-size: 1.75rem;">💵</span>
+            <span class="badge amber">EXTRACURRICULAR</span>
             <span class="badge" style="background: hsl(152 68% 52% / .15); color: var(--green); border: 1px solid hsl(152 68% 52% / .3); font-size: .75rem;">
               ${ESTAGIOS_MERCADO.estagios.naoObrigatorio.badge}
             </span>
           </div>
           <h3 style="margin: 0 0 .25rem; font-size: 1.2rem;">${ESTAGIOS_MERCADO.estagios.naoObrigatorio.titulo}</h3>
           <div class="small" style="color: var(--green); font-family: var(--font-mono); margin-bottom: .75rem;">
-            ⏱️ ${ESTAGIOS_MERCADO.estagios.naoObrigatorio.ch} · 📅 ${ESTAGIOS_MERCADO.estagios.naoObrigatorio.semestreRecomendado}
+            ${ESTAGIOS_MERCADO.estagios.naoObrigatorio.ch} · ${ESTAGIOS_MERCADO.estagios.naoObrigatorio.semestreRecomendado}
           </div>
           <p class="small muted" style="margin-bottom: 1rem; line-height: 1.6;">
             ${ESTAGIOS_MERCADO.estagios.naoObrigatorio.descricao}
@@ -3981,7 +3652,7 @@ function renderCursoHtml(tab = currentCursoTab) {
 
       <!-- Fluxo Passo a Passo do Estágio -->
       <div class="card" style="margin-bottom: 2.5rem; background: hsl(222 35% 10%);">
-        <h3 style="margin: 0 0 1.25rem; font-size: 1.2rem;">📌 Fluxo Passo a Passo: Do Contrato à Validação</h3>
+        <h3 style="margin: 0 0 1.25rem; font-size: 1.2rem;">Fluxo Passo a Passo: Do Contrato à Validação</h3>
         <div class="grid grid-4" style="gap: 1rem;">
           ${ESTAGIOS_MERCADO.estagios.passoAPasso.map(p => `
             <div style="background: hsl(222 30% 13%); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1.15rem; display: flex; flex-direction: column;">
@@ -3997,7 +3668,7 @@ function renderCursoHtml(tab = currentCursoTab) {
 
       <!-- Agentes de Integração & Convênios -->
       <div class="card" style="margin-bottom: 3.5rem;">
-        <h3 style="margin: 0 0 1rem; font-size: 1.2rem;">🤝 Agentes Integradores e Convênios Homologados</h3>
+        <h3 style="margin: 0 0 1rem; font-size: 1.2rem;">Agentes Integradores e Convênios Homologados</h3>
         <div class="grid grid-3" style="gap: 1.25rem;">
           ${ESTAGIOS_MERCADO.estagios.convenios.map(c => `
             <div style="background: hsl(222 25% 12% / .6); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;">
@@ -4012,12 +3683,12 @@ function renderCursoHtml(tab = currentCursoTab) {
       </div>
 
       <!-- Mural de Oportunidades & Vagas de Estágio Recentes (Dinâmico) -->
-      <div class="card" style="margin-bottom: 3.5rem; border: 1px solid hsl(189 94% 55% / .3); background: linear-gradient(180deg, hsl(222 35% 13% / .9) 0%, hsl(222 35% 9% / .95) 100%);">
+      <div class="card" style="margin-bottom: 3.5rem; border: 1px solid var(--border-strong); background: var(--surface);">
         <div class="row" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">
           <div>
             <div class="row" style="gap: .5rem; align-items: center;">
               <span class="badge cyan" style="font-size: .75rem;">MURAL ATIVO</span>
-              <h3 style="margin: 0; font-size: 1.25rem;">💼 Vagas de Estágio & Trainee Cadastradas</h3>
+              <h3 style="margin: 0; font-size: 1.25rem;">Vagas de Estágio & Trainee Cadastradas</h3>
             </div>
             <p class="small muted" style="margin: .35rem 0 0;">Oportunidades em tempo real cadastradas pela coordenação e diretoria do E(CA)² com empresas parceiras.</p>
           </div>
@@ -4058,7 +3729,7 @@ function renderCursoHtml(tab = currentCursoTab) {
         <div class="card" style="border: 1px solid hsl(215 90% 60% / .3); background: hsl(222 35% 11% / .8); display: flex; flex-direction: column;">
           <div class="row" style="justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <div class="row" style="gap: .6rem; align-items: center;">
-              <span style="font-size: 1.8rem;">🏛️</span>
+              <span class="badge cyan">UERGS</span>
               <div>
                 <strong style="color: var(--text); font-size: 1.05rem;">Atribuições Técnicas Plenas</strong>
                 <div class="small faint">${ESTAGIOS_MERCADO.mercadoCREA.resolucoes}</div>
@@ -4075,7 +3746,7 @@ function renderCursoHtml(tab = currentCursoTab) {
         <div class="card" style="border: 1px solid hsl(35 100% 58% / .35); background: hsl(222 35% 11% / .8); display: flex; flex-direction: column;">
           <div class="row" style="justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <div class="row" style="gap: .6rem; align-items: center;">
-              <span style="font-size: 1.8rem;">⚖️</span>
+              <span class="badge amber">CREA-RS</span>
               <div>
                 <strong style="color: var(--amber); font-size: 1.05rem;">${ESTAGIOS_MERCADO.mercadoCREA.pisoSalarial.titulo}</strong>
                 <div class="small faint">${ESTAGIOS_MERCADO.mercadoCREA.pisoSalarial.lei}</div>
@@ -4098,14 +3769,14 @@ function renderCursoHtml(tab = currentCursoTab) {
           </div>
 
           <p class="small muted" style="margin: 0; line-height: 1.6; font-size: .82rem;">
-            💡 <strong>Apoio do E(CA)²:</strong> ${ESTAGIOS_MERCADO.mercadoCREA.pisoSalarial.observacao}
+            <strong>Apoio do E(CA)²:</strong> ${ESTAGIOS_MERCADO.mercadoCREA.pisoSalarial.observacao}
           </p>
         </div>
       </div>
 
       <!-- Polos Industriais Empregadores no RS -->
       <div class="card" style="margin-bottom: 3.5rem;">
-        <h3 style="margin: 0 0 .5rem; font-size: 1.2rem;">🏭 Principais Polos Empregadores no Rio Grande do Sul</h3>
+        <h3 style="margin: 0 0 .5rem; font-size: 1.2rem;">Principais Polos Empregadores no Rio Grande do Sul</h3>
         <p class="small muted" style="margin-bottom: 1.5rem;">
           Áreas com forte concentração de vagas para estágios e engenheiros formados em Controle e Automação:
         </p>
@@ -4130,7 +3801,7 @@ function renderCursoHtml(tab = currentCursoTab) {
         <!-- Cabeçalho Principal -->
         <div class="section-head">
           <div class="row" style="gap: .6rem; margin-bottom: .75rem; flex-wrap: wrap; justify-content: center;">
-            <span class="course-hero-badge">📜 ${CURSO.resolucaoVigente}</span>
+            <span class="course-hero-badge">${CURSO.resolucaoVigente}</span>
             <span class="badge" style="background: hsl(222 25% 15%); color: var(--muted); border: 1px solid var(--border); font-size: .8rem; white-space: normal; text-align: center; max-width: 100%;">Anterior: ${CURSO.resolucaoAnterior}</span>
           </div>
           <h2>Engenharia de Controle e Automação</h2>
@@ -4157,7 +3828,7 @@ async function setupCursoEstagiosVagas() {
     if (!list || list.length === 0) {
       container.innerHTML = `
         <div style="text-align: center; padding: 2.5rem 1rem; color: var(--muted);">
-          <div style="font-size: 2.2rem; margin-bottom: .5rem;">🔍</div>
+          <div class="badge slate">SEM VAGAS</div>
           <p style="margin: 0 0 .5rem; font-weight: 600; font-size: 1.05rem; color: var(--text);">Nenhuma vaga cadastrada no momento.</p>
           <p class="small faint" style="margin: 0; max-width: 500px; margin-inline: auto;">Fique atento aos canais oficiais ou avise o Centro Acadêmico se sua empresa parceira tiver novas oportunidades.</p>
         </div>
@@ -4180,10 +3851,10 @@ async function setupCursoEstagiosVagas() {
               <div>
                 <div class="row" style="justify-content: space-between; align-items: flex-start; margin-bottom: .75rem; gap: .5rem;">
                   <span class="badge ${badgeClass}" style="font-size: .72rem; padding: .2rem .55rem;">${tipoText}</span>
-                  <span class="small faint" style="font-size: .75rem;">${v.modalidade === 'remoto' ? '🌐 Remoto' : (v.modalidade === 'hibrido' ? '🏢 Híbrido' : '📍 Presencial')}</span>
+                  <span class="small faint" style="font-size: .75rem;">${v.modalidade === 'remoto' ? 'Remoto' : (v.modalidade === 'hibrido' ? 'Híbrido' : 'Presencial')}</span>
                 </div>
                 <h4 style="margin: 0 0 .35rem; font-size: 1.1rem; line-height: 1.35; color: var(--text);">${escapeHtml(v.titulo)}</h4>
-                <div class="small" style="color: var(--cyan); font-weight: 600; margin-bottom: .6rem;">🏢 ${escapeHtml(v.empresa)} · 📍 ${escapeHtml(v.localizacao || 'Porto Alegre / RS')}</div>
+                <div class="small" style="color: var(--cyan); font-weight: 600; margin-bottom: .6rem;">${escapeHtml(v.empresa)} · ${escapeHtml(v.localizacao || 'Porto Alegre / RS')}</div>
                 
                 <p class="small muted" style="margin: 0 0 .75rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
                   ${escapeHtml(v.descricao || '')}
@@ -4199,7 +3870,7 @@ async function setupCursoEstagiosVagas() {
 
               <div style="border-top: 1px solid var(--border); padding-top: .85rem; margin-top: .5rem;">
                 <div class="row" style="justify-content: space-between; align-items: baseline; margin-bottom: .75rem;">
-                  <span class="small" style="color: var(--green); font-weight: 700; font-size: .95rem;">💰 ${remunText}</span>
+                  <span class="small" style="color: var(--green); font-weight: 700; font-size: .95rem;">${remunText}</span>
                   <span class="small faint" style="font-size: .75rem;">⏱️ ${cargaText}</span>
                 </div>
                 <div class="row" style="gap: .5rem;">
@@ -4208,7 +3879,7 @@ async function setupCursoEstagiosVagas() {
                   </a>
                   ${v.contato_email ? `
                     <a href="mailto:${escapeHtml(v.contato_email)}?subject=Candidatura%20Estágio%20UERGS%20-%20${encodeURIComponent(v.titulo)}" class="btn btn-ghost btn-sm" title="Enviar e-mail para ${escapeHtml(v.contato_email)}" style="padding: 0 .6rem;">
-                      ✉️
+                      Candidatar-se
                     </a>
                   ` : ''}
                 </div>
@@ -4324,13 +3995,13 @@ function setupCursoInteractions(tab = currentCursoTab) {
   const areaFilterBtns = document.querySelectorAll("#dep-area-filters .dep-area-btn");
 
   const areaLabels = {
-    matematica: "🧮 Matemática",
-    fisica: "⚡ Física & Térmica",
-    computacao: "💻 Computação",
-    eletronica: "🔌 Eletrônica",
-    controle: "🦾 Controle & Robótica",
-    mecanica: "⚙️ Mecânica",
-    humanas: "📋 Gestão & Humanidades"
+    matematica: "Matemática",
+    fisica: "Física & Térmica",
+    computacao: "Computação",
+    eletronica: "Eletrônica",
+    controle: "Controle & Robótica",
+    mecanica: "Mecânica",
+    humanas: "Gestão & Humanidades"
   };
 
   function getTreeData() {
@@ -4389,10 +4060,8 @@ function setupCursoInteractions(tab = currentCursoTab) {
   }
 
   function drawConnections() {
-    // Setas desativadas temporariamente a pedido do usuário
     if (svgCanvas) svgCanvas.innerHTML = "";
   }
-
 
   function selectDiscipline(code) {
     const { discMap, unlocksMap } = buildMaps();
@@ -4422,72 +4091,86 @@ function setupCursoInteractions(tab = currentCursoTab) {
       }
     });
 
-    // Atualiza Painel Inspetor
+    // Atualiza Painel Inspetor com Telemetria e Nível de Impacto
     const directPrereqs = disc.pre || [];
     const directUnlocks = unlocksMap.get(code) || [];
     const areaName = areaLabels[disc.area] || disc.area;
+
+    let impactoTag = '<span class="badge slate">[ IMPACTO: LIVRE ]</span>';
+    if (allUnlocks.size >= 6) {
+      impactoTag = `<span class="badge red"><span class="led-dot red"></span> [ TRAVA CRÍTICA · ${allUnlocks.size} MATÉRIAS ]</span>`;
+    } else if (allUnlocks.size >= 2) {
+      impactoTag = `<span class="badge amber"><span class="led-dot amber"></span> [ TRAVA MODERADA · ${allUnlocks.size} MATÉRIAS ]</span>`;
+    } else if (allUnlocks.size === 1) {
+      impactoTag = `<span class="badge cyan"><span class="led-dot cyan"></span> [ TRAVA 1 DISCIPLINA ]</span>`;
+    }
 
     inspector.className = "dep-inspector-box";
     inspector.innerHTML = `
       <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: .75rem; margin-bottom: .85rem;">
         <div>
-          <div class="row" style="gap: .5rem; align-items: center; margin-bottom: .25rem;">
-            <span class="discipline-code" style="font-size: .95rem;">${disc.codigo}</span>
-            <span class="badge" style="background: hsl(222 25% 18%); font-size: .8rem;">${disc.semTitulo}</span>
-            <span class="badge" style="background: hsl(189 94% 55% / .1); color: var(--cyan); border: 1px solid hsl(189 94% 55% / .2); font-size: .8rem;">${areaName}</span>
+          <div class="row" style="gap: .4rem; align-items: center; margin-bottom: .35rem;">
+            <span class="discipline-code" style="font-size: 1rem; color: var(--cyan);">${disc.codigo}</span>
+            <span class="badge" style="background: hsl(222 25% 18%); font-size: .75rem;">${disc.semTitulo}</span>
+            <span class="badge" style="background: hsl(189 94% 55% / .1); color: var(--cyan); border: 1px solid hsl(189 94% 55% / .2); font-size: .75rem;">${areaName}</span>
+            ${impactoTag}
           </div>
-          <h3 style="margin: 0; font-size: 1.2rem; color: var(--text);">${escapeHtml(disc.nome)}</h3>
+          <h3 style="margin: 0; font-size: 1.25rem; color: var(--text); font-family: var(--font-head);">${escapeHtml(disc.nome)}</h3>
         </div>
         <div class="row" style="gap: .6rem; align-items: center;">
-          <span class="small muted"><strong>Carga Horária:</strong> ${disc.ch} (${disc.cr} créditos)</span>
-          <button type="button" class="btn btn-ghost btn-sm" id="btn-insp-close" style="min-height: 28px; padding: .2rem .5rem;" title="Limpar seleção">✕ Fechar</button>
+          <span class="small muted" style="font-family: var(--font-mono);"><strong>CARGA:</strong> ${disc.ch} (${disc.cr} cr)</span>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-insp-close" style="min-height: 28px; padding: .2rem .6rem; font-family: var(--font-mono);" title="Limpar seleção">&times; DESCONECTAR</button>
         </div>
       </div>
 
-      <div class="grid grid-2" style="gap: 1rem; border-top: 1px solid var(--border); padding-top: .85rem;">
+      <div class="grid grid-2" style="gap: 1rem; border-top: 1px dashed var(--border-strong); padding-top: .85rem;">
         <!-- Bloco de Pré-requisitos -->
-        <div>
-          <div class="small" style="color: var(--green); font-weight: 700; margin-bottom: .4rem; display: flex; align-items: center; gap: .3rem;">
-            <span>⬅️ Pré-requisitos Diretos</span>
-            <span class="badge" style="font-size: .7rem; background: hsl(152 68% 52% / .15); color: var(--green);">${directPrereqs.length}</span>
+        <div style="background: hsl(222 35% 8% / .6); padding: .85rem; border-radius: 6px; border: 1px solid hsl(152 68% 52% / .25);">
+          <div class="small" style="color: var(--green); font-weight: 700; margin-bottom: .5rem; display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-family: var(--font-mono); display: inline-flex; align-items: center; gap: .35rem;">
+              <span class="led-dot green"></span> ENTRADAS // PRÉ-REQUISITOS DIRETOS
+            </span>
+            <span class="badge green" style="font-size: .7rem;">${directPrereqs.length}</span>
           </div>
           ${directPrereqs.length === 0 ? `
-            <span class="small muted">Nenhum pré-requisito (pode cursar livremente).</span>
+            <span class="small muted" style="font-family: var(--font-mono);">Sem bloqueios de entrada (pode cursar imediatamente).</span>
           ` : `
             <div style="display: flex; flex-wrap: wrap; gap: .4rem;">
               ${directPrereqs.map(pCode => {
                 const pDisc = discMap.get(pCode);
                 const pName = pDisc ? pDisc.nome : pCode;
-                return `<button type="button" class="btn btn-ghost btn-sm btn-dep-jump" data-jump="${pCode}" style="border: 1px solid hsl(152 68% 52% / .4); color: var(--green); font-size: .78rem; padding: .2rem .5rem;">${pCode} · ${escapeHtml(pName)}</button>`;
+                return `<button type="button" class="btn btn-ghost btn-sm btn-dep-jump" data-jump="${pCode}" style="border: 1px solid hsl(152 68% 52% / .4); color: var(--green); font-size: .78rem; padding: .25rem .55rem; font-family: var(--font-mono);">${pCode} · ${escapeHtml(pName)}</button>`;
               }).join("")}
             </div>
             ${allPrereqs.size > directPrereqs.length ? `
-              <div class="faint" style="font-size: .75rem; margin-top: .4rem;">
-                + ${allPrereqs.size - directPrereqs.length} pré-requisitos indiretos na cadeia curricular.
+              <div class="faint" style="font-size: .75rem; margin-top: .5rem; font-family: var(--font-mono);">
+                ↳ +${allPrereqs.size - directPrereqs.length} requisitos na árvore upstream (dependência indireta).
               </div>
             ` : ''}
           `}
         </div>
 
         <!-- Bloco de Disciplinas Destravadas -->
-        <div>
-          <div class="small" style="color: var(--amber); font-weight: 700; margin-bottom: .4rem; display: flex; align-items: center; gap: .3rem;">
-            <span>➡️ Disciplinas que Destrava (Impacto)</span>
-            <span class="badge" style="font-size: .7rem; background: hsl(35 100% 58% / .15); color: var(--amber);">${directUnlocks.length} direta(s) · ${allUnlocks.size} total</span>
+        <div style="background: hsl(222 35% 8% / .6); padding: .85rem; border-radius: 6px; border: 1px solid hsl(35 100% 58% / .25);">
+          <div class="small" style="color: var(--amber); font-weight: 700; margin-bottom: .5rem; display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-family: var(--font-mono); display: inline-flex; align-items: center; gap: .35rem;">
+              <span class="led-dot amber"></span> SAÍDAS // DISCIPLINAS QUE DESTRAVA
+            </span>
+            <span class="badge amber" style="font-size: .7rem;">${directUnlocks.length} direta(s) · ${allUnlocks.size} total</span>
           </div>
           ${directUnlocks.length === 0 ? `
-            <span class="small muted">Componente terminal do semestre (não bloqueia outras matérias).</span>
+            <span class="small muted" style="font-family: var(--font-mono);">Módulo terminal do semestre (não tranca disciplinas posteriores).</span>
           ` : `
             <div style="display: flex; flex-wrap: wrap; gap: .4rem;">
               ${directUnlocks.map(uCode => {
                 const uDisc = discMap.get(uCode);
                 const uName = uDisc ? uDisc.nome : uCode;
-                return `<button type="button" class="btn btn-ghost btn-sm btn-dep-jump" data-jump="${uCode}" style="border: 1px solid hsl(35 100% 58% / .4); color: var(--amber); font-size: .78rem; padding: .2rem .5rem;">${uCode} · ${escapeHtml(uName)}</button>`;
+                return `<button type="button" class="btn btn-ghost btn-sm btn-dep-jump" data-jump="${uCode}" style="border: 1px solid hsl(35 100% 58% / .4); color: var(--amber); font-size: .78rem; padding: .25rem .55rem; font-family: var(--font-mono);">${uCode} · ${escapeHtml(uName)}</button>`;
               }).join("")}
             </div>
             ${allUnlocks.size > directUnlocks.length ? `
-              <div class="faint" style="font-size: .75rem; margin-top: .4rem;">
-                Ao concluir ${disc.codigo}, você destrava um total de <strong>${allUnlocks.size} disciplinas</strong> nos semestres seguintes.
+              <div class="faint" style="font-size: .75rem; margin-top: .5rem; font-family: var(--font-mono);">
+                ↳ Destrava em cascata <strong>${allUnlocks.size} componentes curriculares</strong> nos semestres seguintes.
               </div>
             ` : ''}
           `}
@@ -4504,8 +4187,8 @@ function setupCursoInteractions(tab = currentCursoTab) {
 
     document.getElementById("btn-insp-close")?.addEventListener("click", resetSelection);
 
-    // Setas desativadas por enquanto conforme solicitado
-    drawConnections();
+    // Desenha as trilhas de circuito energizadas
+    drawConnections(code);
   }
 
   function resetSelection() {
@@ -4526,7 +4209,7 @@ function setupCursoInteractions(tab = currentCursoTab) {
 
     if (inspector) {
       inspector.className = "dep-inspector-box empty";
-      inspector.innerHTML = `💡 <strong>Instrução Interativa:</strong> Clique em qualquer matéria no mapa abaixo para traçar automaticamente sua cadeia de pré-requisitos (<span style="color: var(--green); font-weight: 600;">verde</span>) e as matérias que ela destrava (<span style="color: var(--amber); font-weight: 600;">laranja</span>).`;
+      inspector.innerHTML = `<strong>Instrução:</strong> Clique em qualquer matéria no mapa abaixo para traçar automaticamente sua cadeia de pré-requisitos (<span style="color: var(--green); font-weight: 600;">verde</span>) e as matérias que ela destrava (<span style="color: var(--amber); font-weight: 600;">laranja</span>).`;
     }
   }
 
@@ -4551,7 +4234,7 @@ function setupCursoInteractions(tab = currentCursoTab) {
       statsBanner.innerHTML = `
         <div>
           <div class="title">
-            <span>${is2024 ? "📘" : "📙"}</span>
+            <span class="badge ${is2024 ? 'cyan' : 'amber'}">${is2024 ? 'PPC 2024' : 'PPC 2019'}</span>
             <span>${data.rotulo}</span>
             <span class="badge" style="background: ${is2024 ? "hsl(189 94% 55% / .15)" : "hsl(35 100% 58% / .15)"}; color: ${is2024 ? "var(--cyan)" : "var(--amber)"}; border: 1px solid ${is2024 ? "hsl(189 94% 55% / .3)" : "hsl(35 100% 58% / .3)"}; font-size: .75rem;">${data.statusBadge}</span>
           </div>
@@ -4649,6 +4332,13 @@ function setupCursoInteractions(tab = currentCursoTab) {
   });
 
   resetBtn?.addEventListener("click", resetSelection);
+
+  const onTreeResize = () => {
+    if (selectedTreeCode) drawConnections(selectedTreeCode);
+  };
+  window.addEventListener("resize", onTreeResize);
+  window.addEventListener("hashchange", () => window.removeEventListener("resize", onTreeResize), { once: true });
+
 
 
   // Exportar Diagrama SVG Vetorial em Alta Resolução
@@ -4792,6 +4482,16 @@ async function init() {
   store = await createStore();
   store.gerarExtratoOficialAta = () => gerarExtratoOficialAta(store);
 
+  // Pré-carregamento dos eventos oficiais da UERGS raspados para o Campus Porto Alegre
+  try {
+    const poaData = await fetchUergsPoaEvents();
+    if (poaData && Array.isArray(poaData.events)) {
+      uergsScrapedEvents = poaData.events.map(formatUergsEventToCard);
+    }
+  } catch (err) {
+    console.warn("Aviso ao carregar eventos da UERGS:", err);
+  }
+
   // Banner Demo
   if (store.mode === "demo") {
     const banner = document.getElementById("demo-banner");
@@ -4846,13 +4546,29 @@ async function init() {
       if (authHint) authHint.style.display = "block";
       return;
     }
+
+    const isSuper = email === "william-naiff@uergs.edu.br" || (CONFIG.isSuperAdmin && CONFIG.isSuperAdmin(email));
+    if (isSuper) {
+      if (authStatus) {
+        authStatus.style.display = "block";
+        authStatus.innerHTML = `
+          <div class="badge" style="display: block; font-size: .8rem; padding: .4rem .65rem; text-align: left; border-radius: var(--radius-sm); background: linear-gradient(135deg, hsl(38 92% 50% / .2), hsl(25 95% 45% / .2)); border: 1px solid var(--amber); color: #f59e0b;">
+            👑 <strong>Super Administrador Identificado:</strong> William Robertson Bica Naiff
+          </div>
+        `;
+      }
+      if (authHint) authHint.style.display = "none";
+      if (authExtraFields) authExtraFields.style.display = "none";
+      return;
+    }
+
     const student = CONFIG.findStudentByEmail ? CONFIG.findStudentByEmail(email) : null;
     if (student) {
       if (authStatus) {
         authStatus.style.display = "block";
         authStatus.innerHTML = `
           <div class="badge green" style="display: block; font-size: .8rem; padding: .35rem .6rem; text-align: left; border-radius: var(--radius-sm);">
-            ✓ Estudante homologado(a): <strong>${escapeHtml(student.name)}</strong>
+            Estudante homologado(a): <strong>${escapeHtml(student.name)}</strong>
           </div>
         `;
       }
@@ -4875,33 +4591,73 @@ async function init() {
   authEmailInput?.addEventListener("input", checkAuthEmailMatch);
   authEmailInput?.addEventListener("change", checkAuthEmailMatch);
 
+  // Alternar visualização da senha
+  const btnToggleAuthPwd = document.getElementById("btn-toggle-auth-pwd");
+  const authPwdInput = document.getElementById("auth-password");
+  btnToggleAuthPwd?.addEventListener("click", () => {
+    if (!authPwdInput) return;
+    const isPwd = authPwdInput.type === "password";
+    authPwdInput.type = isPwd ? "text" : "password";
+    btnToggleAuthPwd.textContent = isPwd ? "Ocultar Senha" : "Mostrar Senha";
+  });
+
   // Form de Login & Registro Rápido
   document.getElementById("form-auth")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const email = document.getElementById("auth-email")?.value.trim();
-    if (!email) return;
+    const password = document.getElementById("auth-password")?.value.trim();
+    const emailErr = document.getElementById("auth-email-err");
+    const pwdErr = document.getElementById("auth-password-err");
 
-    const student = CONFIG.findStudentByEmail ? CONFIG.findStudentByEmail(email) : null;
+    if (emailErr) emailErr.style.display = "none";
+    if (pwdErr) pwdErr.style.display = "none";
+
+    if (!email || !email.includes("@")) {
+      if (emailErr) {
+        emailErr.textContent = "Por favor, insira um e-mail válido.";
+        emailErr.style.display = "block";
+      }
+      showToast("Por favor, informe seu e-mail institucional.", true);
+      return;
+    }
+
+    if (!password) {
+      if (pwdErr) {
+        pwdErr.textContent = "Por favor, digite sua senha de acesso.";
+        pwdErr.style.display = "block";
+      }
+      showToast("Digite sua senha de acesso.", true);
+      return;
+    }
+
+    const cleanEmail = email.toLowerCase();
+    const isSuper = cleanEmail === "william-naiff@uergs.edu.br" || (CONFIG.isSuperAdmin && CONFIG.isSuperAdmin(cleanEmail));
+    const student = CONFIG.findStudentByEmail ? CONFIG.findStudentByEmail(cleanEmail) : null;
     const extraName = document.getElementById("auth-name")?.value.trim();
     const extraSem = document.getElementById("auth-sem")?.value;
     const extraReg = document.getElementById("auth-reg")?.value.trim();
     const isEcaChecked = document.getElementById("auth-eca-confirm")?.checked;
 
-    if (!student && !isEcaChecked) {
-      showToast("É obrigatório comprovar/declarar vínculo com Engenharia de Controle e Automação para votar.", true);
+    if (!isSuper && !student && !isEcaChecked) {
+      showToast("É obrigatório comprovar/declarar vínculo com Engenharia de Controle e Automação.", true);
       return;
     }
 
     try {
-      const msg = await store.signIn(email, {
-        display_name: student ? student.name : (extraName || email.split("@")[0]),
-        semester: extraSem || "1º semestre",
-        registration: extraReg || "",
-        is_eca_student: !!(student || isEcaChecked),
+      const msg = await store.signIn(email, password, {
+        display_name: isSuper ? "William Robertson Bica Naiff" : (student ? student.name : (extraName || email.split("@")[0])),
+        semester: isSuper ? "10º semestre" : (extraSem || "1º semestre"),
+        registration: extraReg || (isSuper ? "2024019200" : ""),
+        is_eca_student: !!(isSuper || student || isEcaChecked),
       });
       showToast(msg);
       dlgAuth?.close();
+      renderCurrentView();
     } catch (err) {
+      if (pwdErr && (err.message.includes("senha") || err.message.includes("Senha"))) {
+        pwdErr.textContent = err.message;
+        pwdErr.style.display = "block";
+      }
       showToast(err.message, true);
     }
   });
@@ -4946,7 +4702,7 @@ async function init() {
     updateHeaderBottom();
     const isOpen = navLinks.classList.toggle("open");
     toggleBtn.setAttribute("aria-expanded", String(isOpen));
-    toggleBtn.innerHTML = isOpen ? "✕" : "☰";
+    toggleBtn.innerHTML = isOpen ? "&times;" : "Menu";
     toggleBtn.setAttribute("aria-label", isOpen ? "Fechar menu de navegação" : "Abrir menu de navegação");
   });
 
@@ -4956,7 +4712,7 @@ async function init() {
     if (link) {
       navLinks.classList.remove("open");
       toggleBtn?.setAttribute("aria-expanded", "false");
-      if (toggleBtn) toggleBtn.innerHTML = "☰";
+      if (toggleBtn) toggleBtn.innerHTML = "Menu";
     }
   });
 

@@ -7,12 +7,17 @@
 
 import { CONFIG } from "../config.js";
 import { PRODUTOS_SHOP, CALENDARIO_EVENTOS } from "../content.js";
+import { fetchUergsPoaEvents } from "../services/uergs-events.js";
 
 // Helper de escape contra XSS
 function esc(str = "") {
   return String(str).replace(/[&<>"']/g, (m) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
   }[m]));
+}
+
+function cleanStr(s) {
+  return String(s || "").toLowerCase().trim();
 }
 
 // Estado local do módulo administrativo
@@ -34,33 +39,60 @@ export function renderAdminHtml(auth) {
       <section class="section admin-shell">
         <div class="container" style="max-width: 680px;">
           <div class="card admin-access-lock">
-            <span class="admin-lock-icon" aria-hidden="true">🔐</span>
+            <div class="admin-lock-icon" aria-hidden="true">
+              <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="color: var(--amber); display: inline-block;">
+                <rect x="3" y="11" width="18" height="11" rx="2.5" ry="2.5" fill="hsl(38 92% 50% / .15)"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                <circle cx="12" cy="16" r="1.5" fill="var(--amber)"></circle>
+                <path d="M12 17.5v2"></path>
+              </svg>
+            </div>
             <h1 style="font-size: 1.8rem; margin-bottom: .5rem;">Área Restrita à Diretoria do E(CA)²</h1>
             <p class="muted" style="text-align: center; margin-bottom: 2rem;">
-              Este painel gerencia eventos oficiais, estoque da lojinha, comunicados e governança estudantil da UERGS. O acesso é exclusivo para estudantes homologados e eleitos pela Diretoria.
+              Este painel gerencia eventos oficiais, estoque da lojinha, comunicados e governança estudantil da UERGS. O acesso é exclusivo para membros homologados da Diretoria.
             </p>
 
             ${isLogged ? `
               <div class="card" style="background: hsl(0 85% 66% / .08); border-color: hsl(0 85% 66% / .3); margin-bottom: 1.5rem; text-align: left;">
-                <div class="row" style="gap: .6rem; align-items: center; margin-bottom: .4rem;">
+                <div class="row" style="gap: .6rem; align-items: center; margin-bottom: .5rem; flex-wrap: wrap;">
                   <span class="badge red">Acesso Não Autorizado</span>
-                  <span class="small font-mono">${esc(userEmail)}</span>
+                  <span class="small font-mono muted">${esc(userEmail)}</span>
                 </div>
-                <p class="small muted" style="margin: 0; line-height: 1.6;">
-                  Sua conta está conectada como <strong>Estudante</strong>, mas não possui permissões administrativas. Apenas alunos homologados pela Diretoria têm acesso ao Painel ADM.
+                <p class="small muted" style="margin: 0 0 .75rem; line-height: 1.6;">
+                  Sua conta está conectada, mas não possui privilégios administrativos. Apenas membros homologados pela Diretoria têm acesso a este painel.
                 </p>
+                <div style="background: var(--surface); padding: .75rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                  <strong class="small" style="display: block; margin-bottom: .25rem; color: var(--text);">Como solicitar autorização de cadastramento?</strong>
+                  <span class="small muted" style="display: block; line-height: 1.5; margin-bottom: .4rem;">
+                    O canal oficial para solicitar autorização e homologação administrativa é exclusivamente:
+                  </span>
+                  <a href="mailto:ca.eca2.uergs@gmail.com?subject=Solicita%C3%A7%C3%A3o%20de%20Acesso%20Diretoria%20E(CA)%C2%B2" class="text-cyan font-mono" style="text-decoration: underline; font-weight: 600; font-size: .95rem; display: inline-flex; align-items: center; gap: .35rem;">
+                    <span>✉️</span> ca.eca2.uergs@gmail.com
+                  </a>
+                </div>
               </div>
-              <div style="text-align: center;">
+              <div class="row" style="justify-content: center; gap: .75rem; flex-wrap: wrap;">
+                <button type="button" class="btn btn-ghost" id="btn-admin-logout-trigger">
+                  Desconectar / Trocar de Conta
+                </button>
                 <button type="button" class="btn btn-primary" id="btn-admin-back-home">
                   ← Voltar à Página Inicial
                 </button>
               </div>
             ` : `
               <div style="margin-bottom: 1.5rem; text-align: center;">
-                <p class="small muted">Faça login com seu e-mail institucional @uergs.edu.br cadastrado na gestão para verificar suas permissões de diretoria.</p>
-                <div class="row" style="justify-content: center; gap: .75rem; margin-top: 1rem;">
+                <p class="small muted" style="line-height: 1.6; margin-bottom: 1rem;">
+                  O acesso a este painel é restrito aos membros homologados da Diretoria do E(CA)².<br>
+                  Para solicitar autorização e cadastramento, entre em contato diretamente pelo e-mail oficial:
+                </p>
+                <div style="display: inline-block; padding: .6rem 1.25rem; background: var(--surface-2); border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 1.5rem;">
+                  <a href="mailto:ca.eca2.uergs@gmail.com" class="text-cyan font-mono" style="text-decoration: underline; font-weight: 600; font-size: .95rem;">
+                    ✉️ ca.eca2.uergs@gmail.com
+                  </a>
+                </div>
+                <div class="row" style="justify-content: center; gap: .75rem; flex-wrap: wrap;">
                   <button type="button" class="btn btn-primary" id="btn-admin-login-trigger">
-                    🔑 Fazer Login Institucional
+                    Fazer Login da Gestão
                   </button>
                   <button type="button" class="btn btn-ghost" id="btn-admin-back-home">
                     ← Voltar ao Início
@@ -81,10 +113,14 @@ export function renderAdminHtml(auth) {
         <!-- Topo com Identificação do Gestor -->
         <div class="admin-header">
           <div class="admin-title-wrap">
-            <div class="row" style="gap: .75rem; align-items: center; margin-bottom: .25rem;">
+            <div class="row" style="gap: .75rem; align-items: center; margin-bottom: .25rem; flex-wrap: wrap;">
               <img src="img/logo_option2_microchip.jpg" alt="Logo E(CA)²" class="brand-logo-img" width="36" height="36" style="width: 36px; height: 36px;">
               <h1>Painel de Controle E(CA)²</h1>
-              <span class="admin-badge-role super">GESTOR ATIVO · RBAC LEVEL 3</span>
+              ${auth.isSuperAdmin ? `
+                <span class="admin-badge-role" style="background: linear-gradient(135deg, #d97706, #b45309); color: #fff; font-size: .75rem; font-weight: 700; padding: .3rem .75rem; border-radius: 4px; box-shadow: 0 0 12px rgba(245, 158, 11, 0.4); border: 1px solid #f59e0b;">👑 SUPER ADMINISTRADOR · ACESSO TOTAL</span>
+              ` : `
+                <span class="admin-badge-role super">GESTOR ATIVO · RBAC LEVEL 3</span>
+              `}
             </div>
             <p class="muted small" style="margin: 0;">
               Plataforma Integrada de Gestão de Eventos, Lojinha, Notícias e Governança Acadêmica UERGS.
@@ -93,11 +129,12 @@ export function renderAdminHtml(auth) {
 
           <div class="row" style="gap: .75rem; align-items: center;">
             <div class="row" style="gap: .5rem; align-items: center; background: var(--surface); padding: .35rem .75rem; border-radius: 999px; border: 1px solid var(--border);">
-              <span class="avatar" style="width: 24px; height: 24px; font-size: .7rem;">${esc(userName.slice(0, 2).toUpperCase())}</span>
+              <span class="avatar" style="width: 24px; height: 24px; font-size: .7rem; ${auth.isSuperAdmin ? 'background: linear-gradient(135deg, #d97706, #b45309); color: #fff;' : ''}">${auth.isSuperAdmin ? '👑' : esc(userName.slice(0, 2).toUpperCase())}</span>
               <span class="small font-mono">${esc(userName)}</span>
+              ${auth.isSuperAdmin ? '<span class="badge" style="background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.5); color: #f59e0b; font-size: .65rem; font-weight: 700; padding: 2px 6px;">SUPER ADM</span>' : ''}
             </div>
             <button type="button" class="btn btn-ghost btn-sm" id="btn-admin-logout" title="Sair do modo administrador">
-              Sair do ADM ✕
+              Sair do ADM &times;
             </button>
           </div>
         </div>
@@ -105,28 +142,31 @@ export function renderAdminHtml(auth) {
         <!-- Navegação das Abas Administrativas -->
         <nav class="admin-tabs" aria-label="Abas do painel administrativo">
           <button type="button" class="admin-tab-btn ${activeTab === 'dashboard' ? 'active' : ''}" data-tab="dashboard">
-            📊 Visão Geral
+            Visão Geral
+          </button>
+          <button type="button" class="admin-tab-btn ${activeTab === 'oferta' ? 'active' : ''}" data-tab="oferta">
+            Oferta de Cadeiras <span class="admin-tab-badge" id="badge-count-oferta">15</span>
           </button>
           <button type="button" class="admin-tab-btn ${activeTab === 'eventos' ? 'active' : ''}" data-tab="eventos">
-            📅 Eventos & Calendário <span class="admin-tab-badge" id="badge-count-eventos">...</span>
+            Eventos & Calendário <span class="admin-tab-badge" id="badge-count-eventos">...</span>
           </button>
           <button type="button" class="admin-tab-btn ${activeTab === 'loja' ? 'active' : ''}" data-tab="loja">
-            🛍️ Lojinha & Estoque <span class="admin-tab-badge" id="badge-count-loja">...</span>
+            Lojinha & Estoque <span class="admin-tab-badge" id="badge-count-loja">...</span>
           </button>
           <button type="button" class="admin-tab-btn ${activeTab === 'estagios' ? 'active' : ''}" data-tab="estagios">
-            💼 Estágios & Vagas <span class="admin-tab-badge" id="badge-count-estagios">...</span>
+            Estágios & Vagas <span class="admin-tab-badge" id="badge-count-estagios">...</span>
           </button>
           <button type="button" class="admin-tab-btn ${activeTab === 'faqs' ? 'active' : ''}" data-tab="faqs">
-            ❓ FAQs & Dúvidas <span class="admin-tab-badge" id="badge-count-faqs">...</span>
+            FAQs & Dúvidas <span class="admin-tab-badge" id="badge-count-faqs">...</span>
           </button>
           <button type="button" class="admin-tab-btn ${activeTab === 'noticias' ? 'active' : ''}" data-tab="noticias">
-            📰 Notícias & Mural <span class="admin-tab-badge" id="badge-count-noticias">...</span>
+            Notícias & Mural <span class="admin-tab-badge" id="badge-count-noticias">...</span>
           </button>
           <button type="button" class="admin-tab-btn ${activeTab === 'alunos' ? 'active' : ''}" data-tab="alunos">
-            🗳️ Alunos & Urna <span class="admin-tab-badge" id="badge-count-alunos">235</span>
+            Censo Discente & Alunos <span class="admin-tab-badge" id="badge-count-alunos">${CONFIG.STUDENTS_DATABASE ? CONFIG.STUDENTS_DATABASE.length : 203}</span>
           </button>
           <button type="button" class="admin-tab-btn ${activeTab === 'logs' ? 'active' : ''}" data-tab="logs">
-            🛡️ Auditoria & Segurança
+            Auditoria & Segurança
           </button>
         </nav>
 
@@ -142,7 +182,7 @@ export function renderAdminHtml(auth) {
       <div class="dialog-body">
         <div class="dialog-head">
           <h2 id="admin-modal-title">Editar Registro</h2>
-          <button type="button" class="close-x" id="btn-close-admin-modal" aria-label="Fechar">✕</button>
+          <button type="button" class="close-x" id="btn-close-admin-modal" aria-label="Fechar">&times;</button>
         </div>
         <div id="admin-modal-body"></div>
       </div>
@@ -160,6 +200,18 @@ export async function setupAdminInteractions(store, navigate, showToast) {
   if (!auth.isAdmin) {
     document.getElementById("btn-admin-login-trigger")?.addEventListener("click", () => {
       document.getElementById("dlg-auth")?.showModal();
+    });
+
+    document.getElementById("btn-admin-logout-trigger")?.addEventListener("click", async () => {
+      try {
+        if (store.signOut) await store.signOut();
+        if (store.setAdminMode) store.setAdminMode(false);
+        localStorage.removeItem("eca2_force_admin");
+        showToast("Sessão desconectada com sucesso.");
+        navigate("inicio");
+      } catch (err) {
+        showToast(err.message, true);
+      }
     });
 
     document.getElementById("btn-admin-back-home")?.addEventListener("click", () => {
@@ -204,6 +256,9 @@ async function renderActiveTabContent(store, showToast) {
   switch (activeTab) {
     case "dashboard":
       await renderTabDashboard(container, store, showToast);
+      break;
+    case "oferta":
+      await renderTabOferta(container, store, showToast);
       break;
     case "eventos":
       await renderTabEventos(container, store, showToast);
@@ -270,7 +325,7 @@ async function renderTabDashboard(container, store, showToast) {
       <div class="kpi-card amber">
         <div class="kpi-head">
           <span class="kpi-label">Salchipão · RSVPs</span>
-          <span class="kpi-icon">🌭</span>
+          <span class="kpi-icon">RSVP</span>
         </div>
         <div class="kpi-value">${rsvpCount}</div>
         <div class="kpi-sub">Presenças no refeitório</div>
@@ -279,7 +334,7 @@ async function renderTabDashboard(container, store, showToast) {
       <div class="kpi-card">
         <div class="kpi-head">
           <span class="kpi-label">Eventos Ativos</span>
-          <span class="kpi-icon">📅</span>
+          <span class="kpi-icon">AGENDA</span>
         </div>
         <div class="kpi-value">${eventList.length}</div>
         <div class="kpi-sub">Palestras, visitas e aulas</div>
@@ -288,7 +343,7 @@ async function renderTabDashboard(container, store, showToast) {
       <div class="kpi-card cyan">
         <div class="kpi-head">
           <span class="kpi-label">Vagas de Estágio</span>
-          <span class="kpi-icon">💼</span>
+          <span class="kpi-icon">ESTÁGIOS</span>
         </div>
         <div class="kpi-value">${vagasAtivas}</div>
         <div class="kpi-sub">${internships.length} oportunidades cadastradas</div>
@@ -297,7 +352,7 @@ async function renderTabDashboard(container, store, showToast) {
       <div class="kpi-card violet">
         <div class="kpi-head">
           <span class="kpi-label">Perguntas FAQ</span>
-          <span class="kpi-icon">❓</span>
+          <span class="kpi-icon">FAQ</span>
         </div>
         <div class="kpi-value">${faqs.length}</div>
         <div class="kpi-sub">Dúvidas respondidas no site</div>
@@ -306,7 +361,7 @@ async function renderTabDashboard(container, store, showToast) {
       <div class="kpi-card green">
         <div class="kpi-head">
           <span class="kpi-label">Lojinha & Estoque</span>
-          <span class="kpi-icon">☕</span>
+          <span class="kpi-icon">LOJA</span>
         </div>
         <div class="kpi-value">${productList.length}</div>
         <div class="kpi-sub">Produtos disponíveis</div>
@@ -315,7 +370,7 @@ async function renderTabDashboard(container, store, showToast) {
       <div class="kpi-card">
         <div class="kpi-head">
           <span class="kpi-label">Mural & Demandas</span>
-          <span class="kpi-icon">💡</span>
+          <span class="kpi-icon">MURAL</span>
         </div>
         <div class="kpi-value">${suggestions.length}</div>
         <div class="kpi-sub">${pendentesMod} aguardando resposta</div>
@@ -326,39 +381,39 @@ async function renderTabDashboard(container, store, showToast) {
     <div class="grid grid-2" style="margin-bottom: 2rem;">
       <div class="card">
         <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem;">
-          <span>⚡ Ações Operacionais Imediatas</span>
+          <span>Ações Operacionais</span>
         </h3>
         <div class="stack" style="gap: .75rem;">
           <button type="button" class="btn btn-ghost btn-sm" id="btn-quick-new-event" style="justify-content: flex-start; text-align: left;">
-            📅 Agendar Novo Evento ou Visita Técnica
+            Agendar Novo Evento ou Visita Técnica
           </button>
           <button type="button" class="btn btn-ghost btn-sm" id="btn-quick-new-internship" style="justify-content: flex-start; text-align: left;">
-            💼 Cadastrar Nova Vaga de Estágio ou Emprego
+            Cadastrar Nova Vaga de Estágio ou Emprego
           </button>
           <button type="button" class="btn btn-ghost btn-sm" id="btn-quick-new-faq" style="justify-content: flex-start; text-align: left;">
-            ❓ Adicionar Nova Pergunta / Resposta ao FAQ
+            Adicionar Nova Pergunta ao FAQ
           </button>
           <button type="button" class="btn btn-ghost btn-sm" id="btn-quick-new-product" style="justify-content: flex-start; text-align: left;">
-            🛍️ Cadastrar Novo Produto na Lojinha
+            Cadastrar Novo Produto na Lojinha
           </button>
           <button type="button" class="btn btn-ghost btn-sm" id="btn-quick-new-notice" style="justify-content: flex-start; text-align: left;">
-            📢 Publicar Comunicado Oficial no Mural
+            Publicar Comunicado Oficial no Mural
           </button>
         </div>
       </div>
 
       <div class="card">
         <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem;">
-          <span>🛡️ Conformidade & Governança da Urna</span>
+          <span>Censo & Cadastro dos Estudantes</span>
         </h3>
         <p class="small muted" style="margin-bottom: .75rem;">
-          A base de eleitores homologada contém <strong>235 alunos matriculados</strong> em Engenharia de Controle e Automação da UERGS. Cédula secreta com verificação estrita de e-mail institucional.
+          A base discente cadastrada contém <strong>${CONFIG.STUDENTS_DATABASE ? CONFIG.STUDENTS_DATABASE.length : 203} alunos matriculados</strong> em Engenharia de Controle e Automação da UERGS. Validação de e-mails institucionais (@uergs.edu.br) e permissões de acesso.
         </p>
         <div class="row" style="gap: .5rem; align-items: center; margin-top: 1rem; flex-wrap: wrap;">
           <span class="badge green">Segurança RLS Ativa</span>
-          <span class="badge cyan">Voto Auditável</span>
+          <span class="badge cyan">Censo Ativo</span>
           <span class="badge slate">LGPD Compliance</span>
-          <span class="badge amber">Resolução CACS UERGS</span>
+          <span class="badge amber">Engenharia UERGS</span>
         </div>
       </div>
     </div>
@@ -400,25 +455,362 @@ function syncTabButtons() {
 }
 
 /* =====================================================================
+ *  ABA: GESTÃO DE OFERTA SEMESTRAL DE CADEIRAS (PPC 2019 / 2024)
+ * ===================================================================== */
+async function renderTabOferta(container, store, showToast) {
+  container.innerHTML = `<div class="skeleton" style="height: 280px; border-radius: var(--radius);"></div>`;
+
+  try {
+    const offeringData = await store.offerings.get();
+    const courses = offeringData.courses || [];
+    const activeCount = courses.filter(c => c.ativo).length;
+    const totalVagas = courses.reduce((acc, c) => acc + (c.ativo ? (parseInt(c.vagas) || 0) : 0), 0);
+
+    // Atualiza badge
+    const badge = document.getElementById("badge-count-oferta");
+    if (badge) badge.textContent = `${activeCount}`;
+
+    container.innerHTML = `
+      <div class="admin-tab-header" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+        <div>
+          <h2 style="font-size: 1.45rem; margin: 0 0 .35rem; display: flex; align-items: center; gap: .5rem;">
+            Gestão da Oferta Semestral de Cadeiras
+            <span class="badge cyan">${esc(offeringData.semester || "2026/1")}</span>
+          </h2>
+          <p class="small muted" style="margin: 0;">
+            Cadastre as disciplinas que serão abertas pela UERGS no semestre. Os alunos cruzam seus históricos com esta matriz para otimizar a matrícula.
+          </p>
+        </div>
+        <div class="row" style="gap: .65rem; flex-wrap: wrap;">
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-edit-semester" style="font-family: var(--font-mono);">
+            Alterar Semestre Letivo
+          </button>
+          <button type="button" class="btn btn-primary btn-sm" id="btn-add-offering-course" style="font-family: var(--font-mono);">
+            + Nova Disciplina na Oferta
+          </button>
+        </div>
+      </div>
+
+      <!-- Métricas da Oferta -->
+      <div class="grid grid-4" style="gap: 1rem; margin-bottom: 1.5rem;">
+        <div class="card" style="padding: 1.1rem; background: hsl(222 35% 8% / .7); border: 1px solid var(--border);">
+          <span class="eyebrow" style="margin-bottom: .25rem;">Cadeiras na Matriz</span>
+          <div style="font-size: 1.6rem; font-weight: 700; color: var(--text); font-family: var(--font-mono);">${courses.length}</div>
+          <span class="small muted">Cadastradas no sistema</span>
+        </div>
+        <div class="card" style="padding: 1.1rem; background: hsl(222 35% 8% / .7); border: 1px solid hsl(152 68% 52% / .3);">
+          <span class="eyebrow" style="margin-bottom: .25rem; color: var(--green);">Ativas na Oferta</span>
+          <div style="font-size: 1.6rem; font-weight: 700; color: var(--green); font-family: var(--font-mono);">${activeCount}</div>
+          <span class="small muted">Visíveis para os alunos</span>
+        </div>
+        <div class="card" style="padding: 1.1rem; background: hsl(222 35% 8% / .7); border: 1px solid hsl(189 94% 55% / .3);">
+          <span class="eyebrow" style="margin-bottom: .25rem; color: var(--cyan);">Vagas Estimadas</span>
+          <div style="font-size: 1.6rem; font-weight: 700; color: var(--cyan); font-family: var(--font-mono);">${totalVagas}</div>
+          <span class="small muted">Vagas abertas somadas</span>
+        </div>
+        <div class="card" style="padding: 1.1rem; background: hsl(222 35% 8% / .7); border: 1px solid var(--border);">
+          <span class="eyebrow" style="margin-bottom: .25rem;">Última Atualização</span>
+          <div style="font-size: 1.1rem; font-weight: 600; color: var(--amber); font-family: var(--font-mono);">${esc(offeringData.updated_by || "Diretoria")}</div>
+          <span class="faint" style="font-size: .75rem;">Sincronizado</span>
+        </div>
+      </div>
+
+      <!-- Barra de Pesquisa e Filtros -->
+      <div class="card" style="padding: 1rem; margin-bottom: 1.25rem;">
+        <div class="row" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .75rem;">
+          <input type="text" id="input-search-offerings" placeholder="Filtrar por código ou nome da disciplina..." style="max-width: 400px; padding: .45rem .85rem; font-size: .88rem; background: hsl(222 35% 7%); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+          <div class="row" style="gap: .5rem;">
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-toggle-all-offerings" style="font-size: .8rem;">
+              Ativar Todas
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" id="btn-save-publish-offerings" style="font-size: .8rem;">
+              Salvar & Publicar Oferta Oficial
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela da Oferta Semestral -->
+      <div class="table-responsive" style="overflow-x: auto; border: 1px solid var(--border); border-radius: 8px;">
+        <table class="table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: .88rem;">
+          <thead>
+            <tr style="background: hsl(222 35% 10%); border-bottom: 1px solid var(--border); font-family: var(--font-mono); color: var(--muted); font-size: .78rem;">
+              <th style="padding: .75rem 1rem;">STATUS</th>
+              <th style="padding: .75rem 1rem;">CÓDIGO & NOME</th>
+              <th style="padding: .75rem 1rem;">TURMA</th>
+              <th style="padding: .75rem 1rem;">DIA & HORÁRIO</th>
+              <th style="padding: .75rem 1rem;">DOCENTE</th>
+              <th style="padding: .75rem 1rem; text-align: center;">VAGAS</th>
+              <th style="padding: .75rem 1rem; text-align: right;">AÇÕES</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-offerings-list">
+            ${courses.map(c => `
+              <tr class="offering-row ${c.ativo ? 'is-active' : 'is-inactive'}" data-code="${esc(c.code)}" style="border-bottom: 1px solid var(--border); ${!c.ativo ? 'opacity: .5; background: hsl(222 35% 6% / .5);' : ''}">
+                <td style="padding: .75rem 1rem;">
+                  <button type="button" class="btn-toggle-course-status" data-code="${esc(c.code)}" style="background: none; border: none; cursor: pointer; padding: 0;">
+                    ${c.ativo ? '<span class="badge green"><span class="led-dot green"></span> OFERTADA</span>' : '<span class="badge slate">INATIVA</span>'}
+                  </button>
+                </td>
+                <td style="padding: .75rem 1rem;">
+                  <strong style="color: var(--cyan); font-family: var(--font-mono);">${esc(c.code)}</strong>
+                  <div style="font-weight: 500; color: var(--text); font-size: .88rem;">${esc(c.name)}</div>
+                  <span class="faint" style="font-size: .72rem; font-family: var(--font-mono);">${esc(c.ch || '60h')} · PPC ${esc(c.ppc || '2024')}</span>
+                </td>
+                <td style="padding: .75rem 1rem;">
+                  <span class="badge" style="background: hsl(222 25% 18%); font-size: .75rem;">${esc(c.turma || 'Turma A')}</span>
+                </td>
+                <td style="padding: .75rem 1rem; font-family: var(--font-mono); font-size: .82rem;">
+                  <span style="color: var(--amber); font-weight: 600;">${esc(c.dia || 'Seg/Qua')}</span><br>
+                  <span class="muted">${esc(c.horario || '18:30 - 22:00')}</span>
+                </td>
+                <td style="padding: .75rem 1rem; color: var(--text);">
+                  ${esc(c.professor || 'A definir')}
+                </td>
+                <td style="padding: .75rem 1rem; text-align: center; font-family: var(--font-mono); font-weight: 600;">
+                  ${esc(c.vagas || '30')}
+                </td>
+                <td style="padding: .75rem 1rem; text-align: right;">
+                  <div class="row" style="justify-content: flex-end; gap: .4rem;">
+                    <button type="button" class="btn btn-ghost btn-sm btn-edit-course" data-code="${esc(c.code)}" title="Editar disciplina" style="padding: .2rem .5rem; font-size: .75rem;">
+                      Editar
+                    </button>
+                    <button type="button" class="btn btn-ghost btn-sm btn-delete-course" data-code="${esc(c.code)}" title="Excluir da oferta" style="padding: .2rem .5rem; font-size: .75rem; color: var(--red);">
+                      Excluir
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    // 1. Alternância de status com 1 clique
+    container.querySelectorAll(".btn-toggle-course-status").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const code = btn.getAttribute("data-code");
+        const course = courses.find(c => c.code === code);
+        if (course) {
+          course.ativo = !course.ativo;
+          await store.offerings.save(offeringData);
+          showToast(`Disciplina ${code} ${course.ativo ? 'ativada na oferta' : 'desativada'}.`);
+          await renderTabOferta(container, store, showToast);
+        }
+      });
+    });
+
+    // 2. Filtro de Busca
+    const searchInput = document.getElementById("input-search-offerings");
+    searchInput?.addEventListener("input", (e) => {
+      const q = cleanStr(e.target.value);
+      container.querySelectorAll(".offering-row").forEach(row => {
+        const text = cleanStr(row.textContent);
+        row.style.display = text.includes(q) ? "" : "none";
+      });
+    });
+
+    // 3. Ativar Todas
+    document.getElementById("btn-toggle-all-offerings")?.addEventListener("click", async () => {
+      courses.forEach(c => c.ativo = true);
+      await store.offerings.save(offeringData);
+      showToast("Todas as disciplinas foram ativadas na oferta!");
+      await renderTabOferta(container, store, showToast);
+    });
+
+    // 4. Salvar e Publicar
+    document.getElementById("btn-save-publish-offerings")?.addEventListener("click", async () => {
+      await store.offerings.save(offeringData);
+      showToast("Oferta Semestral publicada com sucesso para todos os estudantes!");
+    });
+
+    // 5. Alterar Semestre Letivo
+    document.getElementById("btn-edit-semester")?.addEventListener("click", async () => {
+      const novoSem = prompt("Digite o rótulo do semestre letivo (ex: 2026/1 ou 2026/2):", offeringData.semester || "2026/1");
+      if (novoSem && novoSem.trim()) {
+        offeringData.semester = novoSem.trim();
+        await store.offerings.save(offeringData);
+        showToast(`Semestre atualizado para ${offeringData.semester}!`);
+        await renderTabOferta(container, store, showToast);
+      }
+    });
+
+    // 6. Editar Disciplina
+    container.querySelectorAll(".btn-edit-course").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const code = btn.getAttribute("data-code");
+        const course = courses.find(c => c.code === code);
+        if (!course) return;
+        openCourseModal(course, async (updated) => {
+          Object.assign(course, updated);
+          await store.offerings.save(offeringData);
+          showToast(`Disciplina ${code} atualizada!`);
+          await renderTabOferta(container, store, showToast);
+        });
+      });
+    });
+
+    // 7. Excluir Disciplina
+    container.querySelectorAll(".btn-delete-course").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const code = btn.getAttribute("data-code");
+        if (confirm(`Deseja remover ${code} da lista de oferta?`)) {
+          offeringData.courses = courses.filter(c => c.code !== code);
+          await store.offerings.save(offeringData);
+          showToast(`Disciplina ${code} removida da oferta.`);
+          await renderTabOferta(container, store, showToast);
+        }
+      });
+    });
+
+    // 8. Nova Disciplina
+    document.getElementById("btn-add-offering-course")?.addEventListener("click", () => {
+      openCourseModal(null, async (newCourse) => {
+        courses.push(newCourse);
+        await store.offerings.save(offeringData);
+        showToast(`Disciplina ${newCourse.code} adicionada à oferta!`);
+        await renderTabOferta(container, store, showToast);
+      });
+    });
+
+  } catch (err) {
+    container.innerHTML = `<div class="card error"><p>Erro ao carregar oferta: ${esc(err.message)}</p></div>`;
+  }
+}
+
+function openCourseModal(existingCourse, onSave) {
+  const modal = document.getElementById("dlg-admin-form");
+  const modalTitle = document.getElementById("admin-modal-title");
+  const modalBody = document.getElementById("admin-modal-body");
+  if (!modal || !modalTitle || !modalBody) return;
+
+  const isEdit = !!existingCourse;
+  modalTitle.textContent = isEdit ? `Editar Disciplina: ${existingCourse.code}` : "Adicionar Disciplina à Oferta Semestral";
+
+  modalBody.innerHTML = `
+    <form id="form-offering-course" class="form">
+      <div class="grid grid-2">
+        <div class="field">
+          <label>Código da Disciplina *</label>
+          <input type="text" id="off-code" required value="${esc(existingCourse?.code || '')}" placeholder="Ex: CALC-1" ${isEdit ? 'readonly' : ''}>
+        </div>
+        <div class="field">
+          <label>Nome da Disciplina *</label>
+          <input type="text" id="off-name" required value="${esc(existingCourse?.name || '')}" placeholder="Ex: Cálculo 1">
+        </div>
+      </div>
+      <div class="grid grid-3">
+        <div class="field">
+          <label>Turma</label>
+          <input type="text" id="off-turma" value="${esc(existingCourse?.turma || 'Turma A')}" placeholder="Turma A / Lab 1">
+        </div>
+        <div class="field">
+          <label>Dia da Semana</label>
+          <select id="off-dia">
+            <option value="Seg/Qua" ${existingCourse?.dia === 'Seg/Qua' ? 'selected' : ''}>Segunda e Quarta</option>
+            <option value="Ter/Qui" ${existingCourse?.dia === 'Ter/Qui' ? 'selected' : ''}>Terça e Quinta</option>
+            <option value="Sex" ${existingCourse?.dia === 'Sex' ? 'selected' : ''}>Sexta-feira</option>
+            <option value="Sáb" ${existingCourse?.dia === 'Sáb' ? 'selected' : ''}>Sábado (Manhã)</option>
+            <option value="Seg" ${existingCourse?.dia === 'Seg' ? 'selected' : ''}>Segunda-feira</option>
+            <option value="Ter" ${existingCourse?.dia === 'Ter' ? 'selected' : ''}>Terça-feira</option>
+            <option value="Qua" ${existingCourse?.dia === 'Qua' ? 'selected' : ''}>Quarta-feira</option>
+            <option value="Qui" ${existingCourse?.dia === 'Qui' ? 'selected' : ''}>Quinta-feira</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Horário</label>
+          <input type="text" id="off-horario" value="${esc(existingCourse?.horario || '18:30 - 22:00')}" placeholder="18:30 - 22:00">
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="field">
+          <label>Docente Responsável</label>
+          <input type="text" id="off-prof" value="${esc(existingCourse?.professor || '')}" placeholder="Ex: Prof. Dr. Roberto Dorneles">
+        </div>
+        <div class="field">
+          <label>Vagas Disponíveis</label>
+          <input type="number" id="off-vagas" value="${existingCourse?.vagas || 30}" min="5" max="80">
+        </div>
+      </div>
+      <div class="row" style="justify-content: flex-end; gap: .75rem; margin-top: 1.25rem;">
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('dlg-admin-form').close()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">${isEdit ? 'Salvar Alterações' : 'Adicionar à Oferta'}</button>
+      </div>
+    </form>
+  `;
+
+  document.getElementById("form-offering-course")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const payload = {
+      code: document.getElementById("off-code").value.trim().toUpperCase(),
+      name: document.getElementById("off-name").value.trim(),
+      turma: document.getElementById("off-turma").value.trim() || "Turma A",
+      dia: document.getElementById("off-dia").value,
+      horario: document.getElementById("off-horario").value.trim() || "18:30 - 22:00",
+      professor: document.getElementById("off-prof").value.trim() || "A definir",
+      vagas: parseInt(document.getElementById("off-vagas").value) || 30,
+      ativo: existingCourse ? existingCourse.ativo : true,
+      ppc: existingCourse?.ppc || "2024",
+      ch: existingCourse?.ch || "60h"
+    };
+    modal.close();
+    onSave(payload);
+  });
+
+  modal.showModal();
+}
+
+/* =====================================================================
  *  ABA 2: GESTÃO DE EVENTOS
  * ===================================================================== */
 async function renderTabEventos(container, store, showToast) {
   let events = [];
+  let uergsPoaData = { total_filtered_poa: 0, events: [] };
   try {
     events = store.events?.listAll ? await store.events.listAll() : (store.events?.list ? await store.events.list() : []);
+    uergsPoaData = await fetchUergsPoaEvents();
   } catch (err) {
     console.error(err);
   }
 
+  const uergsPoaCount = uergsPoaData.total_filtered_poa || (uergsPoaData.events ? uergsPoaData.events.length : 0);
   document.getElementById("badge-count-eventos").textContent = events.length;
 
   container.innerHTML = `
+    <!-- Card de Sincronização & Raspagem da Agenda UERGS (Porto Alegre) -->
+    <div class="card" style="margin-bottom: 1.5rem; background: hsl(220 40% 12% / .6); border: 1px solid var(--border); padding: 1.25rem;">
+      <div class="row" style="justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+        <div>
+          <div class="row" style="gap: .5rem; align-items: center; margin-bottom: .35rem;">
+            <span class="badge cyan" style="font-size: .72rem; font-weight: 700;">📡 RASPAGEM DA AGENDA OFICIAL UERGS</span>
+            <span class="badge amber" style="font-size: .72rem; font-weight: 700;">FILTRO: CAMPUS PORTO ALEGRE</span>
+          </div>
+          <h3 style="margin: 0 0 .25rem; font-size: 1.15rem;">Agenda Institucional UERGS · Unidade Porto Alegre</h3>
+          <p class="small muted" style="margin: 0; line-height: 1.5;">
+            Conexão com a agenda oficial da UERGS filtrando especificamente a unidade de Porto Alegre (Rua Washington Luiz, 675 / Reitoria).
+          </p>
+        </div>
+        <div class="row" style="gap: .75rem; align-items: center;">
+          <div style="text-align: right;">
+            <span class="badge green" id="admin-scraper-status" style="font-size: .8rem; font-weight: 700;">
+              ${uergsPoaCount} Eventos Homologados (POA)
+            </span>
+            <div class="small muted" style="font-size: .75rem; margin-top: .2rem;">Origem: uergs.edu.br/agenda</div>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-admin-sync-uergs" style="border-color: var(--cyan); color: var(--cyan); font-weight: 600;">
+            🔄 Sincronizar Raspagem
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="admin-action-bar">
       <div class="admin-search-box">
         <input type="text" id="admin-search-eventos" placeholder="Buscar por título, categoria ou local..." aria-label="Buscar eventos">
       </div>
       <button type="button" class="btn btn-primary btn-sm" id="btn-admin-add-evento">
-        ➕ Adicionar Novo Evento
+        + Novo Evento
       </button>
     </div>
 
@@ -438,7 +830,7 @@ async function renderTabEventos(container, store, showToast) {
         <tbody id="admin-eventos-tbody">
           ${events.map((ev) => `
             <tr data-id="${ev.id}">
-              <td><span style="font-size: 1.5rem;">${esc(ev.icone || '📅')}</span></td>
+              <td><span style="font-size: 1.5rem;">${esc(ev.categoria || 'Evento')}</span></td>
               <td>
                 <strong>${esc(ev.titulo || ev.title)}</strong>
                 ${ev.descricao ? `<div class="small muted" style="max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${esc(ev.descricao || ev.description)}</div>` : ''}
@@ -452,8 +844,8 @@ async function renderTabEventos(container, store, showToast) {
               <td style="white-space: nowrap;">${ev.destaque ? '<span class="status-pill disponivel">⭐ Sim</span>' : '<span class="status-pill analise">Não</span>'}</td>
               <td style="text-align: right; white-space: nowrap;">
                 <div class="table-actions" style="justify-content: flex-end;">
-                  <button type="button" class="btn btn-ghost btn-sm btn-edit-ev" data-id="${ev.id}">✏️ Editar</button>
-                  <button type="button" class="btn btn-danger btn-sm btn-del-ev" data-id="${ev.id}">🗑️</button>
+                  <button type="button" class="btn btn-ghost btn-sm btn-edit-ev" data-id="${ev.id}">Editar</button>
+                  <button type="button" class="btn btn-danger btn-sm btn-del-ev" data-id="${ev.id}">Excluir</button>
                 </div>
               </td>
             </tr>
@@ -466,6 +858,23 @@ async function renderTabEventos(container, store, showToast) {
   // Bindings
   document.getElementById("btn-admin-add-evento")?.addEventListener("click", () => {
     openEventModal(null, store, showToast);
+  });
+
+  document.getElementById("btn-admin-sync-uergs")?.addEventListener("click", async () => {
+    const btn = document.getElementById("btn-admin-sync-uergs");
+    if (btn) btn.disabled = true;
+    showToast("Sincronizando eventos da UERGS (Campus Porto Alegre)...");
+    try {
+      const refreshed = await fetchUergsPoaEvents(true);
+      const total = refreshed.total_filtered_poa || (refreshed.events ? refreshed.events.length : 0);
+      showToast(`Raspagem atualizada com sucesso! ${total} eventos de Porto Alegre sincronizados.`);
+      const statusSpan = document.getElementById("admin-scraper-status");
+      if (statusSpan) statusSpan.textContent = `${total} Eventos Homologados (POA)`;
+    } catch (err) {
+      showToast("Erro ao sincronizar eventos: " + err.message, true);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   });
 
   container.querySelectorAll(".btn-edit-ev").forEach((btn) => {
@@ -536,7 +945,7 @@ function openEventModal(eventData, store, showToast) {
 
         <div class="field">
           <label for="ev-icone">Ícone (Emoji)</label>
-          <input type="text" id="ev-icone" value="${esc(eventData?.icone || '📅')}" style="max-width: 90px; text-align: center;">
+          <input type="text" id="ev-icone" value="${esc(eventData?.categoria || 'Evento')}" style="max-width: 90px; text-align: center;">
         </div>
 
         <div class="field admin-form-full">
@@ -554,7 +963,7 @@ function openEventModal(eventData, store, showToast) {
 
       <div class="row" style="justify-content: flex-end; gap: .75rem; margin-top: 1.5rem;">
         <button type="button" class="btn btn-ghost" onclick="document.getElementById('dlg-admin-form').close()">Cancelar</button>
-        <button type="submit" class="btn btn-primary">Salvar Evento 💾</button>
+        <button type="submit" class="btn btn-primary">Salvar Evento</button>
       </div>
     </form>
   `;
@@ -567,7 +976,7 @@ function openEventModal(eventData, store, showToast) {
       data: document.getElementById("ev-data").value,
       horario: document.getElementById("ev-horario").value.trim(),
       local: document.getElementById("ev-local").value.trim(),
-      icone: document.getElementById("ev-icone").value.trim() || "📅",
+      icone: document.getElementById("ev-icone").value.trim() || "Evento",
       descricao: document.getElementById("ev-descricao").value.trim(),
       destaque: document.getElementById("ev-destaque").checked,
       starts_at: document.getElementById("ev-data").value + "T18:30:00Z",
@@ -579,7 +988,7 @@ function openEventModal(eventData, store, showToast) {
         showToast("Evento atualizado com sucesso!");
       } else {
         if (store.events?.create) await store.events.create(payload);
-        showToast("Novo evento agendado com sucesso! 📅");
+        showToast("Novo evento agendado com sucesso!");
       }
       modal.close();
       const container = document.getElementById("admin-tab-content");
@@ -622,7 +1031,7 @@ async function renderTabLoja(container, store, showToast) {
         <input type="text" id="admin-search-loja" placeholder="Buscar por produto, categoria ou tag..." aria-label="Buscar produtos">
       </div>
       <button type="button" class="btn btn-primary btn-sm" id="btn-admin-add-produto">
-        ➕ Adicionar Produto
+        + Novo Produto
       </button>
     </div>
 
@@ -643,12 +1052,12 @@ async function renderTabLoja(container, store, showToast) {
           ${products.map((p) => `
             <tr data-id="${p.id}">
               <td>
-                <div class="table-thumb">${esc(p.icone || '🛍️')}</div>
+                <div class="table-thumb">${esc(p.categoria || 'Produto')}</div>
               </td>
               <td>
                 <strong>${esc(p.nome)}</strong>
                 ${p.tag ? `<div><span class="badge slate" style="font-size: .7rem;">${esc(p.tag)}</span></div>` : ''}
-                ${p.permitePersonalizacao ? `<div><span class="badge amber" style="font-size: .65rem;">✨ Personalizável</span></div>` : ''}
+                ${p.permitePersonalizacao ? `<div><span class="badge amber" style="font-size: .65rem;">Personalizável</span></div>` : ''}
               </td>
               <td style="white-space: nowrap;"><span class="small muted">${esc(p.categoria || 'Geral')}</span></td>
               <td style="white-space: nowrap;"><strong class="font-mono text-cyan">${esc(p.preco || 'R$ 0,00')}</strong></td>
@@ -660,8 +1069,8 @@ async function renderTabLoja(container, store, showToast) {
               </td>
               <td style="text-align: right; white-space: nowrap;">
                 <div class="table-actions" style="justify-content: flex-end;">
-                  <button type="button" class="btn btn-ghost btn-sm btn-edit-prod" data-id="${p.id}">✏️ Editar</button>
-                  <button type="button" class="btn btn-danger btn-sm btn-del-prod" data-id="${p.id}">🗑️</button>
+                  <button type="button" class="btn btn-ghost btn-sm btn-edit-prod" data-id="${p.id}">Editar</button>
+                  <button type="button" class="btn btn-danger btn-sm btn-del-prod" data-id="${p.id}">Excluir</button>
                 </div>
               </td>
             </tr>
@@ -673,7 +1082,7 @@ async function renderTabLoja(container, store, showToast) {
     <!-- Seção de Encomendas & Personalizações dos Alunos -->
     <div style="margin-top: 2.75rem; margin-bottom: .85rem; display: flex; justify-content: space-between; align-items: baseline;">
       <div>
-        <h3 style="margin: 0; font-size: 1.25rem;">📦 Encomendas &amp; Personalizações dos Alunos (${orders.length})</h3>
+        <h3 style="margin: 0; font-size: 1.25rem;">Encomendas &amp; Personalizações dos Alunos (${orders.length})</h3>
         <span class="small muted">Acompanhe os pedidos recebidos, gravações a laser solicitadas e status de produção/entrega.</span>
       </div>
     </div>
@@ -703,7 +1112,7 @@ async function renderTabLoja(container, store, showToast) {
                 ${ord.whatsapp ? `
                   <div style="margin-top: .2rem;">
                     <a href="https://wa.me/55${esc(ord.whatsapp).replace(/\\D/g, '')}" target="_blank" rel="noopener noreferrer" class="small text-cyan font-mono" style="text-decoration: none;">
-                      📱 ${esc(ord.whatsapp)}
+                      WhatsApp: ${esc(ord.whatsapp)}
                     </a>
                   </div>
                 ` : ''}
@@ -721,7 +1130,7 @@ async function renderTabLoja(container, store, showToast) {
                     </div>
                   </div>
                 ` : `
-                  <span class="badge slate" style="font-size: .75rem;">🛡️ Padrão Oficial</span>
+                  <span class="badge slate" style="font-size: .75rem;">Padrão Oficial</span>
                 `}
                 ${ord.obs ? `<div class="small muted" style="margin-top: .3rem; font-style: italic;">Obs: ${esc(ord.obs)}</div>` : ''}
               </td>
@@ -851,7 +1260,7 @@ function openProductModal(prodData, store, showToast) {
 
         <div class="field">
           <label for="prod-icone">Ícone (Emoji)</label>
-          <input type="text" id="prod-icone" value="${esc(prodData?.icone || '🛍️')}" style="max-width: 90px; text-align: center;">
+          <input type="text" id="prod-icone" value="${esc(prodData?.categoria || 'Produto')}" style="max-width: 90px; text-align: center;">
         </div>
 
         <div class="field admin-form-full">
@@ -867,7 +1276,7 @@ function openProductModal(prodData, store, showToast) {
 
       <div class="row" style="justify-content: flex-end; gap: .75rem; margin-top: 1.5rem;">
         <button type="button" class="btn btn-ghost" onclick="document.getElementById('dlg-admin-form').close()">Cancelar</button>
-        <button type="submit" class="btn btn-primary">Salvar Produto 💾</button>
+        <button type="submit" class="btn btn-primary">Salvar Produto</button>
       </div>
     </form>
   `;
@@ -881,7 +1290,7 @@ function openProductModal(prodData, store, showToast) {
       preco: document.getElementById("prod-preco").value.trim(),
       precoSocio: document.getElementById("prod-precosocio").value.trim(),
       status: document.getElementById("prod-status").value,
-      icone: document.getElementById("prod-icone").value.trim() || "🛍️",
+      icone: document.getElementById("prod-icone").value.trim() || "Produto",
       tag: document.getElementById("prod-tag").value.trim(),
       descricao: document.getElementById("prod-desc").value.trim(),
     };
@@ -922,11 +1331,11 @@ async function renderTabEstagios(container, store, showToast) {
   container.innerHTML = `
     <div class="row" style="justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
       <div>
-        <h3 style="margin: 0 0 .25rem;">💼 Gestão de Oportunidades: Estágios & Empregos</h3>
+        <h3 style="margin: 0 0 .25rem;">Gestão de Oportunidades: Estágios & Empregos</h3>
         <p class="small muted" style="margin: 0;">Cadastre e gerencie vagas de estágio curricular, não-obrigatório, trainees e contratações para estudantes de Controle e Automação.</p>
       </div>
       <button type="button" class="btn btn-primary btn-sm" id="btn-admin-add-estagio">
-        ➕ Cadastrar Nova Vaga
+        + Nova Vaga
       </button>
     </div>
 
@@ -970,8 +1379,8 @@ async function renderTabEstagios(container, store, showToast) {
               </td>
               <td style="text-align: right; white-space: nowrap;">
                 <div class="table-actions" style="justify-content: flex-end;">
-                  <button type="button" class="btn btn-ghost btn-sm btn-edit-estagio" data-id="${v.id}">✏️ Editar</button>
-                  <button type="button" class="btn btn-danger btn-sm btn-del-estagio" data-id="${v.id}">🗑️</button>
+                  <button type="button" class="btn btn-ghost btn-sm btn-edit-estagio" data-id="${v.id}">Editar</button>
+                  <button type="button" class="btn btn-danger btn-sm btn-del-estagio" data-id="${v.id}">Excluir</button>
                 </div>
               </td>
             </tr>
@@ -1074,7 +1483,7 @@ function openInternshipModal(vagaData, store, showToast, onSaved) {
 
       <div class="row" style="justify-content: flex-end; gap: .75rem; margin-top: 1.5rem;">
         <button type="button" class="btn btn-ghost" onclick="document.getElementById('dlg-admin-form').close()">Cancelar</button>
-        <button type="submit" class="btn btn-primary">${isEdit ? 'Salvar Alterações 💾' : 'Publicar Vaga 💼'}</button>
+        <button type="submit" class="btn btn-primary">${isEdit ? 'Salvar Alterações' : 'Publicar Vaga'}</button>
       </div>
     </form>
   `;
@@ -1105,10 +1514,10 @@ function openInternshipModal(vagaData, store, showToast, onSaved) {
     try {
       if (isEdit) {
         if (store.internships?.update) await store.internships.update(vagaData.id, payload);
-        showToast("Vaga atualizada com sucesso! ✅");
+        showToast("Vaga atualizada com sucesso!");
       } else {
         if (store.internships?.create) await store.internships.create(payload);
-        showToast("Nova vaga de estágio cadastrada e disponível no site! 💼");
+        showToast("Nova vaga de estágio cadastrada e disponível no site!");
       }
       modal.close();
       if (onSaved) await onSaved();
@@ -1137,11 +1546,11 @@ async function renderTabFaqs(container, store, showToast) {
   container.innerHTML = `
     <div class="row" style="justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
       <div>
-        <h3 style="margin: 0 0 .25rem;">❓ Gestão de Perguntas Frequentes (FAQs & Dúvidas)</h3>
+        <h3 style="margin: 0 0 .25rem;">Gestão de Perguntas Frequentes (FAQs & Dúvidas)</h3>
         <p class="small muted" style="margin: 0;">Adicione, edite ou atualize as respostas oficiais para as dúvidas recorrentes dos alunos de ECA no site.</p>
       </div>
       <button type="button" class="btn btn-primary btn-sm" id="btn-admin-add-faq">
-        ➕ Nova Pergunta (FAQ)
+        + Nova Pergunta
       </button>
     </div>
 
@@ -1173,8 +1582,8 @@ async function renderTabFaqs(container, store, showToast) {
               <td style="white-space: nowrap;">${f.destaque ? '<span class="status-pill disponivel">⭐ Sim</span>' : '<span class="status-pill analise">Não</span>'}</td>
               <td style="text-align: right; white-space: nowrap;">
                 <div class="table-actions" style="justify-content: flex-end;">
-                  <button type="button" class="btn btn-ghost btn-sm btn-edit-faq" data-id="${f.id}">✏️ Editar</button>
-                  <button type="button" class="btn btn-danger btn-sm btn-del-faq" data-id="${f.id}">🗑️</button>
+                  <button type="button" class="btn btn-ghost btn-sm btn-edit-faq" data-id="${f.id}">Editar</button>
+                  <button type="button" class="btn btn-danger btn-sm btn-del-faq" data-id="${f.id}">Excluir</button>
                 </div>
               </td>
             </tr>
@@ -1250,7 +1659,7 @@ function openFaqModal(faqData, store, showToast, onSaved) {
 
       <div class="row" style="justify-content: flex-end; gap: .75rem; margin-top: 1.5rem;">
         <button type="button" class="btn btn-ghost" onclick="document.getElementById('dlg-admin-form').close()">Cancelar</button>
-        <button type="submit" class="btn btn-primary">${isEdit ? 'Salvar Alterações 💾' : 'Adicionar ao FAQ ❓'}</button>
+        <button type="submit" class="btn btn-primary">${isEdit ? 'Salvar Alterações' : 'Adicionar ao FAQ'}</button>
       </div>
     </form>
   `;
@@ -1267,10 +1676,10 @@ function openFaqModal(faqData, store, showToast, onSaved) {
     try {
       if (isEdit) {
         if (store.faqs?.update) await store.faqs.update(faqData.id, payload);
-        showToast("FAQ atualizado com sucesso! ✅");
+        showToast("FAQ atualizado com sucesso!");
       } else {
         if (store.faqs?.create) await store.faqs.create(payload);
-        showToast("Nova pergunta adicionada ao FAQ do site! ❓");
+        showToast("Nova pergunta adicionada ao FAQ do site!");
       }
       modal.close();
       if (onSaved) await onSaved();
@@ -1300,9 +1709,9 @@ async function renderTabNoticias(container, store, showToast) {
 
   container.innerHTML = `
     <div class="row" style="justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-      <h3 style="margin: 0;">📢 Comunicados Oficiais do E(CA)²</h3>
+      <h3 style="margin: 0;">Comunicados Oficiais do E(CA)²</h3>
       <button type="button" class="btn btn-primary btn-sm" id="btn-admin-add-notice">
-        ➕ Publicar Novo Comunicado
+        + Novo Comunicado
       </button>
     </div>
 
@@ -1319,14 +1728,14 @@ async function renderTabNoticias(container, store, showToast) {
             <p class="small muted" style="margin: 0; line-height: 1.6;">${esc(a.body || a.corpo || a.descricao || '')}</p>
           </div>
           <div class="table-actions">
-            <button type="button" class="btn btn-danger btn-sm btn-del-notice" data-id="${a.id}">🗑️ Excluir</button>
+            <button type="button" class="btn btn-danger btn-sm btn-del-notice" data-id="${a.id}">Excluir Excluir</button>
           </div>
         </div>
       `).join("")}
     </div>
 
     <div class="row" style="justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-      <h3 style="margin: 0;">💡 Moderação do Mural de Ideias</h3>
+      <h3 style="margin: 0;">Moderação do Mural de Ideias</h3>
       <span class="small muted">${suggestions.length} sugestão(ões) de estudantes</span>
     </div>
 
@@ -1349,10 +1758,10 @@ async function renderTabNoticias(container, store, showToast) {
               <td>
                 <strong>${esc(s.title)}</strong>
                 ${s.body ? `<div class="small muted" style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${esc(s.body)}</div>` : ''}
-                ${s.ca_reply ? `<div style="margin-top: .25rem;"><span class="badge cyan" style="font-size: .68rem;">💬 Respondida pelo CA</span></div>` : ''}
+                ${s.ca_reply ? `<div style="margin-top: .25rem;"><span class="badge cyan" style="font-size: .68rem;">Respondida pelo CA</span></div>` : ''}
               </td>
               <td style="white-space: nowrap;"><span class="badge slate">${esc(s.category)}</span></td>
-              <td style="white-space: nowrap;"><span class="badge green">👍 ${s.vote_count || 0}</span></td>
+              <td style="white-space: nowrap;"><span class="badge green">Votos: ${s.vote_count || 0}</span></td>
               <td style="white-space: nowrap;">
                 <span class="status-pill ${s.status === 'concluida' || s.status === 'encaminhada' ? 'disponivel' : 'analise'}">
                   ${esc(s.status || 'Nova')}
@@ -1360,10 +1769,10 @@ async function renderTabNoticias(container, store, showToast) {
               </td>
               <td style="text-align: right; white-space: nowrap;">
                 <div class="table-actions" style="justify-content: flex-end;">
-                  <button type="button" class="btn btn-ghost btn-sm btn-mod-reply" data-id="${s.id}" title="Responder demanda com parecer oficial do CA">💬 Responder</button>
-                  <button type="button" class="btn btn-ghost btn-sm btn-mod-approve" data-id="${s.id}">✓ Aprovar</button>
-                  <button type="button" class="btn btn-ghost btn-sm btn-mod-hide" data-id="${s.id}">${s.hidden ? '👁️ Mostrar' : '🙈 Ocultar'}</button>
-                  <button type="button" class="btn btn-danger btn-sm btn-mod-del" data-id="${s.id}">🗑️</button>
+                  <button type="button" class="btn btn-ghost btn-sm btn-mod-reply" data-id="${s.id}" title="Responder demanda com parecer oficial do CA">Responder</button>
+                  <button type="button" class="btn btn-ghost btn-sm btn-mod-approve" data-id="${s.id}">Aprovar</button>
+                  <button type="button" class="btn btn-ghost btn-sm btn-mod-hide" data-id="${s.id}">${s.hidden ? 'Mostrar' : 'Ocultar'}</button>
+                  <button type="button" class="btn btn-danger btn-sm btn-mod-del" data-id="${s.id}">Excluir</button>
                 </div>
               </td>
             </tr>
@@ -1408,7 +1817,7 @@ async function renderTabNoticias(container, store, showToast) {
       const id = btn.getAttribute("data-id");
       try {
         if (store.suggestions?.update) await store.suggestions.update(Number(id), { status: "encaminhada" });
-        showToast("Sugestão marcada como encaminhada! ✅");
+        showToast("Sugestão marcada como encaminhada!");
         await renderTabNoticias(container, store, showToast);
       } catch (err) {
         showToast(err.message, true);
@@ -1465,7 +1874,7 @@ function openNoticeModal(noticeData, store, showToast) {
       </div>
       <div class="row" style="justify-content: flex-end; gap: .75rem; margin-top: 1.5rem;">
         <button type="button" class="btn btn-ghost" onclick="document.getElementById('dlg-admin-form').close()">Cancelar</button>
-        <button type="submit" class="btn btn-primary">Publicar Agora 📢</button>
+        <button type="submit" class="btn btn-primary">Publicar Comunicado</button>
       </div>
     </form>
   `;
@@ -1526,7 +1935,7 @@ function openReplySuggestionModal(suggestion, store, showToast, onSaved) {
 
       <div class="row" style="justify-content: flex-end; gap: .75rem; margin-top: 1.5rem;">
         <button type="button" class="btn btn-ghost" onclick="document.getElementById('dlg-admin-form').close()">Cancelar</button>
-        <button type="submit" class="btn btn-primary">Salvar Resposta Oficial 💬</button>
+        <button type="submit" class="btn btn-primary">Salvar Resposta Oficial</button>
       </div>
     </form>
   `;
@@ -1542,7 +1951,7 @@ function openReplySuggestionModal(suggestion, store, showToast, onSaved) {
       } else if (store.suggestions?.update) {
         await store.suggestions.update(suggestion.id, { ca_reply: replyText, ca_replied_at: new Date().toISOString(), status });
       }
-      showToast("Resposta oficial registrada e publicada no Mural! ⚡");
+      showToast("Resposta oficial registrada e publicada no Mural!");
       modal.close();
       if (onSaved) await onSaved();
     } catch (err) {
@@ -1564,11 +1973,11 @@ async function renderTabAlunos(container, store, showToast) {
 
   container.innerHTML = `
     <!-- Card de Gestão da Diretoria -->
-    <div class="card" style="margin-bottom: 1.5rem; background: linear-gradient(180deg, hsl(38 92% 50% / .1) 0%, hsl(38 92% 50% / .03) 100%); border-color: hsl(38 92% 50% / .3);">
+    <div class="card" style="margin-bottom: 1.5rem; background: var(--surface); border-color: var(--border-strong);">
       <div class="row" style="justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
         <div>
           <div class="row" style="gap: .5rem; align-items: center; margin-bottom: .25rem;">
-            <span style="font-size: 1.3rem;">🏛️</span>
+            <span class="badge cyan">ADMIN</span>
             <h3 style="margin: 0; font-size: 1.25rem;">Quadro de Diretoria & Administradores Aprovados</h3>
             <span class="badge amber">${adminEmails.length} Membro(s) com ADM</span>
           </div>
@@ -1577,7 +1986,7 @@ async function renderTabAlunos(container, store, showToast) {
           </p>
         </div>
         <button type="button" class="btn btn-primary btn-sm" id="btn-admin-add-diretoria" style="background: var(--amber); border-color: var(--amber); color: #000; font-weight: 600;">
-          🔑 Eleger Novo Administrador
+          Eleger Administrador
         </button>
       </div>
 
@@ -1587,10 +1996,10 @@ async function renderTabAlunos(container, store, showToast) {
           const nm = st ? st.name : mail.split("@")[0].toUpperCase();
           return `
             <div class="row" style="background: hsl(220 40% 12% / .9); border: 1px solid hsl(38 92% 50% / .4); padding: .35rem .75rem; border-radius: 999px; gap: .5rem; align-items: center;">
-              <span style="font-size: .8rem;">⭐</span>
+              <span class="badge amber" style="font-size: .7rem;">ADM</span>
               <strong style="font-size: .85rem; color: #fff;">${esc(nm)}</strong>
               <span class="font-mono small muted" style="font-size: .75rem;">(${esc(mail)})</span>
-              <button type="button" class="btn-revoke-admin" data-email="${esc(mail)}" data-name="${esc(nm)}" title="Revogar cargo de diretoria" style="background: none; border: none; color: #f87171; cursor: pointer; padding: 0 .2rem; font-size: .85rem;">✕</button>
+              <button type="button" class="btn-revoke-admin" data-email="${esc(mail)}" data-name="${esc(nm)}" title="Revogar cargo de diretoria" style="background: none; border: none; color: #f87171; cursor: pointer; padding: 0 .2rem; font-size: .85rem;">&times;</button>
             </div>
           `;
         }).join("")}
@@ -1605,10 +2014,10 @@ async function renderTabAlunos(container, store, showToast) {
       <div class="row" style="gap: .6rem; flex-wrap: wrap;">
         <span class="badge cyan">Total Censo: ${allowed.length}</span>
         <button type="button" class="btn btn-primary btn-sm" id="btn-admin-exportar-extrato-ata" style="display: inline-flex; align-items: center; gap: .35rem; font-weight: 600;">
-          📜 Extrato da Urna p/ Ata
+          Exportar Censo (CSV)
         </button>
         <button type="button" class="btn btn-ghost btn-sm" id="btn-admin-add-aluno">
-          ➕ Homologar Aluno Avulso
+          + Adicionar Aluno
         </button>
       </div>
     </div>
@@ -1621,7 +2030,7 @@ async function renderTabAlunos(container, store, showToast) {
             <th>Nome do Estudante</th>
             <th style="white-space: nowrap;">E-mail Institucional (@uergs.edu.br)</th>
             <th style="white-space: nowrap;">Cargo / Permissão</th>
-            <th style="text-align: right; white-space: nowrap;">Eleição de Diretoria</th>
+            <th style="text-align: right; white-space: nowrap;">Acesso Diretoria</th>
           </tr>
         </thead>
         <tbody id="admin-alunos-tbody">
@@ -1635,7 +2044,7 @@ async function renderTabAlunos(container, store, showToast) {
                 <td><strong>${esc(name)}</strong></td>
                 <td style="white-space: nowrap;"><span class="font-mono small text-cyan">${esc(email)}</span></td>
                 <td style="white-space: nowrap;">
-                  ${hasAdmin ? '<span class="badge amber">⭐ DIRETORIA (ADM)</span>' : '<span class="badge slate">🎓 Estudante Regular</span>'}
+                  ${hasAdmin ? '<span class="badge amber">DIRETORIA (ADM)</span>' : '<span class="badge slate">Estudante Regular</span>'}
                 </td>
                 <td style="text-align: right; white-space: nowrap;">
                   ${hasAdmin ? `
@@ -1644,7 +2053,7 @@ async function renderTabAlunos(container, store, showToast) {
                     </button>
                   ` : `
                     <button type="button" class="btn btn-ghost btn-sm btn-elect-admin" data-email="${esc(email)}" data-name="${esc(name)}" style="border-color: var(--amber); color: var(--amber);">
-                      Eleger p/ Diretoria 🔑
+                      Eleger p/ Diretoria
                     </button>
                   `}
                 </td>
@@ -1668,7 +2077,7 @@ async function renderTabAlunos(container, store, showToast) {
             if (store.electAdmin) {
               await store.electAdmin(mail, name);
             }
-            showToast(`⭐ ${name} foi eleito(a) para a Diretoria com sucesso! O Painel ADM agora está liberado.`);
+            showToast(`${name} foi eleito(a) para a Diretoria com sucesso! O Painel ADM agora está liberado.`);
             await renderTabAlunos(container, store, showToast);
           } catch (err) {
             showToast(err.message, true);
@@ -1695,12 +2104,21 @@ async function renderTabAlunos(container, store, showToast) {
       });
     });
 
-    container.querySelector("#btn-admin-exportar-extrato-ata")?.addEventListener("click", async () => {
-      if (store.gerarExtratoOficialAta) {
-        await store.gerarExtratoOficialAta();
-      } else {
-        showToast("Gerador de extrato indisponível no momento.", true);
-      }
+    container.querySelector("#btn-admin-exportar-extrato-ata")?.addEventListener("click", () => {
+      const csvRows = [["Nome", "Email Institucional", "Cargo"]];
+      allowed.forEach(email => {
+        const student = CONFIG.findStudentByEmail ? CONFIG.findStudentByEmail(email) : null;
+        const name = student ? student.name : email.split("@")[0].replace(/[.-]/g, " ").toUpperCase();
+        csvRows.push([`"${name}"`, `"${email}"`, isAdm(email) ? '"Diretoria"' : '"Discente Regular"']);
+      });
+      const blob = new Blob([csvRows.map(r => r.join(",")).join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "censo_estudantes_eca_uergs.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("Censo discente exportado em formato CSV com sucesso!");
     });
   }
 
@@ -1729,7 +2147,7 @@ async function renderTabAlunos(container, store, showToast) {
           <td><strong>${esc(name)}</strong></td>
           <td style="white-space: nowrap;"><span class="font-mono small text-cyan">${esc(email)}</span></td>
           <td style="white-space: nowrap;">
-            ${hasAdmin ? '<span class="badge amber">⭐ DIRETORIA (ADM)</span>' : '<span class="badge slate">🎓 Estudante Regular</span>'}
+            ${hasAdmin ? '<span class="badge amber">DIRETORIA (ADM)</span>' : '<span class="badge slate">Estudante Regular</span>'}
           </td>
           <td style="text-align: right; white-space: nowrap;">
             ${hasAdmin ? `
@@ -1738,7 +2156,7 @@ async function renderTabAlunos(container, store, showToast) {
               </button>
             ` : `
               <button type="button" class="btn btn-ghost btn-sm btn-elect-admin" data-email="${esc(email)}" data-name="${esc(name)}" style="border-color: var(--amber); color: var(--amber);">
-                Eleger p/ Diretoria 🔑
+                Nomear Diretoria
               </button>
             `}
           </td>
@@ -1770,12 +2188,12 @@ async function renderTabAlunos(container, store, showToast) {
         </div>
         <div class="field" style="background: hsl(38 92% 50% / .1); padding: .75rem; border-radius: var(--radius-sm); border: 1px solid hsl(38 92% 50% / .3);">
           <p class="small muted" style="margin: 0;">
-            ⚠️ <strong>Termo de Responsabilidade:</strong> Ao homologar este estudante, o Painel ADM ficará visível e acessível para ele, com privilégios de moderação, gestão de eventos, lojinha e censo da urna.
+            <strong>Termo de Responsabilidade:</strong> Ao homologar este estudante, o Painel ADM ficará visível e acessível para ele, com privilégios de moderação, gestão de eventos, lojinha e censo da urna.
           </p>
         </div>
         <div class="row" style="justify-content: flex-end; gap: .75rem; margin-top: 1.5rem;">
           <button type="button" class="btn btn-ghost" onclick="document.getElementById('dlg-admin-form').close()">Cancelar</button>
-          <button type="submit" class="btn btn-primary" style="background: var(--amber); color: #000; border-color: var(--amber); font-weight: 600;">Confirmar e Eleger Membro 🔑</button>
+          <button type="submit" class="btn btn-primary" style="background: var(--amber); color: #000; border-color: var(--amber); font-weight: 600;">Confirmar e Eleger Membro</button>
         </div>
       </form>
     `;
@@ -1827,7 +2245,7 @@ async function renderTabAlunos(container, store, showToast) {
         </div>
         <div class="row" style="justify-content: flex-end; gap: .75rem; margin-top: 1.5rem;">
           <button type="button" class="btn btn-ghost" onclick="document.getElementById('dlg-admin-form').close()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Homologar Estudante 🗳️</button>
+          <button type="submit" class="btn btn-primary">Homologar Estudante</button>
         </div>
       </form>
     `;
@@ -1842,7 +2260,7 @@ async function renderTabAlunos(container, store, showToast) {
       if (!CONFIG.VOTING_ALLOWED_EMAILS.includes(mail)) {
         CONFIG.VOTING_ALLOWED_EMAILS.push(mail);
       }
-      showToast("Estudante homologado com sucesso na base eleitoral! 🗳️");
+      showToast("Estudante homologado com sucesso na base eleitoral!");
       modal.close();
       renderTabAlunos(container, store, showToast);
     });
@@ -1862,7 +2280,7 @@ async function renderTabLogs(container, store, showToast) {
       logs = [
         { id: 1, action: "LOGIN_ADM", actor: "Administrador CA", target: "Painel Backoffice", created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(), ip: "127.0.0.1" },
         { id: 2, action: "UPDATE_CONFIG", actor: "Gestão E(CA)²", target: "Pergunta 2 Urna Pró-CA", created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), ip: "127.0.0.1" },
-        { id: 3, action: "CENSO_VERIFICADO", actor: "Sistema Automático", target: "235 Estudantes Homologados", created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), ip: "127.0.0.1" }
+        { id: 3, action: "CENSO_VERIFICADO", actor: "Sistema Automático", target: `${CONFIG.STUDENTS_DATABASE ? CONFIG.STUDENTS_DATABASE.length : 203} Estudantes Homologados`, created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), ip: "127.0.0.1" }
       ];
     }
   } catch (err) {
@@ -1875,7 +2293,7 @@ async function renderTabLogs(container, store, showToast) {
         <h3 style="margin: 0 0 .25rem;">Trilha de Auditoria Imutável (Audit Trail)</h3>
         <p class="small muted" style="margin: 0;">Registro criptografado de operações críticas realizadas por gestores autorizados.</p>
       </div>
-      <button type="button" class="btn btn-ghost btn-sm" id="btn-export-audit">📥 Exportar Relatório</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-export-audit">Exportar Relatório</button>
     </div>
 
     <div class="card" style="padding: 0; overflow: hidden;">
@@ -1900,6 +2318,6 @@ async function renderTabLogs(container, store, showToast) {
   `;
 
   document.getElementById("btn-export-audit")?.addEventListener("click", () => {
-    showToast("Relatório de auditoria gerado com sucesso! 🛡️");
+    showToast("Relatório de auditoria gerado com sucesso!");
   });
 }

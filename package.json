@@ -8,6 +8,8 @@
     "start": "npx serve site",
     "dev": "npx serve site",
     "generate:pdfs": "node gerar_pdfs.js",
+    "scrape:events": "node scripts/scrape_uergs_events.js",
+    "scrape:weekly": "node scripts/auto_scrape_weekly.js",
     "check": "node --check site/js/app.js && node --check site/js/modules/admin.js && node --check site/js/store.js && node --check site/js/config.js"
   },
   "repository": {
@@ -20,8 +22,8 @@
     "centro-academico",
     "eca2",
     "porto-alegre",
-    "assembleia-geral",
-    "urna-eletronica"
+    "matriz-curricular",
+    "ppc"
   ],
   "author": "Centro Acadêmico E(CA)² UERGS <ca.eca2.uergs@gmail.com>",
   "license": "MIT",

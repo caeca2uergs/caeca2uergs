@@ -21,7 +21,7 @@ export const CONFIG = {
   ALLOWED_EMAIL_DOMAIN: "",
 
   /* ---------- Base Oficial de Alunos Homologados (Eng. de Controle e Automação) ----------
-   * 235 estudantes cadastrados da lista oficial UERGS.
+   * 203 estudantes cadastrados da lista oficial UERGS (domínio estrito @uergs.edu.br).
    * Estudantes fora desta lista podem se registrar comprovando vínculo com o curso.
    */
   STUDENTS_DATABASE: [
@@ -60,18 +60,6 @@ export const CONFIG = {
   {
     "name": "Ana Clara Barbosa de Oliveira",
     "email": "ana-oliveira09@uergs.edu.br"
-  },
-  {
-    "name": "anacarol.sb20",
-    "email": "anacarol.sb20@gmail.com"
-  },
-  {
-    "name": "anamouraooqjf",
-    "email": "anamouraooqjf@gmail.com"
-  },
-  {
-    "name": "Ananda Flores",
-    "email": "ananda_flores@hotmail.com"
   },
   {
     "name": "Ananda Santos Flores Da Silva",
@@ -126,10 +114,6 @@ export const CONFIG = {
     "email": "bianca-brum@uergs.edu.br"
   },
   {
-    "name": "biancardwz",
-    "email": "biancardwz@gmail.com"
-  },
-  {
     "name": "Brenda Mellory Mitto Scorsatto",
     "email": "brenda-scorsatto@uergs.edu.br"
   },
@@ -182,10 +166,6 @@ export const CONFIG = {
     "email": "carlos-silva04@uergs.edu.br"
   },
   {
-    "name": "carlosmeyer066",
-    "email": "carlosmeyer066@gmail.com"
-  },
-  {
     "name": "CESAR LUIZ DE SOUZA CAVICHIOLI",
     "email": "cesar-cavichioli@uergs.edu.br"
   },
@@ -210,18 +190,6 @@ export const CONFIG = {
     "email": "daniela-silva05@uergs.edu.br"
   },
   {
-    "name": "danimombach2611",
-    "email": "danimombach2611@gmail.com"
-  },
-  {
-    "name": "danschaidt",
-    "email": "danschaidt@gmail.com"
-  },
-  {
-    "name": "danterccampos",
-    "email": "danterccampos@gmail.com"
-  },
-  {
     "name": "Davi Silva Brito Junior",
     "email": "davi-junior@uergs.edu.br"
   },
@@ -238,20 +206,12 @@ export const CONFIG = {
     "email": "denzel-silva@uergs.edu.br"
   },
   {
-    "name": "diass.rlls",
-    "email": "diass.rlls@gmail.com"
-  },
-  {
     "name": "Diego Cardenal",
     "email": "diego-cardenal@uergs.edu.br"
   },
   {
     "name": "Diogo Fellipe Cardoso De Souza",
     "email": "diogo-souza@uergs.edu.br"
-  },
-  {
-    "name": "dionatan.cardoso66",
-    "email": "dionatan.cardoso66@gmail.com"
   },
   {
     "name": "DOUGLAS ALVES DA CRUZ",
@@ -278,24 +238,12 @@ export const CONFIG = {
     "email": "eduardo-oliveira03@uergs.edu.br"
   },
   {
-    "name": "eduardopaixaodeolivera",
-    "email": "eduardopaixaodeolivera@gmail.com"
-  },
-  {
-    "name": "educarrp19",
-    "email": "educarrp19@gmail.com"
-  },
-  {
     "name": "Elen Zingler Pinto",
     "email": "elen-pinto@uergs.edu.br"
   },
   {
     "name": "Emilson Luis De Souza Rodrigues",
     "email": "emilson-rodrigues@uergs.edu.br"
-  },
-  {
-    "name": "emilsonr0296",
-    "email": "emilsonr0296@gmail.com"
   },
   {
     "name": "Endrew Alexsander Da Rosa Fontoura",
@@ -308,10 +256,6 @@ export const CONFIG = {
   {
     "name": "Ethan Terracciano Leão",
     "email": "ethan-leao@uergs.edu.br"
-  },
-  {
-    "name": "eugabrielabica",
-    "email": "eugabrielabica@hotmail.com"
   },
   {
     "name": "Everton Gomes de Oliveira",
@@ -394,20 +338,12 @@ export const CONFIG = {
     "email": "gabrielle-machado@uergs.edu.br"
   },
   {
-    "name": "gabrielteixeira2102",
-    "email": "gabrielteixeira2102@gmail.com"
-  },
-  {
     "name": "Giacomo Souza Tavares",
     "email": "giacomo-tavares@uergs.edu.br"
   },
   {
     "name": "Giovanna Dias Duarte",
     "email": "giovanna-duarte@uergs.edu.br"
-  },
-  {
-    "name": "gpaycorich1",
-    "email": "gpaycorich1@gmail.com"
   },
   {
     "name": "GREGORIO VILAS BOAS SANTANA",
@@ -474,10 +410,6 @@ export const CONFIG = {
     "email": "henrique-rosa@uergs.edu.br"
   },
   {
-    "name": "icaroferrvie",
-    "email": "icaroferrvie@gmail.com"
-  },
-  {
     "name": "Igor Schuch Rodrigues",
     "email": "igor-rodrigues02@uergs.edu.br"
   },
@@ -488,10 +420,6 @@ export const CONFIG = {
   {
     "name": "Isabelly Nunes Da Silva",
     "email": "isabelly-silva@uergs.edu.br"
-  },
-  {
-    "name": "israelcunh4",
-    "email": "israelcunh4@gmail.com"
   },
   {
     "name": "Jefferson Augusto D Neves",
@@ -532,10 +460,6 @@ export const CONFIG = {
   {
     "name": "Joelson Machado Ferraz",
     "email": "joelson-ferraz@uergs.edu.br"
-  },
-  {
-    "name": "joice",
-    "email": "joice@solis.com.br"
   },
   {
     "name": "Jonathan J Carneiro Da Silva",
@@ -586,20 +510,8 @@ export const CONFIG = {
     "email": "laryssa-siqueira@uergs.edu.br"
   },
   {
-    "name": "laryssa.siqueira",
-    "email": "laryssa.siqueira@hotmail.com"
-  },
-  {
     "name": "Leandro Castello Eltz",
     "email": "leandro-eltz@uergs.edu.br"
-  },
-  {
-    "name": "leizieleana",
-    "email": "leizieleana@gmail.com"
-  },
-  {
-    "name": "leodfal",
-    "email": "leodfal@gmail.com"
   },
   {
     "name": "Leonardo Bender De Oliveira",
@@ -636,10 +548,6 @@ export const CONFIG = {
   {
     "name": "Luiz Felipe Loureiro",
     "email": "luiz-loureiro@uergs.edu.br"
-  },
-  {
-    "name": "luizfelipepereira009",
-    "email": "luizfelipepereira009@gmail.com"
   },
   {
     "name": "Luzikende Rodrigues Do Carmo",
@@ -686,16 +594,8 @@ export const CONFIG = {
     "email": "matheus-guerra@uergs.edu.br"
   },
   {
-    "name": "matheusguerra182007",
-    "email": "matheusguerra182007@gmail.com"
-  },
-  {
     "name": "MAURICIO MAURER",
     "email": "mauricio-maurer@uergs.edu.br"
-  },
-  {
-    "name": "melimaoliveira",
-    "email": "melimaoliveira@gmail.com"
   },
   {
     "name": "Melquisedeque André Reis",
@@ -720,10 +620,6 @@ export const CONFIG = {
   {
     "name": "Nicolas Betti Andrade",
     "email": "nicolas-andrade@uergs.edu.br"
-  },
-  {
-    "name": "nicolasjacobini",
-    "email": "nicolasjacobini@gmail.com"
   },
   {
     "name": "Nielson Dos Santos Rocha",
@@ -774,16 +670,8 @@ export const CONFIG = {
     "email": "raphael-paixao@uergs.edu.br"
   },
   {
-    "name": "raphapaixao2001",
-    "email": "raphapaixao2001@gmail.com"
-  },
-  {
     "name": "Raul Christoffer Claro Da Costa",
     "email": "raul-costa@uergs.edu.br"
-  },
-  {
-    "name": "Renata Lima",
-    "email": "re_lima@outlook.com"
   },
   {
     "name": "Rhuan Ravier De Souza Andrade",
@@ -838,10 +726,6 @@ export const CONFIG = {
     "email": "sidney-adriano@uergs.edu.br"
   },
   {
-    "name": "silva.eduardo.1408",
-    "email": "silva.eduardo.1408@gmail.com"
-  },
-  {
     "name": "Silvio Rauber Diel",
     "email": "silvio-diel@uergs.edu.br"
   },
@@ -862,16 +746,8 @@ export const CONFIG = {
     "email": "talita-garcia@uergs.edu.br"
   },
   {
-    "name": "talitagarcia79631",
-    "email": "talitagarcia79631@gmail.com"
-  },
-  {
     "name": "Thiago Silveira Soares",
     "email": "thiago-soares@uergs.edu.br"
-  },
-  {
-    "name": "tollerbruno04",
-    "email": "tollerbruno04@gmail.com"
   },
   {
     "name": "Valmir De Oliveira Filho",
@@ -920,10 +796,6 @@ export const CONFIG = {
   {
     "name": "Vitório Provensi Fernandes",
     "email": "vitorio-fernandes@uergs.edu.br"
-  },
-  {
-    "name": "vitorio.pro",
-    "email": "vitorio.pro@gmail.com"
   },
   {
     "name": "Vivian Oliveira Galante",
@@ -977,7 +849,13 @@ export const CONFIG = {
    * têm o Painel ADM liberado e visível.
    */
   APPROVED_ADMIN_EMAILS: [
+    "william-naiff@uergs.edu.br",
     "ca.eca2.uergs@gmail.com",
+  ],
+
+  /* Super Administradores com privilégios irrestritos */
+  SUPER_ADMIN_EMAILS: [
+    "william-naiff@uergs.edu.br",
   ],
 
   /* Helper para verificar se um e-mail é da diretoria pré-configurada */
@@ -985,6 +863,13 @@ export const CONFIG = {
     if (!email) return false;
     const clean = String(email).trim().toLowerCase();
     return this.APPROVED_ADMIN_EMAILS.some(e => e.toLowerCase() === clean);
+  },
+
+  /* Helper para verificar se um e-mail é Super Administrador */
+  isSuperAdmin(email = "") {
+    if (!email) return false;
+    const clean = String(email).trim().toLowerCase();
+    return this.SUPER_ADMIN_EMAILS.some(e => e.toLowerCase() === clean);
   },
 
   /* Helper para buscar aluno homologado pelo e-mail */

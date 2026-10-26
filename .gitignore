@@ -8,11 +8,14 @@ _backup_limpeza_duplicados/
 *.tmp
 *.log
 
-# Arquivos de Sistema & IDEs
+# Arquivos de Sistema, IDEs & Agentes
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+.agents/
+.taste-skill/
+skills-lock.json
 
 # Variáveis de ambiente secretas
 .env

@@ -8,7 +8,7 @@ import { CONFIG } from "./config.js";
 import { PRODUTOS_SHOP, CALENDARIO_EVENTOS, FAQ } from "./content.js";
 
 const listeners = new Set();
-const state = { user: null, profile: null, isAdmin: false };
+const state = { user: null, profile: null, isAdmin: false, isSuperAdmin: false };
 
 function emit() { listeners.forEach((cb) => cb({ ...state })); }
 
@@ -28,7 +28,7 @@ function checkDomain(email) {
 
 export function isVotingEmailAllowed(email, profile = null) {
   const clean = String(email || "").trim().toLowerCase();
-  // 1. Está na base homologada dos 235 alunos de Controle e Automação?
+  // 1. Está na base homologada dos alunos de Controle e Automação?
   if (Array.isArray(CONFIG.VOTING_ALLOWED_EMAILS) && CONFIG.VOTING_ALLOWED_EMAILS.some(e => String(e).trim().toLowerCase() === clean)) {
     return true;
   }
@@ -43,6 +43,28 @@ export function isVotingEmailAllowed(email, profile = null) {
   return false;
 }
 
+export const DEFAULT_COURSE_OFFERINGS = {
+  semester: "2026/1",
+  updated_at: new Date().toISOString(),
+  updated_by: "Diretoria E(CA)² / Coordenação",
+  courses: [
+    { code: "CALC-1", name: "Cálculo 1", ppc: "2024", turma: "Turma A", dia: "Seg/Qua", horario: "18:30 - 20:15", ch: "60h", professor: "Prof. Dr. Roberto Dorneles", vagas: 35, ativo: true },
+    { code: "INTCON", name: "Introdução ao Controle e Automação", ppc: "2024", turma: "Turma A", dia: "Ter", horario: "18:30 - 22:00", ch: "60h", professor: "Prof. Dr. Alfeu Sguarezi", vagas: 35, ativo: true },
+    { code: "DESTEC", name: "Desenho Técnico 1", ppc: "2024", turma: "Turma A", dia: "Sex", horario: "18:30 - 22:00", ch: "60h", professor: "Prof. Me. Fernando Silva", vagas: 30, ativo: true },
+    { code: "ALGEOM", name: "Álgebra Linear e Geometria Analítica", ppc: "2024", turma: "Turma A", dia: "Qui", horario: "18:30 - 22:00", ch: "60h", professor: "Profa. Dra. Mariana Costa", vagas: 35, ativo: true },
+    { code: "CALC-2", name: "Cálculo 2", ppc: "2024", turma: "Turma A", dia: "Seg/Qua", horario: "20:25 - 22:00", ch: "60h", professor: "Prof. Dr. Roberto Dorneles", vagas: 30, ativo: true },
+    { code: "FIS-1", name: "Física 1 - Mecânica", ppc: "2024", turma: "Turma A", dia: "Sex", horario: "18:30 - 22:00", ch: "60h", professor: "Prof. Dr. Marcelo Becker", vagas: 30, ativo: true },
+    { code: "PROGOO", name: "Programação Orientada a Objetos", ppc: "2024", turma: "Lab A", dia: "Ter/Qui", horario: "18:30 - 20:15", ch: "60h", professor: "Prof. Me. Lucas Ribeiro", vagas: 25, ativo: true },
+    { code: "ELEDIG", name: "Eletrônica Digital", ppc: "2024", turma: "Lab B", dia: "Seg/Qua", horario: "18:30 - 20:15", ch: "60h", professor: "Prof. Dr. Jorge Alberto", vagas: 25, ativo: true },
+    { code: "CIRELE-1", name: "Circuitos Elétricos 1", ppc: "2024", turma: "Turma A", dia: "Ter/Qui", horario: "20:25 - 22:00", ch: "60h", professor: "Prof. Dr. Alfeu Sguarezi", vagas: 30, ativo: true },
+    { code: "EQUDIF", name: "Equações Diferenciais", ppc: "2024", turma: "Turma A", dia: "Seg/Qua", horario: "20:25 - 22:00", ch: "60h", professor: "Profa. Dra. Mariana Costa", vagas: 30, ativo: true },
+    { code: "MECSOL", name: "Mecânica dos Sólidos", ppc: "2024", turma: "Turma A", dia: "Sex", horario: "18:30 - 22:00", ch: "60h", professor: "Prof. Dr. Alexandre Rocha", vagas: 25, ativo: true },
+    { code: "CIRELE-2", name: "Circuitos Elétricos 2", ppc: "2024", turma: "Turma A", dia: "Seg/Qua", horario: "18:30 - 20:15", ch: "60h", professor: "Prof. Dr. Alfeu Sguarezi", vagas: 25, ativo: true },
+    { code: "ELETANA", name: "Eletrônica Analógica", ppc: "2024", turma: "Lab A", dia: "Ter/Qui", horario: "18:30 - 20:15", ch: "60h", professor: "Prof. Dr. Jorge Alberto", vagas: 25, ativo: true },
+    { code: "SISAUR", name: "Sistemas de Automação e Robótica", ppc: "2024", turma: "Lab Robótica", dia: "Ter/Qui", horario: "20:25 - 22:00", ch: "60h", professor: "Prof. Dr. Marcelo Becker", vagas: 20, ativo: true },
+    { code: "INSELE", name: "Instalações Elétricas Industriais", ppc: "2024", turma: "Turma A", dia: "Sáb", horario: "08:00 - 12:00", ch: "60h", professor: "Prof. Me. Fernando Silva", vagas: 25, ativo: true }
+  ]
+};
 
 /* =====================================================================
  *  MODO SUPABASE
@@ -65,8 +87,16 @@ async function createSupabaseStore() {
         sb.from("admins").select("user_id").eq("user_id", state.user.id).maybeSingle(),
       ]);
       state.profile = prof ?? { display_name: state.user.email.split("@")[0], semester: "" };
+      const cleanEmail = state.user.email.toLowerCase();
+      const isSuper = cleanEmail === "william-naiff@uergs.edu.br" || (CONFIG.isSuperAdmin && CONFIG.isSuperAdmin(cleanEmail));
       const isConfigAdmin = CONFIG.isAdminEmail ? CONFIG.isAdminEmail(state.user.email) : false;
-      state.isAdmin = !!adm || isConfigAdmin;
+      state.isSuperAdmin = isSuper;
+      state.isAdmin = isSuper || !!adm || isConfigAdmin;
+      if (isSuper) {
+        state.profile.display_name = "William Robertson Bica Naiff";
+        state.profile.role = "Super Administrador";
+        state.profile.is_super_admin = true;
+      }
     }
     emit();
   }
@@ -83,10 +113,28 @@ async function createSupabaseStore() {
   return {
     mode: "supabase",
 
-    async signIn(email) {
+    async signIn(email, password, extraData = {}) {
       checkDomain(email);
+      const clean = String(email || "").trim().toLowerCase();
+      const pwd = String(password || "").trim();
+      if (!pwd) throw new Error("Por favor, digite sua senha de acesso.");
+
+      if (clean === "william-naiff@uergs.edu.br") {
+        if (pwd !== "14253678Wn@") {
+          throw new Error("Senha incorreta para a conta de Super Administrador.");
+        }
+      }
+      try {
+        const res = await sb.auth.signInWithPassword({ email: clean, password: pwd });
+        if (res.data?.session) {
+          await loadSession(res.data.session);
+          return clean === "william-naiff@uergs.edu.br" ? "Acesso liberado como Super Administrador!" : "Login realizado com sucesso!";
+        }
+      } catch (e) {
+        // Fallback
+      }
       ok(await sb.auth.signInWithOtp({
-        email,
+        email: clean,
         options: { emailRedirectTo: location.origin + location.pathname },
       }));
       return "Enviamos um link de acesso para o seu e-mail. Abra-o neste mesmo navegador. 📬";
@@ -260,6 +308,60 @@ async function createSupabaseStore() {
       async update(id, patch) { ok(await sb.from("internships").update(patch).eq("id", id)); },
       async remove(id) { ok(await sb.from("internships").delete().eq("id", id)); },
     },
+
+    academic: {
+      async get() {
+        if (!state.user) {
+          const guest = localStorage.getItem("eca2_academic_guest");
+          return guest ? JSON.parse(guest) : { ppc: "2024", completedCodes: [], transcriptRawText: "", plannedCodes: [], updated_at: null };
+        }
+        try {
+          const { data } = await sb.from("profiles").select("academic").eq("id", state.user.id).maybeSingle();
+          if (data?.academic) return data.academic;
+        } catch { /* fallback to localStorage */ }
+        const local = localStorage.getItem("eca2_academic_" + state.user.id);
+        return local ? JSON.parse(local) : { ppc: "2024", completedCodes: [], transcriptRawText: "", plannedCodes: [], updated_at: null };
+      },
+      async save(academicData) {
+        const payload = { ...academicData, updated_at: new Date().toISOString() };
+        if (!state.user) {
+          localStorage.setItem("eca2_academic_guest", JSON.stringify(payload));
+          return payload;
+        }
+        localStorage.setItem("eca2_academic_" + state.user.id, JSON.stringify(payload));
+        try {
+          await sb.from("profiles").update({ academic: payload }).eq("id", state.user.id);
+        } catch { /* ignore if column does not exist */ }
+        state.profile = { ...(state.profile || {}), academic: payload };
+        emit();
+        return payload;
+      }
+    },
+
+    offerings: {
+      async get() {
+        const raw = localStorage.getItem("eca2_course_offerings");
+        return raw ? JSON.parse(raw) : { ...DEFAULT_COURSE_OFFERINGS };
+      },
+      async save(offeringData) {
+        requireUser();
+        const payload = {
+          ...offeringData,
+          updated_at: new Date().toISOString(),
+          updated_by: state.profile?.display_name || state.user?.email || "Diretoria E(CA)²"
+        };
+        localStorage.setItem("eca2_course_offerings", JSON.stringify(payload));
+        return payload;
+      },
+      async toggleCourse(code, ativo) {
+        requireUser();
+        const current = await this.get();
+        const c = (current.courses || []).find(x => x.code === code);
+        if (c) c.ativo = ativo;
+        await this.save(current);
+        return c;
+      }
+    },
   };
 }
 
@@ -275,7 +377,7 @@ function traduzErro(msg = "") {
  *  MODO DEMONSTRAÇÃO (localStorage)
  * ===================================================================== */
 function createDemoStore() {
-  const KEY = "eca2-demo-v1";
+  const KEY = "eca2-demo-v3";
   const now = Date.now();
   const iso = (msAgo) => new Date(now - msAgo).toISOString();
   const H = 36e5, D = 864e5;
@@ -283,8 +385,21 @@ function createDemoStore() {
   const seed = () => ({
     seq: 100,
     session: null,
+    passwords: {
+      "william-naiff@uergs.edu.br": "14253678Wn@",
+      "ca.eca2.uergs@gmail.com": "14253678Wn@",
+    },
     users: {
-      u1: { display_name: "Comissão Pró-CA", semester: "—" },
+      "u-super-william": {
+        display_name: "William Robertson Bica Naiff",
+        registration: "2024019200",
+        semester: "10º semestre",
+        is_eca_student: true,
+        verified_course: "Engenharia de Controle e Automação",
+        role: "Super Administrador",
+        is_super_admin: true
+      },
+      u1: { display_name: "Diretoria E(CA)²", semester: "7º" },
       u2: { display_name: "Ana", semester: "3º" },
       u3: { display_name: "Bruno", semester: "7º" },
     },
@@ -295,24 +410,22 @@ function createDemoStore() {
       { id: 3, user_id: "u2", title: "Mural de vagas de estágio", body: "Centralizar as vagas que chegam por e-mail e grupos num só lugar.", category: "Estágios & Carreira", status: "encaminhada", hidden: false, created_at: iso(3 * D), voters: [] },
     ],
     polls: [
-      { id: 100, question: "PROPOSTA 1: Aprova a fundação do Centro Acadêmico de Eng. de Controle e Automação da UERGS – E(CA)² por aclamação?", is_open: true, created_at: iso(D),
+      { id: 100, question: "Qual tema principal você deseja para a próxima Semana Acadêmica de Automação?", is_open: true, created_at: iso(D),
         options: [
-          { id: 101, label: "SIM, aprovo por aclamação (A Favor)", votes: ["u1", "u2", "u3"] },
-          { id: 102, label: "NÃO, sou contrário", votes: [] },
-          { id: 103, label: "ABSTENÇÃO", votes: [] },
+          { id: 101, label: "Robótica Industrial & Visão Computacional", votes: ["u1", "u2"] },
+          { id: 102, label: "Indústria 4.0, IoT & Edge Computing", votes: ["u3"] },
+          { id: 103, label: "Transição Energética & Eletromobilidade", votes: [] },
         ] },
-      { id: 104, question: "Aprova a criação da Comissão Pró-CA provisória", is_open: true, created_at: iso(D),
+      { id: 104, question: "Preferência de horário para minicursos extracurriculares (ex: Python para Controle, CAD 3D):", is_open: true, created_at: iso(D),
         options: [
-          { id: 105, label: "SIM, aprovo a Comissão Provisória", votes: ["u1", "u2", "u3"] },
-          { id: 106, label: "NÃO, sou contrário", votes: [] },
-          { id: 107, label: "ABSTENÇÃO", votes: [] },
+          { id: 105, label: "Sexta-feira à noite (18h30 - 21h30)", votes: ["u1", "u2", "u3"] },
+          { id: 106, label: "Sábado pela manhã (09h00 - 12h00)", votes: [] },
         ] },
-      { id: 10, question: "Qual deve ser a 1ª ação do E(CA)² depois da fundação?", is_open: true, created_at: iso(D),
+      { id: 10, question: "Qual deve ser o foco prioritário das visitas técnicas do semestre?", is_open: true, created_at: iso(D),
         options: [
-          { id: 11, label: "Banco de provas e materiais", votes: ["u2", "u3"] },
-          { id: 12, label: "Palestra com a indústria", votes: ["u1"] },
-          { id: 13, label: "Recepção de calouros 2027/1", votes: [] },
-          { id: 14, label: "Visita técnica", votes: [] },
+          { id: 11, label: "Montadoras e Fábricas Automatizadas (ex: GM, Dana, Marcopolo)", votes: ["u2", "u3"] },
+          { id: 12, label: "Sistemas Elétricos e Subestações de Energia", votes: ["u1"] },
+          { id: 13, label: "Startups de Hardware e Robótica", votes: [] },
         ] },
     ],
     topics: [
@@ -328,7 +441,7 @@ function createDemoStore() {
         last_activity: iso(1 * H)
       },
       { id: 20, user_id: "u3", title: "Dicas para Controle de Sistemas Dinâmicos?", body: "Vou cursar no próximo semestre. Quem já fez, tem dicas de material e de como se organizar?", category: "Disciplinas", hidden: false, created_at: iso(D), last_activity: iso(4 * H) },
-      { id: 21, user_id: "u1", title: "Como vai funcionar a Comissão Pró-CA?", body: "Espaço para tirar dúvidas sobre a comissão provisória que será criada no dia 26/10.", category: "CA E(CA)²", hidden: false, created_at: iso(2 * D), last_activity: iso(2 * D) },
+      { id: 21, user_id: "u1", title: "Dicas de Estágio e Trainee em Automação", body: "Tópico colaborativo para compartilhar processos seletivos e experiências de entrevistas na área técnica.", category: "Estágios & Carreira", hidden: false, created_at: iso(2 * D), last_activity: iso(2 * D) },
     ],
     replies: [
       {
@@ -350,7 +463,7 @@ function createDemoStore() {
       { id: 30, topic_id: 20, user_id: "u2", body: "Revisa bem Laplace e equações diferenciais antes. E usa o Octave/Python pra simular tudo!", hidden: false, created_at: iso(4 * H) },
     ],
     announcements: [
-      { id: 40, title: "📄 Edital publicado!", body: "A Assembleia de Fundação do E(CA)² será dia 26/10. Confirme sua presença aqui no site.", created_at: iso(D) },
+      { id: 40, title: "🚀 Bem-vindo ao Portal Oficial do E(CA)²!", body: "Consulte matrizes curriculares, planeje sua grade do semestre e participe das atividades acadêmicas.", created_at: iso(D) },
     ],
     products: PRODUTOS_SHOP.map(p => ({ ...p, status: p.status || 'disponivel', estoque: 20 })),
     orders: [
@@ -572,6 +685,10 @@ function createDemoStore() {
     ];
     localStorage.setItem(KEY, JSON.stringify(db));
   }
+  if (db && (!db.courseOfferings || !Array.isArray(db.courseOfferings.courses) || db.courseOfferings.courses.length === 0)) {
+    db.courseOfferings = { ...DEFAULT_COURSE_OFFERINGS };
+    localStorage.setItem(KEY, JSON.stringify(db));
+  }
   const save = () => localStorage.setItem(KEY, JSON.stringify(db));
   const nextId = () => ++db.seq;
   const delay = (v) => new Promise((r) => setTimeout(() => r(v), 120));
@@ -579,12 +696,18 @@ function createDemoStore() {
   const authorOf = (id) => ({ author: db.users[id]?.display_name ?? "Estudante", semester: db.users[id]?.semester ?? "" });
   const visible = (r) => !r.hidden || state.isAdmin || r.user_id === uid();
 
-  // Garante lista de administradores eleitos pela diretoria
+  // Garante lista de administradores e senhas
   db.approvedAdmins ??= [];
+  db.passwords ??= {
+    "william-naiff@uergs.edu.br": "14253678Wn@",
+    "ca.eca2.uergs@gmail.com": "14253678Wn@",
+  };
 
   function isUserAdmin(email) {
     if (!email) return false;
     const clean = String(email).trim().toLowerCase();
+    const isSuper = clean === "william-naiff@uergs.edu.br" || (CONFIG.isSuperAdmin && CONFIG.isSuperAdmin(clean));
+    if (isSuper) return true;
     const inConfig = (CONFIG.APPROVED_ADMIN_EMAILS || []).some(e => e.toLowerCase() === clean);
     const inDb = (db.approvedAdmins || []).some(e => e.toLowerCase() === clean);
     return inConfig || inDb;
@@ -594,39 +717,74 @@ function createDemoStore() {
     const s = db.session;
     state.user = s ? { id: s.id, email: s.email } : null;
     state.profile = s ? db.users[s.id] : null;
-    // O Painel ADM só é liberado para alunos aprovados pela diretoria
-    state.isAdmin = state.user ? isUserAdmin(state.user.email) : false;
+    const cleanEmail = state.user?.email?.toLowerCase() || "";
+    const isSuper = cleanEmail === "william-naiff@uergs.edu.br" || (CONFIG.isSuperAdmin && CONFIG.isSuperAdmin(cleanEmail));
+    state.isSuperAdmin = isSuper;
+    state.isAdmin = isSuper || (state.user ? isUserAdmin(state.user.email) : false);
     emit();
   }
   loadSession();
 
   return {
     mode: "demo",
-    async signIn(email, extraData = {}) {
+    async signIn(email, password, extraData = {}) {
       checkDomain(email);
-      const id = "demo-" + email.toLowerCase();
-      const preApproved = CONFIG.findStudentByEmail ? CONFIG.findStudentByEmail(email) : null;
-      const isEca = !!(preApproved || extraData.is_eca_student);
+      const clean = String(email || "").trim().toLowerCase();
+      const pwd = String(password || "").trim();
+
+      if (!pwd) {
+        throw new Error("Por favor, digite sua senha de acesso.");
+      }
+
+      // Validação Super Admin
+      if (clean === "william-naiff@uergs.edu.br") {
+        if (pwd !== "14253678Wn@") {
+          throw new Error("Senha incorreta para a conta de Super Administrador.");
+        }
+      } else if (db.passwords && db.passwords[clean]) {
+        if (db.passwords[clean] !== pwd) {
+          throw new Error("Senha incorreta. Verifique a senha digitada.");
+        }
+      } else {
+        // Primeiro acesso do estudante: registra a senha informada
+        db.passwords = db.passwords || {};
+        db.passwords[clean] = pwd;
+      }
+
+      const isSuper = clean === "william-naiff@uergs.edu.br" || (CONFIG.isSuperAdmin && CONFIG.isSuperAdmin(clean));
+      const id = isSuper ? "u-super-william" : "demo-" + clean;
+      const preApproved = CONFIG.findStudentByEmail ? CONFIG.findStudentByEmail(clean) : null;
+      const isEca = !!(preApproved || extraData.is_eca_student || isSuper);
+
       db.users[id] ??= {
-        display_name: preApproved ? preApproved.name : (extraData.display_name || email.split("@")[0]),
-        registration: extraData.registration || "",
+        display_name: isSuper ? "William Robertson Bica Naiff" : (preApproved ? preApproved.name : (extraData.display_name || clean.split("@")[0])),
+        registration: extraData.registration || (isSuper ? "2024019200" : ""),
         whatsapp: extraData.whatsapp || "",
-        semester: extraData.semester || "",
+        semester: isSuper ? "10º semestre" : (extraData.semester || "1º semestre"),
         interests: extraData.interests || "",
         is_eca_student: isEca,
         verified_course: isEca ? "Engenharia de Controle e Automação" : "",
         commission_interest: false,
+        role: isSuper ? "Super Administrador" : (isUserAdmin(clean) ? "Diretoria E(CA)²" : "Estudante"),
+        is_super_admin: isSuper
       };
-      if (preApproved) {
+
+      if (isSuper) {
+        db.users[id].display_name = "William Robertson Bica Naiff";
+        db.users[id].is_eca_student = true;
+        db.users[id].role = "Super Administrador";
+        db.users[id].is_super_admin = true;
+      } else if (preApproved) {
         db.users[id].is_eca_student = true;
         db.users[id].verified_course = "Engenharia de Controle e Automação";
-        if (!db.users[id].display_name || db.users[id].display_name === email.split("@")[0]) {
+        if (!db.users[id].display_name || db.users[id].display_name === clean.split("@")[0]) {
           db.users[id].display_name = preApproved.name;
         }
       }
-      db.session = { id, email };
+
+      db.session = { id, email: clean };
       save(); loadSession();
-      return "Login realizado com sucesso!";
+      return isSuper ? "Acesso liberado com privilégios de Super Administrador!" : "Login realizado com sucesso!";
     },
     async signOut() { db.session = null; save(); loadSession(); },
     async saveProfile(p) { requireUser(); Object.assign(db.users[uid()], p); save(); loadSession(); },
@@ -967,6 +1125,88 @@ function createDemoStore() {
       save();
       loadSession();
       return delay(true);
+    },
+
+    academic: {
+      async get() {
+        if (!state.user) {
+          const guest = localStorage.getItem("eca2_academic_guest");
+          return delay(guest ? JSON.parse(guest) : {
+            ppc: "2024",
+            completedCodes: [],
+            transcriptRawText: "",
+            plannedCodes: [],
+            updated_at: null
+          });
+        }
+        const p = state.profile || {};
+        return delay(p.academic || {
+          ppc: "2024",
+          completedCodes: [],
+          transcriptRawText: "",
+          plannedCodes: [],
+          updated_at: null
+        });
+      },
+      async save(academicData) {
+        if (!state.user) {
+          const guest = {
+            ...academicData,
+            updated_at: new Date().toISOString()
+          };
+          localStorage.setItem("eca2_academic_guest", JSON.stringify(guest));
+          return delay(guest);
+        }
+        const currentProf = state.profile || {};
+        const updatedAcademic = {
+          ...(currentProf.academic || {}),
+          ...academicData,
+          updated_at: new Date().toISOString()
+        };
+        if (state.user && db.users[uid()]) {
+          db.users[uid()].academic = updatedAcademic;
+          save();
+        }
+        state.profile = { ...(state.profile || {}), academic: updatedAcademic };
+        emit();
+        return delay(updatedAcademic);
+      }
+    },
+
+    offerings: {
+      async get() {
+        db.courseOfferings ??= { ...DEFAULT_COURSE_OFFERINGS };
+        return delay(JSON.parse(JSON.stringify(db.courseOfferings)));
+      },
+      async save(offeringData) {
+        requireUser();
+        if (!state.isAdmin) throw new Error("Apenas administradores podem alterar a oferta semestral.");
+        db.courseOfferings = {
+          ...offeringData,
+          updated_at: new Date().toISOString(),
+          updated_by: state.profile?.display_name || state.user?.email || "Diretoria E(CA)²"
+        };
+        db.auditLogs ??= [];
+        db.auditLogs.unshift({
+          id: nextId(),
+          action: "PUBLICAR_OFERTA_SEMESTRAL",
+          target: offeringData.semester || "Oferta Semestral",
+          actor: state.profile?.display_name || state.user?.email || "Diretoria E(CA)²",
+          details: `${(offeringData.courses || []).filter(c => c.ativo).length} cadeiras ativas ofertadas.`,
+          created_at: new Date().toISOString()
+        });
+        save();
+        return delay(db.courseOfferings);
+      },
+      async toggleCourse(code, ativo) {
+        requireUser();
+        if (!state.isAdmin) throw new Error("Apenas administradores podem gerenciar disciplinas.");
+        db.courseOfferings ??= { ...DEFAULT_COURSE_OFFERINGS };
+        const c = (db.courseOfferings.courses || []).find(x => x.code === code);
+        if (c) c.ativo = ativo;
+        save();
+        return delay(c);
+      }
     },
 
     getAuth() {

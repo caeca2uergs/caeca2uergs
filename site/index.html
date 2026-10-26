@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>E(CA)² · Centro Acadêmico de Eng. de Controle e Automação – UERGS</title>
-  <meta name="description" content="Portal oficial do Centro Acadêmico de Engenharia de Controle e Automação da UERGS Porto Alegre (E(CA)²). Participe da assembleia, vote na cédula oficial e conheça o curso!">
+  <meta name="description" content="Portal oficial do Centro Acadêmico de Engenharia de Controle e Automação da UERGS Porto Alegre (E(CA)²). Matrizes PPCs, simulador de matrícula, calendário acadêmico e comunidade discente.">
   <meta name="theme-color" content="#0284c7">
   
   <!-- Open Graph / Compartilhamento no WhatsApp, Instagram & Redes Sociais -->
@@ -12,14 +12,14 @@
   <meta property="og:locale" content="pt_BR">
   <meta property="og:site_name" content="E(CA)² · Centro Acadêmico UERGS">
   <meta property="og:title" content="E(CA)² · Centro Acadêmico de Eng. de Controle e Automação – UERGS">
-  <meta property="og:description" content="Portal oficial da Assembleia de Fundação do E(CA)². Cédula de votação, quórum do salchipão, matrizes PPC 2019/2024 e comunidade discente.">
+  <meta property="og:description" content="Portal oficial do Centro Acadêmico de Engenharia de Controle e Automação – UERGS. Matrizes PPCs, simulador de matrícula e comunidade discente.">
   <meta property="og:image" content="img/hero_estudantes.jpg">
   <meta property="og:image:alt" content="Estudantes de Engenharia de Controle e Automação da UERGS">
   
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="E(CA)² · Centro Acadêmico de Eng. de Controle e Automação – UERGS">
-  <meta name="twitter:description" content="Portal oficial da Assembleia de Fundação do E(CA)². Cédula de votação, quórum do salchipão, matrizes PPC e comunidade discente.">
+  <meta name="twitter:description" content="Portal oficial do Centro Acadêmico de Engenharia de Controle e Automação – UERGS. Matrizes PPCs, simulador de matrícula e comunidade discente.">
   <meta name="twitter:image" content="img/hero_estudantes.jpg">
   
   <!-- Favicon Oficial E(CA)² (Opção 2: Microchip de Silício & Automação) -->
@@ -34,8 +34,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/styles.css?v=20261009_diag3">
-  <link rel="stylesheet" href="css/admin.css?v=20261011_admin1">
+  <link rel="stylesheet" href="css/styles.css?v=20261025_refined_clean_v5">
+  <link rel="stylesheet" href="css/admin.css?v=20261025_admin2">
 </head>
 <body>
 
@@ -48,7 +48,7 @@
 
   <!-- Barra de Notificação Demo (Modo Demonstração) -->
   <aside id="demo-banner" class="demo-banner" style="display: none;" aria-label="Aviso de Modo Demonstração">
-    ⚡ <strong>Modo Demonstração ativo:</strong> dados armazenados localmente no seu navegador.
+    <strong>Modo Demonstração ativo:</strong> dados armazenados localmente no seu navegador.
     <button type="button" id="btn-reset-demo" title="Redefinir dados">Restaurar dados de teste</button>
   </aside>
 
@@ -65,45 +65,41 @@
         </a>
 
         <button type="button" class="btn btn-ghost btn-sm nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Abrir menu de navegação">
-          ☰
+          Menu
         </button>
 
         <ul class="nav-links" id="nav-links">
           <li><a href="#inicio" data-nav="inicio">Início</a></li>
           <li class="nav-dropdown">
             <button type="button" class="nav-dropdown-toggle" id="btn-curso-toggle" aria-expanded="false" aria-haspopup="true" style="color: var(--cyan); font-weight: 500;">
-              O Curso 🎓 <span class="arrow" aria-hidden="true">▾</span>
+              O Curso <span class="arrow" aria-hidden="true">▾</span>
             </button>
             <ul class="nav-dropdown-menu">
-              <li><a href="#curso" data-nav="curso-perfil">🎓 Sobre o Curso</a></li>
-              <li><a href="#curso/estagios" data-nav="curso-estagios">💼 Estágios, Perfil & Mercado CREA</a></li>
-              <li><a href="#curso/arvore" data-nav="curso-arvore">🗺️ Matriz & Árvores PPCs</a></li>
-              <li><a href="#curso/beneficios" data-nav="curso-beneficios">🎁 Benefícios & Monitoria UERGS</a></li>
-              <li><a href="#curso/labs" data-nav="curso-labs">🔬 Laboratórios & Bancadas</a></li>
+              <li><a href="#curso" data-nav="curso-perfil">Sobre o Curso</a></li>
+              <li><a href="#curso/estagios" data-nav="curso-estagios">Estágios & Mercado CREA</a></li>
+              <li><a href="#curso/arvore" data-nav="curso-arvore">Matriz & Árvores PPC</a></li>
+              <li><a href="#curso/beneficios" data-nav="curso-beneficios">Benefícios & Monitoria UERGS</a></li>
+              <li><a href="#curso/labs" data-nav="curso-labs">Laboratórios & Bancadas</a></li>
             </ul>
           </li>
-          <li><a href="#eventos" data-nav="eventos">Calendário 2026 📅</a></li>
-          <li><a href="#shop" data-nav="shop">Lojinha ☕</a></li>
+          <li><a href="#eventos" data-nav="eventos">Calendário 2026</a></li>
+          <li><a href="#shop" data-nav="shop">Lojinha</a></li>
           <li class="nav-dropdown">
             <button type="button" class="nav-dropdown-toggle" id="btn-comunidade-toggle" aria-expanded="false" aria-haspopup="true">
               Comunidade <span class="arrow" aria-hidden="true">▾</span>
             </button>
             <ul class="nav-dropdown-menu">
-              <li><a href="#mural" data-nav="mural">💡 Mural de Ideias & Estágios</a></li>
-              <li><a href="#forum" data-nav="forum">💬 Fórum dos Estudantes</a></li>
-              <li><a href="#registro" data-nav="registro">📝 Cadastro de Estudante</a></li>
-              <li><a href="#faq" data-nav="faq">❓ Guia do Estudante & FAQ</a></li>
+              <li><a href="#mural" data-nav="mural">Mural & Oportunidades</a></li>
+              <li><a href="#forum" data-nav="forum">Fórum dos Estudantes</a></li>
+              <li><a href="#registro" data-nav="registro">Cadastro de Estudante</a></li>
+              <li><a href="#faq" data-nav="faq">Guia do Estudante & FAQ</a></li>
             </ul>
           </li>
-          <li class="nav-dropdown">
-            <button type="button" class="nav-dropdown-toggle nav-highlight-cyan" id="btn-fundacao-toggle" aria-expanded="false" aria-haspopup="true">
-              Fundação 26/10 🌭 <span class="arrow" aria-hidden="true">▾</span>
-            </button>
-            <ul class="nav-dropdown-menu">
-              <li><a href="#fundacao" data-nav="fundacao">🌭 Salchipão (18h30-19h15) & Assinaturas</a></li>
-              <li><a href="#eleicao" data-nav="eleicao">🗳️ Cédula Oficial & Urna Eletrônica</a></li>
-              <li><a href="#documentos" data-nav="documentos">📜 Documentos Oficiais & Estatutos</a></li>
-            </ul>
+          <li>
+            <a href="#documentos" data-nav="documentos">Documentos Oficiais</a>
+          </li>
+          <li>
+            <a href="#perfil" data-nav="perfil" style="color: var(--cyan); font-weight: 600;">Meu Perfil & Matrícula</a>
           </li>
           <li id="auth-nav-slot">
             <button type="button" class="btn btn-primary btn-sm" id="btn-open-login">Entrar</button>
@@ -134,7 +130,7 @@
           <em>"Sem feedback não há controle."</em>
         </p>
         <p class="small muted" style="margin: 0; font-size: .8rem; opacity: .85;">
-          📍 Rua Washington Luiz, 675, Centro Histórico, Porto Alegre – RS
+          Rua Washington Luiz, 675, Centro Histórico, Porto Alegre – RS
         </p>
       </div>
       <div>
@@ -147,7 +143,7 @@
           </p>
           <div class="row" style="justify-content: flex-end; gap: .5rem; align-items: center;">
             <button type="button" class="btn btn-ghost btn-sm" id="btn-open-lgpd" style="padding: .2rem .65rem; font-size: .75rem; border-color: var(--border); display: inline-flex; align-items: center; gap: .3rem;">
-              🛡️ Privacidade & LGPD (Lei 13.709/18)
+              Privacidade & LGPD (Lei 13.709/18)
             </button>
           </div>
         </div>
@@ -160,10 +156,10 @@
     <div class="dialog-body">
       <div class="dialog-head">
         <h2 id="dlg-auth-title">Acesso & Registro de Estudante</h2>
-        <button type="button" class="close-x" id="btn-close-auth" aria-label="Fechar modal">✕</button>
+        <button type="button" class="close-x" id="btn-close-auth" aria-label="Fechar modal">&times;</button>
       </div>
       <p class="small muted" id="auth-desc">
-        Identifique-se com seu e-mail institucional (@uergs.edu.br) ou pessoal para votar e participar da comunidade.
+        Identifique-se com seu e-mail (@uergs.edu.br) e senha para acessar seu perfil discente, histórico, simulador de matrícula e governança.
       </p>
 
       <form id="form-auth" class="form" novalidate>
@@ -175,7 +171,17 @@
           <span class="err" id="auth-email-err">Por favor, insira um e-mail válido.</span>
         </div>
 
-        <!-- Campos adicionais caso o e-mail não esteja na lista inicial de 235 alunos -->
+        <div class="field" style="margin-top: .75rem;">
+          <div class="row" style="justify-content: space-between; align-items: baseline; margin-bottom: .25rem;">
+            <label for="auth-password" style="margin-bottom: 0;">Senha de Acesso *</label>
+            <button type="button" class="small text-cyan" id="btn-toggle-auth-pwd" style="background: none; border: none; cursor: pointer; padding: 0; font-size: .78rem; text-decoration: underline;">Mostrar Senha</button>
+          </div>
+          <input type="password" id="auth-password" name="password" placeholder="Digite sua senha de acesso" required autocomplete="current-password">
+          <span class="hint" id="auth-password-hint">O Super Admin deve usar a senha credenciada. Para novos estudantes, a senha digitada será salva no cadastro.</span>
+          <span class="err" id="auth-password-err">A senha deve ter no mínimo 6 caracteres.</span>
+        </div>
+
+        <!-- Campos adicionais caso o e-mail não esteja na lista inicial de estudantes homologados -->
         <div id="auth-extra-fields" style="display: none; border-top: 1px solid var(--border); padding-top: .85rem; margin-top: .5rem;">
           <div class="field">
             <label for="auth-name">Nome Completo *</label>
@@ -213,7 +219,7 @@
           </div>
         <div style="margin: .75rem 0 .5rem; padding: .65rem; background: hsl(220 40% 12% / .6); border-radius: var(--radius-sm); border: 1px solid var(--border);">
           <p class="small muted" style="margin: 0; font-size: .75rem; line-height: 1.45;">
-            🔒 <strong>Conformidade LGPD:</strong> Seus dados são utilizados exclusivamente para representação estudantil e quórum eleitoral da UERGS. Nenhum dado é compartilhado com terceiros.
+            <strong>Conformidade LGPD:</strong> Seus dados são utilizados exclusivamente para representação estudantil e quórum eleitoral da UERGS. Nenhum dado é compartilhado com terceiros.
           </p>
         </div>
 
@@ -230,7 +236,7 @@
     <div class="dialog-body">
       <div class="dialog-head">
         <h2 id="dlg-profile-title">Meu Perfil</h2>
-        <button type="button" class="close-x" id="btn-close-profile" aria-label="Fechar modal">✕</button>
+        <button type="button" class="close-x" id="btn-close-profile" aria-label="Fechar modal">&times;</button>
       </div>
       <form id="form-profile" class="form">
         <div class="field">
@@ -252,7 +258,7 @@
               <p class="small muted" style="margin: .25rem 0 0; font-size: .8rem;">Acesso de gestão do Centro Acadêmico.</p>
             </div>
             <button type="button" class="btn btn-primary btn-sm" id="btn-profile-open-admin" style="background: var(--amber); color: #000; border-color: var(--amber); font-weight: 600;">
-              ⚙️ Acessar Painel ADM
+              Acessar Painel ADM
             </button>
           </div>
         </div>
@@ -267,12 +273,12 @@
         <div>
           <div class="row" style="gap: .5rem; align-items: center;">
             <span class="badge cyan" id="studio-tag-badge">Lojinha E(CA)²</span>
-            <span class="badge amber" id="studio-mode-badge" style="display: none;">Personalização Ativa ✨</span>
+            <span class="badge amber" id="studio-mode-badge" style="display: none;">Personalização Ativa</span>
           </div>
           <h2 id="dlg-shop-title" style="margin-top: .35rem;">Estúdio de Compra &amp; Personalização E(CA)²</h2>
           <span class="small muted" id="dlg-shop-subtitle">Simule a gravação em tempo real e personalize seu material da Engenharia UERGS</span>
         </div>
-        <button type="button" class="close-x" id="btn-close-shop-order" aria-label="Fechar">✕</button>
+        <button type="button" class="close-x" id="btn-close-shop-order" aria-label="Fechar">&times;</button>
       </div>
 
       <div class="shop-studio-layout">
@@ -283,7 +289,7 @@
           <!-- Box de Transparência e Qualidade da Bancada -->
           <div class="card studio-specs-card">
             <div class="small" style="font-weight: 600; color: var(--amber); margin-bottom: .35rem;">
-              🔬 Padrão de Engenharia &amp; Acabamento
+              Padrão de Engenharia &amp; Acabamento
             </div>
             <p class="small muted" style="margin: 0; line-height: 1.5;" id="studio-specs-text">
               Material selecionado para alta durabilidade em bancadas de automação, laboratórios e uso acadêmico contínuo. Gravação indelével que não desbota.
@@ -304,11 +310,11 @@
               <label class="studio-label">Escolha o Tipo de Edição</label>
               <div class="studio-toggle-row">
                 <button type="button" class="studio-toggle-btn active" id="btn-mode-standard" data-mode="standard">
-                  🛡️ Padrão Oficial
+                  Padrão Oficial
                   <span class="small muted" style="display: block; font-size: .75rem;">Sem gravação extra</span>
                 </button>
                 <button type="button" class="studio-toggle-btn" id="btn-mode-custom" data-mode="custom">
-                  ✨ Personalizado a Laser
+                  Personalizado a Laser
                   <span class="small" id="studio-extra-badge" style="display: block; font-size: .75rem; color: var(--cyan);">+ R$ 5,00</span>
                 </button>
               </div>
@@ -356,7 +362,7 @@
             <!-- Dados do Estudante Comprador -->
             <div class="studio-student-card">
               <div class="small" style="font-weight: 600; color: var(--cyan); margin-bottom: .6rem;">
-                👤 Dados do Solicitante UERGS
+                Dados do Solicitante UERGS
               </div>
               <div class="field" style="margin-bottom: .75rem;">
                 <label for="order-nome">Nome Completo *</label>
@@ -381,7 +387,7 @@
             <!-- Box do Pagamento PIX Oficial -->
             <div class="field studio-pix-box">
               <div class="row" style="justify-content: space-between; align-items: center; margin-bottom: .4rem;">
-                <span class="small" style="color: var(--amber); font-weight: 600;">💳 Chave PIX Oficial do E(CA)²:</span>
+                <span class="small" style="color: var(--amber); font-weight: 600;">Chave PIX Oficial do E(CA)²:</span>
                 <span class="badge green" style="font-size: .68rem;">Lote com Garantia</span>
               </div>
               <div class="row" style="justify-content: space-between; align-items: center; gap: .5rem;">
@@ -396,10 +402,10 @@
             <!-- Ações Finais: WhatsApp Direto & Sistema -->
             <div class="studio-actions-grid">
               <button type="submit" class="btn btn-primary" id="btn-submit-order-whatsapp" style="flex: 1;">
-                📲 Confirmar &amp; Enviar no WhatsApp do CA
+                Confirmar &amp; Enviar via WhatsApp
               </button>
               <button type="button" class="btn btn-ghost" id="btn-submit-order-system" style="font-size: .85rem;">
-                💾 Apenas Reservar no Sistema
+                Reservar no Sistema
               </button>
             </div>
           </form>
@@ -417,8 +423,8 @@
           <span class="small muted" id="dlg-pdf-subtitle">Visualização rápida de documento oficial</span>
         </div>
         <div class="row" style="gap: .5rem;">
-          <a id="dlg-pdf-download-btn" href="#" download class="btn btn-primary btn-sm" target="_blank">⬇ Baixar Arquivo</a>
-          <button type="button" class="close-x" id="btn-close-pdf-viewer" aria-label="Fechar">✕</button>
+          <a id="dlg-pdf-download-btn" href="#" download class="btn btn-primary btn-sm" target="_blank">Baixar Arquivo</a>
+          <button type="button" class="close-x" id="btn-close-pdf-viewer" aria-label="Fechar">&times;</button>
         </div>
       </div>
       <div style="flex: 1; border-radius: var(--radius-sm); overflow: hidden; background: #111; border: 1px solid var(--border);">
@@ -439,14 +445,14 @@
           <h2 id="dlg-lgpd-title" style="font-size: 1.35rem; margin: 0;">Política de Privacidade & Proteção de Dados Pessoais</h2>
           <span class="small muted">Centro Acadêmico de Eng. de Controle e Automação (E(CA)²) · UERGS</span>
         </div>
-        <button type="button" class="close-x" id="btn-close-lgpd" aria-label="Fechar modal">✕</button>
+        <button type="button" class="close-x" id="btn-close-lgpd" aria-label="Fechar modal">&times;</button>
       </div>
 
       <div class="stack" style="gap: 1.25rem; line-height: 1.6; font-size: .92rem;">
         <!-- Card 1: Controlador e Finalidade -->
         <div class="card" style="background: var(--surface-2); border-color: var(--border);">
-          <h3 style="font-size: 1.05rem; margin-bottom: .4rem; display: flex; align-items: center; gap: .5rem;">
-            <span>🏛️</span> 1. Controlador dos Dados & Base Legal
+          <h3 style="font-size: 1.05rem; margin-bottom: .4rem;">
+            1. Controlador dos Dados & Base Legal
           </h3>
           <p class="small muted" style="margin: 0 0 .5rem;">
             O <strong>Centro Acadêmico de Engenharia de Controle e Automação – E(CA)²</strong> da Universidade Estadual do Rio Grande do Sul (UERGS), entidade de representação discente amparada pela <strong>Lei Federal nº 7.395/1985</strong>, atua como <strong>Controlador</strong> dos dados pessoais tratados nesta plataforma digital.
@@ -458,8 +464,8 @@
 
         <!-- Card 2: Princípio da Minimização e Dados Coletados -->
         <div class="card" style="background: var(--surface-2); border-color: var(--border);">
-          <h3 style="font-size: 1.05rem; margin-bottom: .4rem; display: flex; align-items: center; gap: .5rem;">
-            <span>📋</span> 2. Dados Coletados & Princípio da Minimização
+          <h3 style="font-size: 1.05rem; margin-bottom: .4rem;">
+            2. Dados Coletados & Princípio da Minimização
           </h3>
           <p class="small muted" style="margin-bottom: .6rem;">
             Em estrita observância ao <strong>Princípio da Necessidade e Minimização</strong> (Art. 6º, III da LGPD), coletamos apenas as informações imprescindíveis para cada funcionalidade:
@@ -473,9 +479,9 @@
         </div>
 
         <!-- Card 3: Sigilo do Voto Eleitoral -->
-        <div class="card" style="background: hsl(189 94% 55% / .06); border-color: hsl(189 94% 55% / .3);">
-          <h3 style="font-size: 1.05rem; margin-bottom: .4rem; display: flex; align-items: center; gap: .5rem;">
-            <span>🗳️</span> 3. Inviolabilidade & Sigilo do Voto na Urna Eletrônica
+        <div class="card" style="background: var(--surface-2); border-color: var(--border);">
+          <h3 style="font-size: 1.05rem; margin-bottom: .4rem;">
+            3. Inviolabilidade & Sigilo do Voto na Urna Eletrônica
           </h3>
           <p class="small muted" style="margin: 0 0 .5rem;">
             Garantimos que <strong>o voto de cada estudante na cédula eletrônica é 100% secreto e desvinculado de sua identidade pessoal</strong>.
@@ -487,8 +493,8 @@
 
         <!-- Card 4: Não Compartilhamento e Ausência de Rastreamento -->
         <div class="card" style="background: var(--surface-2); border-color: var(--border);">
-          <h3 style="font-size: 1.05rem; margin-bottom: .4rem; display: flex; align-items: center; gap: .5rem;">
-            <span>🚫</span> 4. Não Compartilhamento com Terceiros & Sem Cookies Rastreadores
+          <h3 style="font-size: 1.05rem; margin-bottom: .4rem;">
+            4. Não Compartilhamento com Terceiros & Sem Cookies Rastreadores
           </h3>
           <ul class="small muted" style="padding-left: 1.2rem; margin: 0; line-height: 1.7;">
             <li><strong>Zero Comercialização:</strong> Nenhum dado cadastrado nesta plataforma é vendido, alugado, cedido ou compartilhado com empresas externas, partidos políticos ou plataformas de marketing.</li>
@@ -498,32 +504,32 @@
 
         <!-- Card 5: Direitos do Titular (Art. 18) -->
         <div class="card" style="background: var(--surface-2); border-color: var(--border);">
-          <h3 style="font-size: 1.05rem; margin-bottom: .4rem; display: flex; align-items: center; gap: .5rem;">
-            <span>⚖️</span> 5. Seus Direitos como Titular de Dados (Art. 18 da LGPD)
+          <h3 style="font-size: 1.05rem; margin-bottom: .4rem;">
+            5. Seus Direitos como Titular de Dados (Art. 18 da LGPD)
           </h3>
           <p class="small muted" style="margin-bottom: .5rem;">
             Todo estudante da UERGS pode exercer plenamente seus direitos previstos em lei:
           </p>
           <div class="grid grid-2" style="gap: .75rem; font-size: .82rem;">
             <div style="background: var(--surface); padding: .6rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
-              <strong>✓ Confirmação & Acesso:</strong> Saber quais dados o CA possui sobre você no censo.
+              <strong>Confirmação & Acesso:</strong> Saber quais dados o CA possui sobre você no censo.
             </div>
             <div style="background: var(--surface); padding: .6rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
-              <strong>✓ Correção de Dados:</strong> Atualizar semestre, nome ou dados de contato no perfil.
+              <strong>Correção de Dados:</strong> Atualizar semestre, nome ou dados de contato no perfil.
             </div>
             <div style="background: var(--surface); padding: .6rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
-              <strong>✓ Exclusão dos Dados:</strong> Solicitar a remoção do seu registro a qualquer momento.
+              <strong>Exclusão dos Dados:</strong> Solicitar a remoção do seu registro a qualquer momento.
             </div>
             <div style="background: var(--surface); padding: .6rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
-              <strong>✓ Revogação de Consentimento:</strong> Desativar recebimento de comunicados.
+              <strong>Revogação de Consentimento:</strong> Desativar recebimento de comunicados.
             </div>
           </div>
         </div>
 
         <!-- Card 6: Encarregado e Canal de Contato -->
-        <div class="card" style="background: hsl(220 40% 12% / .9); border-color: var(--cyan);">
-          <h3 style="font-size: 1.05rem; margin-bottom: .4rem; display: flex; align-items: center; gap: .5rem;">
-            <span>📬</span> 6. Canal do Encarregado (DPO) & Dúvidas
+        <div class="card" style="background: var(--surface-2); border-color: var(--cyan);">
+          <h3 style="font-size: 1.05rem; margin-bottom: .4rem;">
+            6. Canal do Encarregado (DPO) & Dúvidas
           </h3>
           <p class="small muted" style="margin: 0 0 .5rem;">
             Para exercer qualquer um dos seus direitos, solicitar esclarecimentos ou requerer exclusão do seu cadastro, entre em contato direto com a Diretoria do E(CA)²:
@@ -537,7 +543,7 @@
 
       <div class="row" style="justify-content: flex-end; margin-top: 1.5rem;">
         <button type="button" class="btn btn-primary" onclick="document.getElementById('dlg-lgpd').close()">
-          Entendi & Concordo ✓
+          Entendi & Concordo
         </button>
       </div>
     </div>
@@ -547,6 +553,6 @@
   <div class="toasts" id="toasts-container" role="region" aria-live="polite" aria-label="Notificações"></div>
 
   <!-- Scripts -->
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/app.js?v=20261025_refined_clean_v10"></script>
 </body>
 </html>

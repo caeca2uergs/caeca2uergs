@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lista de Presença – Assembleia de Fundação do CA Eca² – UERGS</title>
+<meta name="description" content="Lista de presença imprimível da Assembleia Geral de Fundação do Centro Acadêmico de Engenharia de Controle e Automação da UERGS – Eca², 26/10/2026.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #14213d;
+    --accent: hsl(198 85% 38%);
+    --accent-2: hsl(32 95% 52%);
+    --line: #b8c2d1;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Inter", system-ui, sans-serif;
+    color: var(--ink);
+    background: linear-gradient(135deg, #0f172a, #1e3a5f);
+  }
+  /* ---------- Barra de controle (não sai na impressão) ---------- */
+  .toolbar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: center;
+    padding: 14px;
+    background: rgba(15, 23, 42, .75);
+    backdrop-filter: blur(10px);
+    color: #e2e8f0;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+  }
+  .toolbar label { font-size: 14px; }
+  .toolbar input {
+    width: 70px; padding: 6px 8px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #fff;
+  }
+  .toolbar button {
+    padding: 8px 18px; border: 0; border-radius: 999px; cursor: pointer;
+    font-weight: 600; color: #fff;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .toolbar button:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+
+  /* ---------- Folha A4 ---------- */
+  main { padding: 24px 0 48px; }
+  .sheet {
+    width: 210mm; min-height: 297mm;
+    margin: 0 auto 24px;
+    padding: 12mm 12mm 10mm;
+    background: #fff;
+    box-shadow: 0 12px 40px rgba(0,0,0,.4);
+    display: flex; flex-direction: column;
+  }
+  header.sheet-head {
+    display: flex; align-items: center; gap: 12px;
+    border-bottom: 3px solid var(--accent);
+    padding-bottom: 6px; margin-bottom: 8px;
+  }
+  .logo {
+    font-weight: 800; font-size: 28px; line-height: 1;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .logo sup { font-size: 16px; }
+  .head-text h1, .head-text h2 { margin: 0; }
+  .head-text h1 { font-size: 13.5px; }
+  .head-text h2 { font-size: 11px; font-weight: 400; }
+  .page-no { margin-left: auto; font-size: 10px; white-space: nowrap; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+  th {
+    background: #eef3f8; text-align: left; padding: 4px 5px;
+    border: 1px solid var(--line); font-weight: 600;
+  }
+  td { border: 1px solid var(--line); height: 8.6mm; padding: 0 5px; }
+  td.n { width: 8mm; text-align: center; color: #64748b; }
+  .c-nome { width: 68mm; } .c-mat { width: 28mm; } .c-sem { width: 18mm; }
+
+  .lgpd {
+    margin-top: auto; padding-top: 6px;
+    font-size: 8.5px; color: #475569; border-top: 1px dashed var(--line);
+  }
+
+  @page { size: A4; margin: 0; }
+  @media print {
+    body { background: none; }
+    .toolbar { display: none; }
+    main { padding: 0; }
+    .sheet { margin: 0; box-shadow: none; page-break-after: always; break-after: page; }
+    th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .logo { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar" role="toolbar" aria-label="Opções de impressão">
+  <label for="inp-presenca">Folhas de presença (25 linhas cada):</label>
+  <input id="inp-presenca" type="number" min="1" max="20" value="4">
+  <label for="inp-comissao">Folhas de inscrição na Comissão:</label>
+  <input id="inp-comissao" type="number" min="0" max="5" value="1">
+  <button id="btn-gerar" type="button">Atualizar</button>
+  <button id="btn-imprimir" type="button" onclick="window.print()">🖨️ Imprimir</button>
+</div>
+
+<main id="folhas"></main>
+
+<script>
+  const ROWS = 25;
+  const HEAD = (titulo, pag, total) => `
+    <header class="sheet-head">
+      <div class="logo" aria-hidden="true">Eca<sup>2</sup></div>
+      <div class="head-text">
+        <h1>${titulo}</h1>
+        <h2>Centro Acadêmico de Engenharia de Controle e Automação – UERGS · 26/10/2026 · Local: ______________________</h2>
+      </div>
+      <div class="page-no">Folha ${pag} de ${total}</div>
+    </header>`;
+
+  const LGPD = `<p class="lgpd">Dados coletados exclusivamente para registro da Assembleia Geral de Fundação do CA Eca² e para compor o anexo da ata
+    (LGPD – Lei nº 13.709/2018). A assinatura nesta lista registra apenas a <strong>presença</strong>; não implica concordância com nenhuma deliberação.
+    O salchipão é aberto a todos, independentemente de assinatura.</p>`;
+
+  function folhaPresenca(i, total, start) {
+    let rows = "";
+    for (let r = 0; r < ROWS; r++) {
+      rows += `<tr><td class="n">${start + r}</td><td></td><td></td><td></td><td></td></tr>`;
+    }
+    return `<section class="sheet">
+      ${HEAD("LISTA DE PRESENÇA – Assembleia Geral de Fundação do CA Eca²", i, total)}
+      <table>
+        <thead><tr><th>Nº</th><th class="c-nome">Nome completo</th><th class="c-mat">Matrícula</th>
+        <th class="c-sem">Semestre</th><th>Assinatura</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>${LGPD}</section>`;
+  }
+
+  function folhaComissao(i, total, start) {
+    let rows = "";
+    for (let r = 0; r < ROWS; r++) {
+      rows += `<tr><td class="n">${start + r}</td><td></td><td></td><td></td><td></td></tr>`;
+    }
+    return `<section class="sheet">
+      ${HEAD("INSCRIÇÃO – Comissão Pró-CA Eca² (provisória e aberta)", i, total)}
+      <p style="font-size:10px;margin:0 0 6px">Áreas: <strong>Secretaria · Comunicação · Finanças · Estatuto · Eventos</strong>.
+      Mandato de até 90 dias ou até a posse da 1ª diretoria eleita.</p>
+      <table>
+        <thead><tr><th>Nº</th><th class="c-nome">Nome completo</th><th class="c-sem">Semestre</th>
+        <th class="c-mat">WhatsApp / E-mail</th><th>Área de interesse</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>${LGPD}</section>`;
+  }
+
+  function gerar() {
+    const np = Math.max(1, +document.getElementById("inp-presenca").value || 1);
+    const nc = Math.max(0, +document.getElementById("inp-comissao").value || 0);
+    let html = "";
+    for (let i = 0; i < np; i++) html += folhaPresenca(i + 1, np, i * ROWS + 1);
+    for (let i = 0; i < nc; i++) html += folhaComissao(i + 1, nc, i * ROWS + 1);
+    document.getElementById("folhas").innerHTML = html;
+  }
+
+  document.getElementById("btn-gerar").addEventListener("click", gerar);
+  gerar();
+</script>
+</body>
+</html>
