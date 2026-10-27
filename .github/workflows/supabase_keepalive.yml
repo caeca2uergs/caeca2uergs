@@ -2,9 +2,10 @@ name: Supabase Keep-Alive (Prevenção Automática de Pausa)
 
 on:
   schedule:
-    # Executa a cada 3 dias às 12:00 UTC (09:00 Horário de Brasília)
-    - cron: '0 12 */3 * *'
-  workflow_dispatch: # Permite disparar manualmente pelo painel do GitHub Actions
+    # Executa toda segunda e quinta-feira às 12:00 UTC (09:00 Horário de Brasília)
+    # Mantém o ciclo sempre abaixo de 4 dias, prevenindo a pausa de 7 dias do Supabase
+    - cron: '0 12 * * 1,4'
+  workflow_dispatch:
 
 jobs:
   keepalive:

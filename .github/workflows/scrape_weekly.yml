@@ -4,7 +4,7 @@ on:
   schedule:
     # Executa toda segunda-feira às 06:00 UTC (03:00 Horário de Brasília)
     - cron: '0 6 * * 1'
-  workflow_dispatch: # Permite disparar manualmente pelo botão no GitHub
+  workflow_dispatch:
 
 jobs:
   scrape:
@@ -15,6 +15,9 @@ jobs:
     steps:
       - name: Checkout do Repositório
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: Configurar Node.js
         uses: actions/setup-node@v4
@@ -33,5 +36,5 @@ jobs:
             echo "Nenhuma alteração nos eventos da UERGS esta semana."
           else
             git commit -m "chore(eventos): atualização semanal automática da agenda UERGS Porto Alegre"
-            git push
+            git push origin main
           fi

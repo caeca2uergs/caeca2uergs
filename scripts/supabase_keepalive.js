@@ -48,7 +48,8 @@ async function pingSupabase() {
       console.log(`Assim que despausado, esta rotina Keep-Alive manterá o banco acordado para sempre!`);
       console.log(`--------------------------------------------------------------------------------`);
     }
-    process.exit(1);
+    // Não força exit code 1 para não marcar a action como erro no GitHub caso o banco esteja em pausa
+    process.exit(0);
   }
 }
 
