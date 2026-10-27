@@ -193,21 +193,30 @@ function navigate(route, id = null) {
     }
   }
 
-  const ddComunidade = document.getElementById("btn-comunidade-toggle");
-  if (ddComunidade) {
-    if (["mural", "forum", "faq", "registro"].includes(route)) {
-      ddComunidade.setAttribute("aria-current", "page");
+  const ddCa = document.getElementById("btn-ca-toggle");
+  if (ddCa) {
+    if (["ca", "documentos", "fundacao", "eleicao", "estatutos"].includes(route)) {
+      ddCa.setAttribute("aria-current", "page");
     } else {
-      ddComunidade.removeAttribute("aria-current");
+      ddCa.removeAttribute("aria-current");
     }
   }
 
-  const ddFundacao = document.getElementById("btn-fundacao-toggle");
-  if (ddFundacao) {
-    if (["fundacao", "eleicao", "documentos", "estatutos", "urna"].includes(route)) {
-      ddFundacao.setAttribute("aria-current", "page");
+  const ddEstudante = document.getElementById("btn-estudante-toggle");
+  if (ddEstudante) {
+    if (["perfil", "matricula", "mural", "forum", "faq", "registro"].includes(route)) {
+      ddEstudante.setAttribute("aria-current", "page");
     } else {
-      ddFundacao.removeAttribute("aria-current");
+      ddEstudante.removeAttribute("aria-current");
+    }
+  }
+
+  const ddUergs = document.getElementById("btn-uergs-toggle");
+  if (ddUergs) {
+    if (route === "beneficios" || (route === "curso" && currentCursoTab === "beneficios")) {
+      ddUergs.setAttribute("aria-current", "page");
+    } else {
+      ddUergs.removeAttribute("aria-current");
     }
   }
 

@@ -69,38 +69,76 @@
         </button>
 
         <ul class="nav-links" id="nav-links">
-          <li><a href="#inicio" data-nav="inicio">Início</a></li>
+          <!-- 1. CURSO -->
           <li class="nav-dropdown">
-            <button type="button" class="nav-dropdown-toggle" id="btn-curso-toggle" aria-expanded="false" aria-haspopup="true" style="color: var(--cyan); font-weight: 500;">
-              O Curso <span class="arrow" aria-hidden="true">▾</span>
+            <button type="button" class="nav-dropdown-toggle" id="btn-curso-toggle" aria-expanded="false" aria-haspopup="true">
+              CURSO <span class="arrow" aria-hidden="true">▾</span>
             </button>
             <ul class="nav-dropdown-menu">
-              <li><a href="#curso" data-nav="curso-perfil">Sobre o Curso</a></li>
-              <li><a href="#curso/estagios" data-nav="curso-estagios">Estágios & Mercado CREA</a></li>
-              <li><a href="#curso/arvore" data-nav="curso-arvore">Matriz & Árvores PPC</a></li>
-              <li><a href="#curso/beneficios" data-nav="curso-beneficios">Benefícios & Monitoria UERGS</a></li>
-              <li><a href="#curso/labs" data-nav="curso-labs">Laboratórios & Bancadas</a></li>
+              <li><a href="#curso" data-nav="curso-perfil">📘 Sobre o Curso</a></li>
+              <li><a href="#curso/arvore" data-nav="curso-arvore">🌳 Matriz & Árvores PPC</a></li>
+              <li><a href="#curso/labs" data-nav="curso-labs">🔬 Laboratórios & Bancadas</a></li>
+              <li><a href="#curso/estagios" data-nav="curso-estagios">💼 Estágios, TCC & CREA</a></li>
+              <li><a href="#curso/beneficios" data-nav="curso-beneficios">🎁 Benefícios & Monitoria</a></li>
             </ul>
           </li>
-          <li><a href="#eventos" data-nav="eventos">Calendário 2026</a></li>
-          <li><a href="#shop" data-nav="shop">Lojinha</a></li>
+
+          <!-- 2. CA -->
           <li class="nav-dropdown">
-            <button type="button" class="nav-dropdown-toggle" id="btn-comunidade-toggle" aria-expanded="false" aria-haspopup="true">
-              Comunidade <span class="arrow" aria-hidden="true">▾</span>
+            <button type="button" class="nav-dropdown-toggle" id="btn-ca-toggle" aria-expanded="false" aria-haspopup="true">
+              CA <span class="arrow" aria-hidden="true">▾</span>
             </button>
             <ul class="nav-dropdown-menu">
-              <li><a href="#mural" data-nav="mural">Mural & Oportunidades</a></li>
-              <li><a href="#forum" data-nav="forum">Fórum dos Estudantes</a></li>
-              <li><a href="#registro" data-nav="registro">Cadastro de Estudante</a></li>
-              <li><a href="#faq" data-nav="faq">Guia do Estudante & FAQ</a></li>
+              <li><a href="#ca" data-nav="ca">⚡ Quem Somos & Gestão</a></li>
+              <li><a href="#documentos" data-nav="documentos">📜 Estatuto & Regimentos</a></li>
+              <li><a href="#documentos" data-nav="documentos">📊 Transparência & Contas</a></li>
+              <li><a href="mailto:ca.eca2.uergs@gmail.com" target="_blank" rel="noopener">📬 Fale com o CA / Ouvidoria</a></li>
             </ul>
           </li>
-          <li>
-            <a href="#documentos" data-nav="documentos">Documentos Oficiais</a>
+
+          <!-- 3. ESTUDANTE -->
+          <li class="nav-dropdown">
+            <button type="button" class="nav-dropdown-toggle" id="btn-estudante-toggle" aria-expanded="false" aria-haspopup="true">
+              ESTUDANTE <span class="arrow" aria-hidden="true">▾</span>
+            </button>
+            <ul class="nav-dropdown-menu">
+              <li><a href="#perfil" data-nav="perfil">🎛️ Simulador de Matrícula</a></li>
+              <li><a href="#perfil" data-nav="perfil">📈 Meu Histórico & Progresso</a></li>
+              <li><a href="#mural" data-nav="mural">📌 Mural & Oportunidades</a></li>
+              <li><a href="#forum" data-nav="forum">💬 Fórum dos Estudantes</a></li>
+              <li><a href="#faq" data-nav="faq">📖 Guia do Calouro & FAQ</a></li>
+              <li><a href="#registro" data-nav="registro">📝 Cadastro de Estudante</a></li>
+            </ul>
           </li>
-          <li>
-            <a href="#perfil" data-nav="perfil" style="color: var(--cyan); font-weight: 600;">Meu Perfil & Matrícula</a>
+
+          <!-- 4. UERGS -->
+          <li class="nav-dropdown">
+            <button type="button" class="nav-dropdown-toggle" id="btn-uergs-toggle" aria-expanded="false" aria-haspopup="true">
+              UERGS <span class="arrow" aria-hidden="true">▾</span>
+            </button>
+            <ul class="nav-dropdown-menu">
+              <li><a href="https://sga.uergs.edu.br" target="_blank" rel="noopener">🌐 Portal do Aluno (SGA) ↗</a></li>
+              <li><a href="#curso/beneficios" data-nav="curso-beneficios">🎁 Bolsas & Auxílios UERGS</a></li>
+              <li><a href="#documentos" data-nav="documentos">⚖️ Normas & Resoluções CONEPE</a></li>
+              <li><a href="https://maps.google.com/?q=Rua+Washington+Luiz,+675,+Porto+Alegre" target="_blank" rel="noopener">📍 Campus Porto Alegre ↗</a></li>
+            </ul>
           </li>
+
+          <!-- 5. EVENTOS (Acesso Direto) -->
+          <li>
+            <a href="#eventos" data-nav="eventos" class="nav-direct-eventos">
+              📅 EVENTOS
+            </a>
+          </li>
+
+          <!-- 6. LOJINHA (Acesso Direto) -->
+          <li>
+            <a href="#shop" data-nav="shop" class="nav-direct-shop">
+              🛍️ LOJINHA
+            </a>
+          </li>
+
+          <!-- Slot de Login / Perfil -->
           <li id="auth-nav-slot">
             <button type="button" class="btn btn-primary btn-sm" id="btn-open-login">Entrar</button>
           </li>

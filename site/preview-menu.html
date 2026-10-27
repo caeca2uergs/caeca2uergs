@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PROPOSTA DE NAVEGAÇÃO · E(CA)² UERGS (Página de Teste & Demonstração)</title>
+  <meta name="robots" content="noindex, nofollow">
+  
+  <link rel="icon" type="image/svg+xml" href="img/favicon.svg?v=chip2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/styles.css">
+  
+  <style>
+    /* Estilos Exclusivos da Página de Demonstração / Preview */
+    .preview-badge-bar {
+      background: linear-gradient(90deg, #0284c7, #0369a1);
+      color: #fff;
+      font-size: .82rem;
+      padding: .5rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    }
+    .preview-badge-bar a {
+      color: #fff;
+      text-decoration: underline;
+      font-weight: 700;
+    }
+
+    /* Ajuste do Header na Página de Preview */
+    .preview-header {
+      position: sticky;
+      top: 36px;
+      z-index: 500;
+      background: hsl(224 50% 6% / 0.94);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-strong);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Nova Arquitetura de Navegação: 4 Pilares Sem Artigo */
+    .nav-pillars {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      list-style: none;
+      margin: 0 0 0 auto;
+      padding: 0;
+    }
+
+    .pillar-item {
+      position: relative;
+    }
+
+    .pillar-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      padding: .55rem .85rem;
+      border-radius: 8px;
+      font-size: .88rem;
+      font-weight: 700;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .2s ease;
+      font-family: var(--font-head);
+    }
+
+    .pillar-btn:hover,
+    .pillar-item.open .pillar-btn,
+    .pillar-item:hover .pillar-btn {
+      color: var(--text);
+      background: var(--surface-2);
+      border-color: var(--border);
+    }
+
+    .pillar-btn .arrow-icon {
+      font-size: .7rem;
+      color: var(--cyan);
+      transition: transform .25s ease;
+      display: inline-block;
+    }
+
+    .pillar-item:hover .arrow-icon,
+    .pillar-item.open .arrow-icon {
+      transform: rotate(180deg);
+    }
+
+    /* Destaques de Cores por Pilar */
+    .pillar-curso:hover .pillar-btn, .pillar-curso.open .pillar-btn { color: #38bdf8; border-color: #0284c7; }
+    .pillar-ca:hover .pillar-btn, .pillar-ca.open .pillar-btn { color: #f59e0b; border-color: #d97706; }
+    .pillar-estudante:hover .pillar-btn, .pillar-estudante.open .pillar-btn { color: #34d399; border-color: #10b981; }
+    .pillar-uergs:hover .pillar-btn, .pillar-uergs.open .pillar-btn { color: #a78bfa; border-color: #8b5cf6; }
+
+    /* Dropdown Flutuante Moderno */
+    .pillar-dropdown {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      min-width: 290px;
+      background: hsl(222 45% 8% / 0.98);
+      border: 1px solid var(--border-strong);
+      border-radius: 12px;
+      padding: .65rem;
+      list-style: none;
+      margin: 0;
+      display: none;
+      box-shadow: 0 20px 48px -10px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(20px);
+      z-index: 1000;
+      animation: navFadeIn .2s ease forwards;
+    }
+
+    @keyframes navFadeIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .pillar-item:hover .pillar-dropdown,
+    .pillar-item:focus-within .pillar-dropdown,
+    .pillar-item.open .pillar-dropdown {
+      display: block;
+    }
+
+    /* Itens do Dropdown */
+    .dropdown-link {
+      display: flex;
+      align-items: flex-start;
+      gap: .75rem;
+      padding: .65rem .75rem;
+      border-radius: 8px;
+      color: var(--text);
+      text-decoration: none;
+      transition: all .18s ease;
+    }
+
+    .dropdown-link:hover {
+      background: var(--surface-2);
+      text-decoration: none;
+      transform: translateX(3px);
+    }
+
+    .dropdown-link .item-icon {
+      font-size: 1.15rem;
+      line-height: 1.2;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .dropdown-link .item-content {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .dropdown-link .item-title {
+      font-size: .88rem;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+
+    .dropdown-link:hover .item-title {
+      color: #38bdf8;
+    }
+
+    .dropdown-link .item-desc {
+      font-size: .75rem;
+      color: var(--muted);
+      line-height: 1.35;
+      margin-top: 2px;
+    }
+
+    .badge-tag {
+      font-size: .65rem;
+      font-weight: 700;
+      padding: .15rem .4rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+    }
+    .badge-cyan { background: rgba(2, 132, 199, 0.2); color: #38bdf8; border: 1px solid rgba(2, 132, 199, 0.4); }
+    .badge-amber { background: rgba(217, 119, 6, 0.2); color: #fbbf24; border: 1px solid rgba(217, 119, 6, 0.4); }
+    .badge-green { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .badge-purple { background: rgba(139, 92, 246, 0.2); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.4); }
+
+    /* Separador no Dropdown */
+    .dropdown-divider {
+      height: 1px;
+      background: var(--border);
+      margin: .4rem .3rem;
+    }
+
+    /* Bloco Explicativo da Proposta */
+    .proposal-hero {
+      padding: 3rem 0 2rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      background: radial-gradient(circle at 50% 0%, hsl(222 50% 12%) 0%, transparent 70%);
+    }
+
+    .proposal-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2.5rem;
+      text-align: left;
+    }
+
+    .pillar-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: transform .2s ease, border-color .2s ease;
+    }
+
+    .pillar-card:hover {
+      transform: translateY(-4px);
+    }
+
+    .pillar-card.curso { border-top: 4px solid #0284c7; }
+    .pillar-card.ca { border-top: 4px solid #d97706; }
+    .pillar-card.estudante { border-top: 4px solid #10b981; }
+    .pillar-card.uergs { border-top: 4px solid #8b5cf6; }
+
+    .pillar-card h3 {
+      font-size: 1.25rem;
+      font-family: var(--font-head);
+      margin: 0 0 .5rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .pillar-card ul {
+      list-style: none;
+      padding: 0;
+      margin: 1rem 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: .6rem;
+    }
+
+    .pillar-card li {
+      font-size: .88rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .pillar-card li strong {
+      color: var(--text);
+    }
+
+    /* Simulador de Ação / Live Click Notice */
+    #action-toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #111827;
+      border: 1px solid var(--cyan);
+      color: #fff;
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      font-size: .9rem;
+      display: none;
+      z-index: 2000;
+      max-width: 380px;
+    }
+
+    @media (max-width: 1024px) {
+      .nav-pillars {
+        display: none;
+      }
+      .mobile-menu-open .nav-pillars {
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        top: 106px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #080c14;
+        padding: 1.5rem;
+        overflow-y: auto;
+        z-index: 999;
+      }
+      .pillar-dropdown {
+        position: static;
+        box-shadow: none;
+        border: none;
+        background: var(--surface);
+        display: block;
+        padding-left: 1rem;
+        margin-top: .4rem;
+      }
+      .pillar-btn {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Barra de Notificação de Teste Isolado -->
+  <div class="preview-badge-bar">
+    <div>
+      🧪 <strong>AMBIENTE DE TESTE ISOLADO:</strong> Esta página é apenas um protótipo visual. O site principal <u>NÃO</u> foi alterado.
+    </div>
+    <div>
+      <a href="index.html">← Voltar para o Site Oficial</a>
+    </div>
+  </div>
+
+  <!-- Cabeçalho Proposto: 4 Pilares Sem Artigo -->
+  <header class="preview-header">
+    <div class="container">
+      <nav class="nav" aria-label="Navegação Proposta">
+        <a href="#demo" class="brand" title="E(CA)² UERGS">
+          <img src="img/logo_option2_microchip.jpg" alt="Logo Microchip" class="brand-logo-img" width="42" height="42">
+          <div>
+            <span>E(CA)² · UERGS</span>
+            <small>Eng. Controle & Automação</small>
+          </div>
+        </a>
+
+        <!-- Menu Desktop: 4 Pilares Sem Artigo -->
+        <ul class="nav-pillars" id="nav-pillars">
+          
+          <!-- 1. CURSO -->
+          <li class="pillar-item pillar-curso">
+            <button type="button" class="pillar-btn" aria-haspopup="true">
+              CURSO <span class="arrow-icon">▾</span>
+            </button>
+            <ul class="pillar-dropdown">
+              <li>
+                <a href="#curso" class="dropdown-link" data-target="Sobre o Curso">
+                  <span class="item-icon">📘</span>
+                  <div class="item-content">
+                    <span class="item-title">Sobre a Engenharia <span class="badge-tag badge-cyan">Perfil</span></span>
+                    <span class="item-desc">Áreas de atuação, mercado e objetivos da formação</span>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="#curso/arvore" class="dropdown-link" data-target="Matrizes PPC">
+                  <span class="item-icon">🌳</span>
+                  <div class="item-content">
+                    <span class="item-title">Matrizes & Árvores PPC <span class="badge-tag badge-cyan">2019 / 2024</span></span>
+                    <span class="item-desc">Fluxogramas interativos de disciplinas e pré-requisitos</span>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="#curso/labs" class="dropdown-link" data-target="Laboratórios">
+                  <span class="item-icon">🔬</span>
+                  <div class="item-content">
+                    <span class="item-title">Laboratórios & Bancadas</span>
+                    <span class="item-desc">Infraestrutura prática, osciloscópios, CLPs e robótica</span>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="#curso/estagios" class="dropdown-link" data-target="Estágios e CREA">
+                  <span class="item-icon">💼</span>
+                  <div class="item-content">
+                    <span class="item-title">Estágios, TCC & CREA</span>
+                    <span class="item-desc">Regulamento, atribuições profissionais e convênios</span>
+                  </div>
+                </a>
+              </li>
+              <li class="dropdown-divider"></li>
+              <li>
+                <a href="#curso/docentes" class="dropdown-link" data-target="Corpo Docente">
+                  <span class="item-icon">👨‍🏫</span>
+                  <div class="item-content">
+                    <span class="item-title">Corpo Docente & Coordenação</span>
+                    <span class="item-desc">Contatos dos professores e coordenação do curso</span>
+                  </div>
+                </a>
+              </li>
+            </ul>
+          </li>
+
+          <!-- 2. CA -->
+          <li class="pillar-item pillar-ca">
+            <button type="button" class="pillar-btn" aria-haspopup="true">
+              CA <span class="arrow-icon">▾</span>
+            </button>
+            <ul class="pillar-dropdown">
+              <li>
+                <a href="#ca/sobre" class="dropdown-link" data-target="Quem Somos (CA)">
+                  <span class="item-icon">⚡</span>
+                  <div class="item-content">
+                    <span class="item-title">Quem Somos & Gestão</span>
+                    <span class="item-desc">Missão, histórico e diretoria executiva do E(CA)²</span>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="#documentos" class="dropdown-link" data-target="Estatuto do CA">
+                  <span class="item-icon">📜</span>
+                  <div class="item-content">
+                    <span class="item-title">Estatuto & Regimentos</span>
+                    <span class="item-desc">Normas de funcionamento e atas das assembleias</span>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="#ca/transparencia" class="dropdown-link" data-target="Transparência">
+                  <span class="item-icon">📊</span>
+                  <div class="item-content">
+                    <span class="item-title">Transparência & Finanças <span class="badge-tag badge-amber">Aberto</span></span>
+                    <span class="item-desc">Prestação de contas periódica e caixa do Centro Acadêmico</span>
+                  </div>
+                </a>
+              </li>
+              <li class="dropdown-divider"></li>
+              <li>
+                <a href="#shop" class="dropdown-link" data-target="Lojinha Oficial">
+                  <span class="item-icon">🛍️</span>
+                  <div class="item-content">
+                    <span class="item-title">Lojinha Oficial do Curso <span class="badge-tag badge-amber">Produtos</span></span>
+                    <span class="item-desc">Moletons, canecas, tirantes e adesivos de automação</span>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="mailto:ca.eca2.uergs@gmail.com" class="dropdown-link" data-target="Ouvidoria CA">
+                  <span class="item-icon">📬</span>
+                  <div class="item-content">
+                    <span class="item-title">Fale com o CA / Ouvidoria</span>
+                    <span class="item-desc">Envie dúvidas, denúncias ou sugestões para a diretoria</span>
+                  </div>
+                </a>
+              </li>
+            </ul>
+          </li>
+
+          <!-- 3. ESTUDANTE -->
+          <li class="pillar-item pillar-estudante">
+            <button type="button" class="pillar-btn" aria-haspopup="true">
+              ESTUDANTE <span class="arrow-icon">▾</span>
+            </button>
+            <ul class="pillar-dropdown">
+              <li>
+                <a href="#perfil" class="dropdown-link" data-target="Simulador de Matrícula">
+                  <span class="item-icon">🎛️</span>
+                  <div class="item-content">
+                    <span class="item-title">Simulador de Matrícula <span class="badge-tag badge-green">Ferramenta</span></span>
+                    <span class="item-desc">Planejador de disciplinas com trava de pré-requisitos</span>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="#perfil" class="dropdown-link" data-target="Meu Histórico">
+                  <span class="item-icon">📈</span>
+                  <div class="item-content">
+                    <span class="item-title">Meu Histórico & Progresso</span>
+                    <span class="item-desc">Cálculo de IRA, horas cursadas e previsão de formatura</span>
+                  </div>
+                </a>
+              </li>
+              <li class="dropdown-divider"></li>
+              <li>
+                <a href="#mural" class="dropdown-link" data-target="Mural de Vagas">
+                  <span class="item-icon">📌</span>
+                  <div class="item-content">
+                    <span class="item-title">Mural de Oportunidades <span class="badge-tag badge-green">Estágios</span></span>
+                    <span class="item-desc">Vagas de estágio, pesquisa e monitoria em tempo real</span>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="#forum" class="dropdown-link" data-target="Fórum da Comunidade">
+                  <span class="item-icon">💬</span>
+                  <div class="item-content">
+                    <span class="item-title">Fórum da Comunidade</span>
+                    <span class="item-desc">Troca de ideias, projetos práticos e grupos de estudo</span>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="#faq" class="dropdown-link" data-target="Guia do Calouro & FAQ">
+                  <span class="item-icon">📖</span>
+                  <div class="item-content">
+                    <span class="item-title">Guia do Calouro & FAQ</span>
+                    <span class="item-desc">Tudo que você precisa saber ao entrar na UERGS</span>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="#registro" class="dropdown-link" data-target="Cadastro Discente">
+                  <span class="item-icon">📝</span>
+                  <div class="item-content">
+                    <span class="item-title">Cadastro / Atualização</span>
+                    <span class="item-desc">Censo dos estudantes para emissão de carteirinha</span>
+                  </div>
+                </a>
+              </li>
+            </ul>
+          </li>
+
+          <!-- 4. UERGS -->
+          <li class="pillar-item pillar-uergs">
+            <button type="button" class="pillar-btn" aria-haspopup="true">
+              UERGS <span class="arrow-icon">▾</span>
+            </button>
+            <ul class="pillar-dropdown">
+              <li>
+                <a href="#eventos" class="dropdown-link" data-target="Calendário Acadêmico">
+                  <span class="item-icon">📅</span>
+                  <div class="item-content">
+                    <span class="item-title">Calendário & Eventos <span class="badge-tag badge-purple">Agenda</span></span>
+                    <span class="item-desc">Prazos acadêmicos oficiais e datas importantes UERGS</span>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="https://sga.uergs.edu.br" target="_blank" rel="noopener" class="dropdown-link" data-target="Portal do Aluno SGA">
+                  <span class="item-icon">🌐</span>
+                  <div class="item-content">
+                    <span class="item-title">Portal do Aluno (SGA) ↗</span>
+                    <span class="item-desc">Acesso oficial da reitoria para notas, faltas e rematrícula</span>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="#curso/beneficios" class="dropdown-link" data-target="Bolsas e Benefícios">
+                  <span class="item-icon">🎁</span>
+                  <div class="item-content">
+                    <span class="item-title">Bolsas & Auxílios UERGS <span class="badge-tag badge-purple">Fomento</span></span>
+                    <span class="item-desc">Auxílio permanência, bolsas PROICT, extensão e monitoria</span>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="#documentos" class="dropdown-link" data-target="Normas CONEPE">
+                  <span class="item-icon">⚖️</span>
+                  <div class="item-content">
+                    <span class="item-title">Documentos & Resoluções</span>
+                    <span class="item-desc">Regimentos gerais do CONEPE, editais e modelos oficiais</span>
+                  </div>
+                </a>
+              </li>
+              <li class="dropdown-divider"></li>
+              <li>
+                <a href="https://maps.google.com/?q=Rua+Washington+Luiz,+675,+Porto+Alegre" target="_blank" rel="noopener" class="dropdown-link" data-target="Campus Porto Alegre">
+                  <span class="item-icon">📍</span>
+                  <div class="item-content">
+                    <span class="item-title">Unidade Porto Alegre ↗</span>
+                    <span class="item-desc">Campus Washington Luiz, 675 – Centro Histórico</span>
+                  </div>
+                </a>
+              </li>
+            </ul>
+          </li>
+
+          <!-- 5. EVENTOS (Acesso Direto Rápido) -->
+          <li class="pillar-item">
+            <a href="#eventos" class="pillar-btn nav-direct-link" style="color: #c084fc; border-color: rgba(192, 132, 252, 0.25);" onclick="showToast('Acesso Direto: <strong>Calendário & Eventos 2026</strong>')">
+              <span style="font-size: 1rem; margin-right: .2rem;">📅</span> EVENTOS
+            </a>
+          </li>
+
+          <!-- 6. LOJINHA (Acesso Direto Rápido) -->
+          <li class="pillar-item">
+            <a href="#shop" class="pillar-btn nav-direct-link" style="color: #fbbf24; border-color: rgba(251, 191, 36, 0.25);" onclick="showToast('Acesso Direto: <strong>Lojinha Oficial do Curso</strong>')">
+              <span style="font-size: 1rem; margin-right: .2rem;">🛍️</span> LOJINHA
+            </a>
+          </li>
+
+          <!-- Ação Rápida de Entrada -->
+          <li style="margin-left: .5rem;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="showToast('Modal de Login / Perfil do Aluno')">
+              Entrar
+            </button>
+          </li>
+        </ul>
+
+      </nav>
+    </div>
+  </header>
+
+  <!-- Conteúdo Central: Explicativo Interativo dos 4 Pilares -->
+  <main class="container">
+
+    <section class="proposal-hero">
+      <span class="eyebrow">💡 PROPOSTA DE ARQUITETURA DE INFORMAÇÃO</span>
+      <h1 style="font-family: var(--font-head); font-size: clamp(2rem, 5vw, 3rem); margin: .5rem 0 1rem;">
+        Nova Organização dos Menus & Submenus
+      </h1>
+      <p class="muted" style="max-width: 760px; margin: 0 auto 1.5rem; font-size: 1.05rem;">
+        Estruturada com base nos quatro pilares diretos (<strong>sem artigo</strong>), eliminando a poluição visual 
+        e separando perfeitamente a <strong>gestão do curso</strong>, a <strong>vida do estudante</strong>, o <strong>Centro Acadêmico</strong> e a <strong>Universidade</strong>.
+      </p>
+
+      <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+        <span class="badge-tag badge-cyan" style="font-size: .85rem; padding: .4rem .8rem;">1. CURSO</span>
+        <span class="badge-tag badge-amber" style="font-size: .85rem; padding: .4rem .8rem;">2. CA</span>
+        <span class="badge-tag badge-green" style="font-size: .85rem; padding: .4rem .8rem;">3. ESTUDANTE</span>
+        <span class="badge-tag badge-purple" style="font-size: .85rem; padding: .4rem .8rem;">4. UERGS</span>
+        <span class="badge-tag" style="background: rgba(192, 132, 252, 0.25); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.4); font-size: .85rem; padding: .4rem .8rem;">⚡ 5. EVENTOS (Direto)</span>
+        <span class="badge-tag" style="background: rgba(251, 191, 36, 0.25); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4); font-size: .85rem; padding: .4rem .8rem;">⚡ 6. LOJINHA (Direto)</span>
+      </div>
+    </section>
+
+    <!-- Cards Detalhados dos 4 Pilares -->
+    <div class="proposal-cards">
+
+      <!-- Card CURSO -->
+      <div class="pillar-card curso">
+        <h3>📘 CURSO</h3>
+        <p class="small muted">
+          Tudo sobre a Engenharia de Controle e Automação: matrizes, laboratórios e diretrizes pedagógicas.
+        </p>
+        <ul>
+          <li><strong>Sobre a Engenharia:</strong> Perfil profissional & mercado</li>
+          <li><strong>Matrizes PPC:</strong> Árvores interativas 2019 e 2024</li>
+          <li><strong>Laboratórios:</strong> Bancadas, CLPs e equipamentos</li>
+          <li><strong>Estágios & CREA:</strong> Regulamentos e atribuições</li>
+          <li><strong>Docentes:</strong> Coordenação e professores</li>
+        </ul>
+      </div>
+
+      <!-- Card CA -->
+      <div class="pillar-card ca">
+        <h3>⚡ CA</h3>
+        <p class="small muted">
+          O Centro Acadêmico E(CA)²: gestão estudantil, transparência, lojinha e contato direto.
+        </p>
+        <ul>
+          <li><strong>Quem Somos:</strong> Diretoria e plano de gestão</li>
+          <li><strong>Estatuto:</strong> Regimento oficial da entidade</li>
+          <li><strong>Transparência:</strong> Balancetes e atas públicas</li>
+          <li><strong>Lojinha Oficial:</strong> Camisas, moletons e canecas</li>
+          <li><strong>Ouvidoria:</strong> Canal direto de escuta discente</li>
+        </ul>
+      </div>
+
+      <!-- Card ESTUDANTE -->
+      <div class="pillar-card estudante">
+        <h3>🎓 ESTUDANTE</h3>
+        <p class="small muted">
+          Ferramentas cotidianas da vida acadêmica do aluno da UERGS.
+        </p>
+        <ul>
+          <li><strong>Simulador de Matrícula:</strong> Trava de créditos & fluxos</li>
+          <li><strong>Meu Histórico:</strong> Progresso do curso e IRA</li>
+          <li><strong>Mural de Oportunidades:</strong> Vagas de estágio e bolsas</li>
+          <li><strong>Fórum da Comunidade:</strong> Discussão discente</li>
+          <li><strong>Guia do Calouro:</strong> Manual de sobrevivência & FAQ</li>
+          <li><strong>Cadastro Discente:</strong> Censo anual</li>
+        </ul>
+      </div>
+
+      <!-- Card UERGS -->
+      <div class="pillar-card uergs">
+        <h3>🏛️ UERGS</h3>
+        <p class="small muted">
+          O ecossistema institucional da universidade e serviços centrais.
+        </p>
+        <ul>
+          <li><strong>Calendário Oficial:</strong> Agenda e eventos de POA</li>
+          <li><strong>Portal do Aluno (SGA):</strong> Acesso direto à reitoria</li>
+          <li><strong>Bolsas & Auxílios:</strong> Fomento, permanência e monitoria</li>
+          <li><strong>Normas & Resoluções:</strong> Documentos do CONEPE</li>
+          <li><strong>Campus Porto Alegre:</strong> Unidade Washington Luiz</li>
+        </ul>
+      </div>
+
+      <!-- Card EVENTOS (Acesso Direto) -->
+      <div class="pillar-card" style="border-top: 4px solid #a855f7;">
+        <h3>📅 EVENTOS <span class="badge-tag badge-purple" style="font-size: .65rem;">Direto</span></h3>
+        <p class="small muted">
+          Acesso instantâneo com 1 clique para a agenda de eventos, palestras e calendário acadêmico.
+        </p>
+        <ul>
+          <li><strong>1 Clique:</strong> Abre imediatamente a página de eventos</li>
+          <li><strong>Filtro Automático:</strong> Oculta eventos passados</li>
+          <li><strong>Contagem Regressiva:</strong> Próximos acontecimentos</li>
+          <li><strong>Integração UERGS:</strong> Scraping semanal automatizado</li>
+        </ul>
+      </div>
+
+      <!-- Card LOJINHA (Acesso Direto) -->
+      <div class="pillar-card" style="border-top: 4px solid #f59e0b;">
+        <h3>🛍️ LOJINHA <span class="badge-tag badge-amber" style="font-size: .65rem;">Direto</span></h3>
+        <p class="small muted">
+          Acesso instantâneo aos produtos oficiais do curso gerenciados pelo Centro Acadêmico.
+        </p>
+        <ul>
+          <li><strong>1 Clique:</strong> Abre imediatamente o catálogo de produtos</li>
+          <li><strong>Produtos Oficiais:</strong> Moletons bordados, tirantes e canecas</li>
+          <li><strong>Adesivos de Engenharia:</strong> Temas de robótica e automação</li>
+          <li><strong>Fundo Estudantil:</strong> Lucro 100% revertido para o CA</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- Seção de Comparativo de Experiência do Usuário -->
+    <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; margin: 3rem 0;">
+      <h2 style="font-family: var(--font-head); font-size: 1.5rem; margin-top: 0;">
+        🧭 Por que essa nova divisão é muito melhor para o usuário?
+      </h2>
+      <div class="grid grid-2" style="margin-top: 1.25rem;">
+        <div>
+          <h4 style="color: #ef4444; margin-bottom: .4rem;">❌ Como estava antes (7 menus dispersos)</h4>
+          <p class="small muted">
+            O menu anterior misturava conceitos sem hierarquia: <em>"Início", "O Curso", "Calendário 2026", "Lojinha", "Comunidade", "Documentos Oficiais", "Meu Perfil"</em>. 
+            O usuário calouro não sabia se achava bolsas em "O Curso", no "Mural" ou em "Documentos".
+          </p>
+        </div>
+        <div>
+          <h4 style="color: #22c55e; margin-bottom: .4rem;">✅ Com os 4 Pilares Claros</h4>
+          <p class="small muted">
+            Cada pilar responde à pergunta mental do estudante:
+            <br>• Dúvida de matéria/laboratório? <strong>CURSO</strong>
+            <br>• Dúvida de representação/moletom? <strong>CA</strong>
+            <br>• Quero simular matrícula ou ver vaga? <strong>ESTUDANTE</strong>
+            <br>• Preciso de prazo oficial ou SGA? <strong>UERGS</strong>
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Notificação Flutuante ao clicar nos links de demonstração -->
+  <div id="action-toast"></div>
+
+  <script>
+    // Script interativo da demonstração
+    function showToast(text) {
+      const toast = document.getElementById('action-toast');
+      toast.innerHTML = '<strong>Ação Selecionada:</strong><br>' + text + '<br><small style="color: var(--cyan);">Nenhum arquivo principal foi afetado.</small>';
+      toast.style.display = 'block';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 3500);
+    }
+
+    document.querySelectorAll('.dropdown-link').forEach(link => {
+      link.addEventListener('click', (e) => {
+        const target = link.getAttribute('data-target') || link.innerText.trim();
+        showToast('Link do submenu: <strong>' + target + '</strong>');
+      });
+    });
+  </script>
+
+</body>
+</html>

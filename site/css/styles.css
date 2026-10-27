@@ -197,7 +197,32 @@ button, input, select, textarea { font: inherit; color: inherit; }
   border-color: var(--cyan);
 }
 
-/* Dropdown de Navegação (Comunidade) */
+/* Links Rápidos Diretos (EVENTOS e LOJINHA) */
+.nav-direct-eventos {
+  color: #c084fc !important;
+  font-weight: 600 !important;
+  border: 1px solid rgba(192, 132, 252, 0.25);
+  background: rgba(192, 132, 252, 0.05);
+}
+.nav-direct-eventos:hover {
+  background: rgba(192, 132, 252, 0.15) !important;
+  border-color: rgba(192, 132, 252, 0.5) !important;
+  color: #e9d5ff !important;
+}
+
+.nav-direct-shop {
+  color: #fbbf24 !important;
+  font-weight: 600 !important;
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  background: rgba(251, 191, 36, 0.05);
+}
+.nav-direct-shop:hover {
+  background: rgba(251, 191, 36, 0.15) !important;
+  border-color: rgba(251, 191, 36, 0.5) !important;
+  color: #fef3c7 !important;
+}
+
+/* Dropdown de Navegação (CURSO, CA, ESTUDANTE, UERGS) */
 .nav-dropdown {
   position: relative;
   display: inline-flex;
@@ -206,12 +231,14 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .nav-dropdown-toggle {
   display: inline-flex;
   align-items: center;
-  gap: .3rem;
+  gap: .35rem;
   padding: .45rem .65rem;
   border-radius: 8px;
   color: var(--muted);
-  font-weight: 500;
-  font-size: .88rem;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: .86rem;
+  letter-spacing: .02em;
   background: transparent;
   border: 0;
   cursor: pointer;
