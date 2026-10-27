@@ -13,8 +13,27 @@ let currentCursoTab = "perfil";
 let currentProfileTab = "historico"; // "historico" | "matricula" | "cadastro"
 let uergsScrapedEvents = [];
 
+function getTodayIso() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function getAllEventsCombined() {
-  return [...CALENDARIO_EVENTOS, ...uergsScrapedEvents];
+  const all = [...CALENDARIO_EVENTOS, ...uergsScrapedEvents];
+  return all.sort((a, b) => (a.data || "").localeCompare(b.data || ""));
+}
+
+function getUpcomingEventsCombined() {
+  const today = getTodayIso();
+  return getAllEventsCombined().filter(e => (e.data || "") >= today);
+}
+
+function getPastEventsCombined() {
+  const today = getTodayIso();
+  return getAllEventsCombined().filter(e => (e.data || "") < today);
 }
 
 // Helpers de Notificação (Toasts)
@@ -427,15 +446,15 @@ function renderHomeHtml() {
 
           <a href="#eventos" class="mod-card">
             <div class="mod-head">
-              <span class="channel-id"><span class="led-dot amber"></span> MÓDULO 02 · CALENDÁRIO</span>
-              <span class="channel-tag">EVENTO 26/10</span>
+              <span class="channel-id"><span class="led-dot green"></span> MÓDULO 02 · CALENDÁRIO</span>
+              <span class="channel-tag">AGENDA VIGENTE</span>
             </div>
-            <h3>Calendário 2026</h3>
+            <h3>Calendário & Eventos</h3>
             <p>
-              Salchipão inaugural (26/10), visitas técnicas no Polo Petroquímico e minicursos práticos de CLP com emissão de certificados.
+              Programação acadêmica oficial da UERGS Porto Alegre, visitas técnicas no Polo Industrial e minicursos práticos de CLP com certificados.
             </p>
             <div class="mod-footer">
-              <span>CALENDÁRIO: ATIVO</span>
+              <span>STATUS: EVENTOS VIGENTES</span>
               <span class="action-hint">VER AGENDA &rarr;</span>
             </div>
           </a>
@@ -1344,11 +1363,12 @@ function renderArquivoHistoricoHtml() {
 
 
 // -------------------------------------------------------------
-// Estado do Calendário Mensal
-let calCurrentYear = 2026;
-let calCurrentMonth = 9; // 0-indexed: 9 = Outubro (mês da fundação e salchipão)
+const _initCalDate = new Date();
+let calCurrentYear = _initCalDate.getFullYear();
+let calCurrentMonth = _initCalDate.getMonth();
 let calSelectedDate = null; // 'YYYY-MM-DD'
-let calCategoryFilter = "todos"; // 'todos' | 'ca' | 'institucional'
+let calCategoryFilter = "todos"; // 'todos' | 'ca' | 'uergs-poa' | 'institucional'
+let calTemporalFilter = "futuros"; // 'futuros' (vigentes/próximos) | 'realizados' | 'todos'
 
 function renderMonthCalendarHtml(year, month, selectedDate, categoryFilter) {
   const monthNames = [
@@ -1528,9 +1548,75 @@ function renderMonthCalendarHtml(year, month, selectedDate, categoryFilter) {
 }
 
 // -------------------------------------------------------------
-// VISTA: EVENTOS & AGENDA ACADÊMICA
+// VISTA: EVENTOS & AGENDA ACADÊMICA (DINÂMICA CONFORME DATA)
 // -------------------------------------------------------------
+function renderNextFeaturedEventHtml() {
+  const today = getTodayIso();
+  const upcoming = getUpcomingEventsCombined();
+  const nextEvent = upcoming.find(e => e.destaque) || upcoming[0] || CALENDARIO_EVENTOS[0];
+
+  let relativeTimeStr = "";
+  let badgeColor = "cyan";
+  if (nextEvent && nextEvent.data) {
+    const diffTime = new Date(nextEvent.data + "T00:00:00") - new Date(today + "T00:00:00");
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) {
+      relativeTimeStr = "Acontece Hoje!";
+      badgeColor = "green";
+    } else if (diffDays === 1) {
+      relativeTimeStr = "Acontece Amanhã!";
+      badgeColor = "amber";
+    } else if (diffDays > 1) {
+      relativeTimeStr = `Faltam ${diffDays} dias`;
+      badgeColor = "cyan";
+    } else {
+      relativeTimeStr = "Evento Concluído";
+      badgeColor = "slate";
+    }
+  }
+
+  const img = nextEvent.imagem || (nextEvent.categoria === "ca" ? "img/evento_salchipao.jpg" : "img/hero_estudantes.jpg");
+
+  return `
+    <!-- Destaque Principal Dinâmico (Próximo Evento a Realizar) -->
+    <div class="card hover" style="padding: 0; overflow: hidden; margin-bottom: 3rem; border: 1px solid var(--border-strong);">
+      <div class="grid grid-2" style="align-items: center; gap: 0;">
+        <div style="position: relative; height: 100%; min-height: 280px;">
+          <img src="${img}" alt="${escapeHtml(nextEvent.titulo)}" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.src='img/hero_estudantes.jpg'">
+          <span class="badge ${badgeColor}" style="position: absolute; top: 14px; left: 14px; font-weight: 700;">
+            ${relativeTimeStr ? `PRÓXIMO DESTAQUE · ${relativeTimeStr}` : "Destaque da Programação"}
+          </span>
+        </div>
+        <div style="padding: 2.25rem;">
+          <span class="eyebrow" style="margin-bottom: .4rem;">${escapeHtml(nextEvent.dataExibicao || nextEvent.data)} · ${escapeHtml(nextEvent.horario || "Programação Confirmada")}</span>
+          <h3 style="font-size: 1.55rem; margin-bottom: .8rem; line-height: 1.3;">${nextEvent.icone || "📅"} ${escapeHtml(nextEvent.titulo)}</h3>
+          <p class="muted" style="margin-bottom: 1.25rem; line-height: 1.6;">
+            ${escapeHtml(nextEvent.descricao)}
+          </p>
+          <div class="row" style="gap: .75rem; flex-wrap: wrap; align-items: center;">
+            ${nextEvent.linkAcao && nextEvent.linkAcao.startsWith("http") ? `
+              <a href="${nextEvent.linkAcao}" target="_blank" rel="noopener" class="btn btn-primary btn-sm">
+                ${escapeHtml(nextEvent.textoAcao || "Ver no Portal UERGS")} ↗
+              </a>
+            ` : `
+              <a href="${nextEvent.linkAcao || "#eventos"}" class="btn btn-primary btn-sm">
+                ${escapeHtml(nextEvent.textoAcao || "Ver Mais Detalhes")}
+              </a>
+            `}
+            <span class="small muted">📍 ${escapeHtml(nextEvent.local || "Campus UERGS Porto Alegre")}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderEventosHtml() {
+  const upcomingList = getUpcomingEventsCombined();
+  const pastList = getPastEventsCombined();
+  const allList = getAllEventsCombined();
+  const today = getTodayIso();
+
   return `
     <section class="section">
       <div class="container">
@@ -1538,31 +1624,11 @@ function renderEventosHtml() {
           <span class="eyebrow">Integração & Calendário</span>
           <h2>Eventos do E(CA)² & Datas Institucionais UERGS</h2>
           <p>
-            O calendário unificado da comunidade de Engenharia de Controle e Automação. Acompanhe os encontros do Centro Acadêmico, visitas técnicas na indústria e prazos acadêmicos oficiais da UERGS.
+            O calendário unificado da comunidade de Engenharia de Controle e Automação. Eventos já realizados saem automaticamente do destaque para você focar no que está por vir.
           </p>
         </div>
 
-        <!-- Destaque Principal: Salchipão Inaugural com Foto Oficial da UERGS -->
-        <div class="card hover" style="padding: 0; overflow: hidden; margin-bottom: 3.5rem; border: 1px solid var(--border-strong);">
-          <div class="grid grid-2" style="align-items: center; gap: 0;">
-            <div style="position: relative; height: 100%; min-height: 300px;">
-              <img src="img/evento_salchipao.jpg" alt="Estudantes de Engenharia de Controle e Automação da UERGS no Salchipão" style="width: 100%; height: 100%; object-fit: cover; display: block;">
-              <span class="badge amber" style="position: absolute; top: 14px; left: 14px;">Integração Estudantil</span>
-            </div>
-            <div style="padding: 2.5rem;">
-              <span class="eyebrow" style="margin-bottom: .4rem;">Segunda-feira · 26 de Outubro · 18:30 às 19:15</span>
-              <h3 style="font-size: 1.6rem; margin-bottom: .8rem;">Encontro & Salchipão de Recepção do E(CA)²</h3>
-              <p class="muted" style="margin-bottom: 1.25rem; line-height: 1.6;">
-                Confraternização aberta com distribuição gratuita de salchipão para todos os estudantes de Engenharia de Controle e Automação da UERGS.
-                Aproveite o refeitório para conversar com colegas de todos os semestres, conhecer veteranos e conferir os novos recursos do portal acadêmico!
-              </p>
-              <div class="row" style="gap: .75rem; flex-wrap: wrap;">
-                <a href="#curso/labs" class="btn btn-primary btn-sm">Conhecer os Laboratórios</a>
-                <a href="#mural" class="btn btn-ghost btn-sm">Mural de Oportunidades</a>
-              </div>
-            </div>
-          </div>
-        </div>
+        ${renderNextFeaturedEventHtml()}
 
         <!-- Banner de Integração: Agenda UERGS Campus Porto Alegre -->
         <div class="card" style="margin-bottom: 2rem; background: linear-gradient(135deg, hsl(220 40% 12% / .9), hsl(220 40% 8% / .95)); border: 1px solid var(--border); padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
@@ -1575,7 +1641,7 @@ function renderEventosHtml() {
               </div>
               <h3 style="margin: 0; font-size: 1.15rem;">Agenda Oficial UERGS · Unidade Porto Alegre / Campus Central</h3>
               <p class="small muted" style="margin: .25rem 0 0; line-height: 1.5;">
-                Eventos raspados e sincronizados em tempo real diretamente da reitoria e campus central (Rua Washington Luiz, 675).
+                Sincronizada diretamente da reitoria e campus central (Rua Washington Luiz, 675).
               </p>
             </div>
           </div>
@@ -1598,34 +1664,55 @@ function renderEventosHtml() {
           ${renderMonthCalendarHtml(calCurrentYear, calCurrentMonth, calSelectedDate, calCategoryFilter)}
         </div>
 
-        <!-- Barra de Filtros da Lista -->
-        <div class="calendar-filter-bar" style="margin-top: 1.5rem; flex-wrap: wrap; gap: .5rem;">
+        <!-- Barra de Controle Temporal (Filtro Anti-Eventos Passados) -->
+        <div style="margin-top: 2rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; background: hsl(220 40% 10% / .6); padding: .75rem 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+          <div style="display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;">
+            <span class="small" style="font-weight: 700; color: var(--text-heading); margin-right: .25rem;">Exibição da Lista:</span>
+            <button type="button" class="btn btn-sm ${calTemporalFilter === 'futuros' ? 'btn-primary' : 'btn-ghost'}" id="btn-temporal-futuros" style="font-size: .8rem; padding: .35rem .75rem;">
+              🟢 Próximos Eventos (${upcomingList.length})
+            </button>
+            <button type="button" class="btn btn-sm ${calTemporalFilter === 'realizados' ? 'btn-primary' : 'btn-ghost'}" id="btn-temporal-realizados" style="font-size: .8rem; padding: .35rem .75rem;">
+              📜 Já Realizados (${pastList.length})
+            </button>
+            <button type="button" class="btn btn-sm ${calTemporalFilter === 'todos' ? 'btn-primary' : 'btn-ghost'}" id="btn-temporal-todos" style="font-size: .8rem; padding: .35rem .75rem;">
+              🌐 Todos (${allList.length})
+            </button>
+          </div>
+          <span class="small muted" id="cal-temporal-hint">
+            ${calTemporalFilter === 'futuros' ? '⚡ Mostrando apenas eventos a serem realizados' : (calTemporalFilter === 'realizados' ? '📜 Histórico de eventos anteriores' : 'Exibindo programação completa')}
+          </span>
+        </div>
+
+        <!-- Barra de Filtros de Categoria -->
+        <div class="calendar-filter-bar" style="margin-bottom: 1.5rem; flex-wrap: wrap; gap: .5rem;">
           <span class="small muted" style="font-weight: 600; margin-right: .5rem;">Filtrar Categoria:</span>
           <button type="button" class="chip ${calCategoryFilter === 'todos' ? 'active' : ''}" data-cal-filter="todos">
-            Todos os Eventos (${getAllEventsCombined().length})
+            Todos (<span id="count-chip-todos">${upcomingList.length}</span>)
           </button>
           <button type="button" class="chip ${calCategoryFilter === 'ca' ? 'active' : ''}" data-cal-filter="ca">
-            Eventos E(CA)² (${CALENDARIO_EVENTOS.filter(e => e.categoria === 'ca').length})
+            Eventos E(CA)² (<span id="count-chip-ca">${upcomingList.filter(e => e.categoria === 'ca').length}</span>)
           </button>
           <button type="button" class="chip ${calCategoryFilter === 'uergs-poa' ? 'active' : ''}" data-cal-filter="uergs-poa" style="${calCategoryFilter === 'uergs-poa' ? 'border-color: #10b981; color: #34d399;' : ''}">
-            🏛️ Agenda UERGS Porto Alegre (${uergsScrapedEvents.length})
+            🏛️ Agenda UERGS Porto Alegre (<span id="count-chip-poa">${upcomingList.filter(e => e.categoria === 'uergs-poa').length}</span>)
           </button>
           <button type="button" class="chip ${calCategoryFilter === 'institucional' ? 'active' : ''}" data-cal-filter="institucional">
-            Datas Acadêmicas UERGS (${CALENDARIO_EVENTOS.filter(e => e.categoria === 'institucional').length})
+            Datas Acadêmicas UERGS (<span id="count-chip-inst">${upcomingList.filter(e => e.categoria === 'institucional').length}</span>)
           </button>
         </div>
 
         <!-- Lista Cronológica de Eventos -->
         <div id="calendar-events-list" style="margin-bottom: 3.5rem;">
-          ${getAllEventsCombined().map(ev => {
-            const dateParts = ev.data.split("-");
+          ${allList.map(ev => {
+            const isPast = (ev.data || "") < today;
+            const isToday = ev.data === today;
+            const dateParts = (ev.data || "2026-01-01").split("-");
             const dayNum = dateParts[2] || "01";
             const monthNames = ["", "JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
             const monthStr = monthNames[parseInt(dateParts[1], 10)] || "MES";
-            const badgeClass = ev.categoria === 'ca' ? 'cyan' : (ev.categoria === 'uergs-poa' ? 'green' : 'amber');
+            const badgeClass = ev.categoria === "ca" ? "cyan" : (ev.categoria === "uergs-poa" ? "green" : "amber");
 
             return `
-              <div class="calendar-item ${ev.destaque ? 'destaque' : ''}" data-categoria="${ev.categoria}" data-date="${ev.data}">
+              <div class="calendar-item ${ev.destaque && !isPast ? 'destaque' : ''} ${isPast ? 'is-past' : ''}" data-categoria="${ev.categoria}" data-date="${ev.data}" data-is-past="${isPast ? 'true' : 'false'}">
                 <div class="calendar-date-box">
                   <span class="day">${dayNum}</span>
                   <span class="month">${monthStr}</span>
@@ -1633,6 +1720,13 @@ function renderEventosHtml() {
                 <div style="flex: 1; min-width: 220px;">
                   <div class="row" style="margin-bottom: .3rem; gap: .5rem; flex-wrap: wrap; align-items: center;">
                     <span class="badge ${badgeClass}">${escapeHtml(ev.categoriaLabel || 'Evento')}</span>
+                    ${isPast ? `
+                      <span class="badge slate" style="font-size: .68rem; padding: 2px 7px;">Concluído</span>
+                    ` : (isToday ? `
+                      <span class="badge green" style="font-size: .68rem; padding: 2px 7px;">Hoje</span>
+                    ` : `
+                      <span class="badge cyan" style="font-size: .68rem; padding: 2px 7px;">Em Breve</span>
+                    `)}
                     <span class="small muted">${escapeHtml(ev.horario || '')} · 📍 ${escapeHtml(ev.local || 'Porto Alegre')}</span>
                   </div>
                   <div style="display: flex; gap: 1rem; align-items: flex-start; margin-top: .4rem;">
@@ -1646,12 +1740,12 @@ function renderEventosHtml() {
                   </div>
                 </div>
                 <div>
-                  ${ev.linkAcao.startsWith('http') ? `
+                  ${ev.linkAcao && ev.linkAcao.startsWith("http") ? `
                     <a href="${ev.linkAcao}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="white-space: nowrap;">
                       ${escapeHtml(ev.textoAcao || 'Ver Mais')} ↗
                     </a>
                   ` : `
-                    <a href="${ev.linkAcao}" class="btn ${ev.destaque ? 'btn-primary' : 'btn-ghost'} btn-sm" style="white-space: nowrap;">
+                    <a href="${ev.linkAcao || '#eventos'}" class="btn ${ev.destaque && !isPast ? 'btn-primary' : 'btn-ghost'} btn-sm" style="white-space: nowrap;">
                       ${escapeHtml(ev.textoAcao || 'Ver Mais')}
                     </a>
                   `}
@@ -1663,7 +1757,7 @@ function renderEventosHtml() {
           <div id="calendar-empty-notice" class="empty" style="display: none; padding: 2rem 1rem;">
             <div class="badge cyan">CALENDÁRIO</div>
             <h3>Nenhum evento encontrado para a data/categoria selecionada.</h3>
-            <p class="muted small">Tente selecionar outro mês ou limpar os filtros de data.</p>
+            <p class="muted small">Tente selecionar outro mês ou alternar para 'Todos os Eventos'.</p>
           </div>
         </div>
 
@@ -1682,18 +1776,67 @@ function renderEventosHtml() {
 }
 
 async function setupEventosInteractions() {
+  function updateTemporalButtonsAndCounts() {
+    const btnFuturos = document.getElementById("btn-temporal-futuros");
+    const btnRealizados = document.getElementById("btn-temporal-realizados");
+    const btnTodos = document.getElementById("btn-temporal-todos");
+    const hint = document.getElementById("cal-temporal-hint");
+
+    [btnFuturos, btnRealizados, btnTodos].forEach(b => {
+      b?.classList.remove("btn-primary");
+      b?.classList.add("btn-ghost");
+    });
+
+    if (calTemporalFilter === "futuros") {
+      btnFuturos?.classList.remove("btn-ghost");
+      btnFuturos?.classList.add("btn-primary");
+      if (hint) hint.textContent = "⚡ Mostrando apenas eventos a serem realizados";
+    } else if (calTemporalFilter === "realizados") {
+      btnRealizados?.classList.remove("btn-ghost");
+      btnRealizados?.classList.add("btn-primary");
+      if (hint) hint.textContent = "📜 Mostrando histórico de eventos anteriores";
+    } else {
+      btnTodos?.classList.remove("btn-ghost");
+      btnTodos?.classList.add("btn-primary");
+      if (hint) hint.textContent = "🌐 Exibindo programação completa (vigentes e anteriores)";
+    }
+
+    const baseList = calTemporalFilter === "futuros"
+      ? getUpcomingEventsCombined()
+      : (calTemporalFilter === "realizados" ? getPastEventsCombined() : getAllEventsCombined());
+
+    const cTodos = document.getElementById("count-chip-todos");
+    const cCa = document.getElementById("count-chip-ca");
+    const cPoa = document.getElementById("count-chip-poa");
+    const cInst = document.getElementById("count-chip-inst");
+
+    if (cTodos) cTodos.textContent = baseList.length;
+    if (cCa) cCa.textContent = baseList.filter(e => e.categoria === "ca").length;
+    if (cPoa) cPoa.textContent = baseList.filter(e => e.categoria === "uergs-poa").length;
+    if (cInst) cInst.textContent = baseList.filter(e => e.categoria === "institucional").length;
+  }
+
   function applyEventsFilter() {
+    const today = getTodayIso();
     const eventItems = document.querySelectorAll(".calendar-item");
     let visibleCount = 0;
 
     eventItems.forEach(item => {
       const cat = item.getAttribute("data-categoria");
       const date = item.getAttribute("data-date");
+      const isPast = item.getAttribute("data-is-past") === "true";
+
+      let matchTemporal = true;
+      if (calTemporalFilter === "futuros") {
+        matchTemporal = !isPast;
+      } else if (calTemporalFilter === "realizados") {
+        matchTemporal = isPast;
+      }
 
       const matchCat = (calCategoryFilter === "todos" || cat === calCategoryFilter);
       const matchDate = (!calSelectedDate || date === calSelectedDate);
 
-      if (matchCat && matchDate) {
+      if (matchTemporal && matchCat && matchDate) {
         item.style.display = "";
         visibleCount++;
       } else {
@@ -1704,6 +1847,20 @@ async function setupEventosInteractions() {
     const emptyBox = document.getElementById("calendar-empty-notice");
     if (emptyBox) {
       emptyBox.style.display = visibleCount === 0 ? "block" : "none";
+      if (visibleCount === 0) {
+        const titleEl = emptyBox.querySelector("h3");
+        const descEl = emptyBox.querySelector("p");
+        if (calTemporalFilter === "futuros") {
+          if (titleEl) titleEl.textContent = "Nenhum evento futuro encontrado nesta categoria/data.";
+          if (descEl) descEl.textContent = "Alterne para 'Já Realizados' caso deseje ver atividades que já foram concluídas.";
+        } else if (calTemporalFilter === "realizados") {
+          if (titleEl) titleEl.textContent = "Nenhum evento concluído encontrado nesta categoria/data.";
+          if (descEl) descEl.textContent = "Alterne para 'Próximos Eventos' para ver a programação vigente.";
+        } else {
+          if (titleEl) titleEl.textContent = "Nenhum evento encontrado para a data/categoria selecionada.";
+          if (descEl) descEl.textContent = "Tente selecionar outro mês ou limpar os filtros de data.";
+        }
+      }
     }
   }
 
@@ -1733,8 +1890,9 @@ async function setupEventosInteractions() {
     });
 
     todayBtn?.addEventListener("click", () => {
-      calCurrentYear = 2026;
-      calCurrentMonth = 9;
+      const now = new Date();
+      calCurrentYear = now.getFullYear();
+      calCurrentMonth = now.getMonth();
       calSelectedDate = null;
       refreshCalendar();
     });
@@ -1757,8 +1915,8 @@ async function setupEventosInteractions() {
         if (calSelectedDate) {
           const targetCard = document.querySelector(`.calendar-item[data-date="${calSelectedDate}"]`);
           if (targetCard) {
-            targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            targetCard.classList.add('destaque');
+            targetCard.scrollIntoView({ behavior: "smooth", block: "center" });
+            targetCard.classList.add("destaque");
           }
         }
       });
@@ -1774,6 +1932,23 @@ async function setupEventosInteractions() {
     applyEventsFilter();
   }
 
+  // Controles de Exibição Temporal
+  document.getElementById("btn-temporal-futuros")?.addEventListener("click", () => {
+    calTemporalFilter = "futuros";
+    updateTemporalButtonsAndCounts();
+    applyEventsFilter();
+  });
+  document.getElementById("btn-temporal-realizados")?.addEventListener("click", () => {
+    calTemporalFilter = "realizados";
+    updateTemporalButtonsAndCounts();
+    applyEventsFilter();
+  });
+  document.getElementById("btn-temporal-todos")?.addEventListener("click", () => {
+    calTemporalFilter = "todos";
+    updateTemporalButtonsAndCounts();
+    applyEventsFilter();
+  });
+
   // Filtros de categoria
   const filterBtns = document.querySelectorAll("[data-cal-filter]");
   filterBtns.forEach(btn => {
@@ -1787,6 +1962,7 @@ async function setupEventosInteractions() {
   });
 
   attachCalendarWidgetEvents();
+  updateTemporalButtonsAndCounts();
   applyEventsFilter();
 }
 

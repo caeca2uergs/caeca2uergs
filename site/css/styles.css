@@ -2191,6 +2191,22 @@ dialog::backdrop { background: hsl(224 50% 3% / .6); backdrop-filter: blur(4px);
   border-color: var(--cyan);
   background: var(--surface-2);
 }
+.calendar-item.is-past {
+  opacity: 0.72;
+  border-color: hsl(220 20% 18%);
+  background: hsl(220 30% 7% / .7);
+}
+.calendar-item.is-past:hover {
+  opacity: 1;
+  border-color: var(--border-strong);
+}
+.calendar-item.is-past .calendar-date-box {
+  background: hsl(222 25% 8%);
+  border-color: hsl(220 20% 16%);
+}
+.calendar-item.is-past .calendar-date-box .day {
+  color: var(--muted);
+}
 .calendar-date-box {
   display: flex;
   flex-direction: column;
