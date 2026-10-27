@@ -1,72 +1,69 @@
 # ⚡ E(CA)² · Centro Acadêmico de Engenharia de Controle e Automação
 ### Universidade Estadual do Rio Grande do Sul – UERGS · Unidade Porto Alegre
 
-[![Status](https://img.shields.io/badge/Status-Produção_Pronta-0284c7.svg?style=flat-square)](#)
-[![Hospedagem](https://img.shields.io/badge/Deploy-Vercel_Free-000000.svg?style=flat-square&logo=vercel)](#)
+[![Status](https://img.shields.io/badge/Status-Produção_Ativa-0284c7.svg?style=flat-square)](#)
+[![Hospedagem](https://img.shields.io/badge/Deploy-Vercel_Online-000000.svg?style=flat-square&logo=vercel)](https://eca2uergs.vercel.app)
 [![Banco de Dados](https://img.shields.io/badge/Database-Supabase_PostgreSQL-3ECF8E.svg?style=flat-square&logo=supabase)](#)
 [![LGPD](https://img.shields.io/badge/Conformidade-LGPD_Lei_13.709-10b981.svg?style=flat-square)](#)
 [![PWA](https://img.shields.io/badge/PWA-Instalável-f59e0b.svg?style=flat-square)](#)
 [![Custo](https://img.shields.io/badge/Custo_Mensal-R$_0%2C00-22c55e.svg?style=flat-square)](#)
 
+> 🌐 **Acesse o Portal Oficial em Produção:**  
+> **[https://eca2uergs.vercel.app](https://eca2uergs.vercel.app)**
+
 ---
 
 ## 🏛️ Sobre o Projeto
 
-O **E(CA)²** (Centro Acadêmico de Engenharia de Controle e Automação) é a entidade representativa máxima dos estudantes do curso de Engenharia de Controle e Automação da **UERGS (Campus Porto Alegre)**. 
+O **E(CA)²** (Centro Acadêmico de Engenharia de Controle e Automação) é a entidade representativa máxima dos estudantes do curso de Engenharia de Controle e Automação da **UERGS (Campus Porto Alegre / Central)**. 
 
-Este repositório contém a **Plataforma Digital Oficial** do Centro Acadêmico e todo o **Dossiê Jurídico-Estatutário** da Assembleia Geral de Fundação convocada para **26 de outubro de 2026**.
+Este repositório contém a **Plataforma Digital Oficial** do Centro Acadêmico, desenhada para centralizar serviços acadêmicos, comunicação discente, matrizes curriculares e a agenda integrada de eventos do curso.
 
-A plataforma foi arquitetada como uma aplicação web moderna (JAMstack pura), de altíssima performance, com **custo operacional rigorosamente zero (R$ 0,00/mês)** e total conformidade com a LGPD.
+A plataforma foi arquitetada como uma aplicação web moderna (JAMstack pura em Vanilla ES6 Modules e CSS moderno), de altíssima performance, com **custo operacional rigorosamente zero (R$ 0,00/mês)** e total conformidade com a LGPD.
 
 ---
 
 ## ✨ Funcionalidades da Plataforma
 
-* 🗳️ **Urna Eletrônica Universitária:** Cédula digital para votação nas deliberações de fundação e comissão pró-CA. Permite voto individual secreto (LGPD Art. 7º) com cruzamento de censo e quórum em tempo real.
-* 📜 **Extrato Oficial de Apuração para a Ata:** Emissão com um clique de documento oficial formatado para impressão A4 e PDF, pronto para assinatura da mesa e anexo à Ata Notarial.
-* 🎓 **Comparador Interativo de PPCs (2019 vs 2024):** Visualizador de matrizes curriculares com trilhas formativas (Controle, Robótica, IA, Eletrônica e Mecânica).
-* 💼 **Mural de Estágios & Oportunidades:** Integração de vagas locais e no Polo Petroquímico/Região Metropolitana para discentes de Engenharia.
+* 🎓 **Comparador Interativo de PPCs (2019 vs 2024):** Visualizador de matrizes curriculares e matriz reativa de dependências (identificação visual imediata de pré-requisitos e disciplinas desbloqueadas).
+* 🏛️ **Agenda Integrada UERGS Porto Alegre (Scraping Oficial):** Sincronização automatizada da agenda oficial da UERGS filtrando a unidade de Porto Alegre / Campus Central (Washington Luiz), com filtro temporal dinâmico que destaca os próximos eventos e oculta eventos já realizados.
+* 👥 **Censo Discente Homologado:** Base restrita a 203 estudantes com e-mail institucional `@uergs.edu.br`.
+* 💼 **Mural de Oportunidades & Avisos:** Integração de vagas de estágio, monitorias e avisos acadêmicos para discentes de Engenharia.
 * 🛍️ **Lojinha Acadêmica:** Mostruário de produtos oficiais (moletons, copos térmicos, canecas comemorativas) para financiamento estudantil.
-* 🔐 **Painel Administrativo Discreto (RBAC Nível 3):** Área de gestão oculta do header público, acessível exclusivamente por membros de diretoria homologados, com controle de eleição e revogação de acessos.
+* 👑 **Painel Administrativo & Super Admin (RBAC Nível 3):** Área de gestão protegida por autenticação com credenciais e controle total de turmas, avisos e eventos.
 * 📱 **PWA (Progressive Web App):** Instalável no celular de alunos e professores como aplicativo nativo ("Adicionar à Tela Inicial").
-* 🌐 **Social Cards & Open Graph:** Pré-visualizações ricas e automáticas ao compartilhar o link em grupos de WhatsApp e redes sociais.
+* 🛡️ **Rotina Keep-Alive Anti-Pausa:** Automação em nuvem via GitHub Actions a cada 3 dias para garantir que o banco de dados gratuito do Supabase permaneça 100% ativo 24/7.
 
 ---
 
 ## 📁 Estrutura do Repositório
 
 ```text
-├── docs/                                  # Acervo Documental e Governança
-│   ├── fundacao/                          # Dossiê Oficial da Assembleia de Fundação
-│   │   ├── 01_Estrategia_Fundacao_Eca2.md # Cronograma e Quórum do Salchipão
-│   │   ├── 02_Edital_de_Convocacao.md     # Edital de Convocação com antecedência legal
-│   │   ├── 03_Roteiro_da_Assembleia.md    # Roteiro minuto a minuto da mesa diretora
-│   │   ├── 04_Ata_de_Fundacao.md          # Minuta para Cartório e Registro Civil
-│   │   ├── 05_Lista_de_Presenca.html      # Prancha física para assinaturas
-│   │   ├── 06_Controle_Turmas.csv         # Mapeamento dos 10 semestres
-│   │   ├── 07_Mensagens_Divulgacao.md     # Campanhas de comunicação para WhatsApp
-│   │   ├── 08_Lista_Participantes.csv     # Censo estudantil preliminar
-│   │   ├── 09_Fluxograma.md               # Fluxograma do rito da assembleia
-│   │   └── 10_Estrategia_Redes_Sociais.md # Diretrizes de engajamento
-│   ├── identidade_visual/                 # Estudos de branding, logotipos e favicons
-│   ├── GUIA_PUBLICACAO_DEPLOY_CUSTO_ZERO.md # Passo a passo para publicação na web
-│   ├── PLANO_ARQUITETURA_E_SEGURANCA_ADM.md # Especificação do RBAC e rotas restritas
-│   ├── POLITICA_DE_PRIVACIDADE_LGPD.md    # Política de Privacidade (Lei 13.709/18)
-│   └── README.md                          # Índice completo da documentação
+├── .github/workflows/                     # Automações GitHub Actions
+│   ├── scrape_weekly.yml                  # Raspagem semanal da agenda UERGS Porto Alegre
+│   └── supabase_keepalive.yml             # Heartbeat anti-inatividade do banco Supabase
+│
+├── _arquivo_historico_fundacao_26/        # Arquivo histórico reservado da fundação
+│   └── pdf/                               # PDFs estatutários e atas de fundação
+│
+├── scripts/                               # Automações e utilitários de backoffice
+│   ├── scrape_uergs_events.js             # Scraper da agenda oficial UERGS (Filtro POA)
+│   ├── auto_scrape_weekly.js              # Verificador semanal com trava de 7 dias
+│   └── supabase_keepalive.js              # Ping de atividade para o Supabase
 │
 ├── site/                                  # Código-Fonte da Aplicação Web
 │   ├── css/                               # Folhas de estilo (Design System, Admin)
+│   ├── data/                              # Dados compilados (uergs_eventos_poa.json)
 │   ├── img/                               # Ativos visuais, fotos e logotipos oficiais
 │   ├── js/                                # Módulos ES6 (App, Store, Backoffice ADM)
-│   ├── pdf/                               # Acervo de PDFs gerados e PPCs do curso
-│   ├── supabase/                          # Script SQL para o banco na nuvem
+│   ├── pdf/                               # Acervo de PPCs e manuais acadêmicos
+│   ├── supabase/                          # Schema SQL completo do banco de dados
 │   ├── index.html                         # Ponto de entrada da aplicação
-│   ├── manifest.json                      # Configuração PWA
-│   └── vercel.json                        # Cabeçalhos de segurança e cache Edge
+│   └── manifest.json                      # Configuração PWA
 │
-├── gerar_pdfs.js                          # Compilador de Markdown para PDFs elegantes (A4)
+├── vercel.json                            # Configuração de deploy da Vercel (outputDirectory: site)
 ├── package.json                           # Scripts utilitários de desenvolvimento
-└── GEMINI.md                              # Diretrizes operacionais de governança IA
+└── README.md                              # Documentação principal
 ```
 
 ---
@@ -82,34 +79,38 @@ git clone https://github.com/caeca2uergs/caeca2uergs.git
 cd caeca2uergs
 ```
 
-### 2. Iniciar o Servidor de Desenvolvimento
+### 2. Iniciar o Servidor Local
 ```bash
 npm start
 ```
 Abra no navegador em: **`http://localhost:3000`**
 
-### 3. Recompilar os PDFs da Fundação (Opcional)
-Se editar qualquer documento Markdown na pasta `docs/fundacao/`, basta rodar:
+### 3. Comandos Úteis
 ```bash
-npm run generate:pdfs
+# Validar sintaxe de todos os arquivos JS
+npm run check
+
+# Executar raspagem da agenda da UERGS (Porto Alegre)
+npm run scrape:events
+
+# Testar rotina de Keep-Alive do banco Supabase
+npm run supabase:ping
 ```
 
 ---
 
-## 🌐 Deploy na Nuvem (Custo Zero / R$ 0,00)
+## 🌐 Deploy Contínuo (Vercel & Supabase)
 
-O projeto está configurado para publicação instantânea na **Vercel** e **Supabase**:
-
-1. **Front-end:** Conecte o repositório na **Vercel**, selecionando a pasta raiz como `site`.
-2. **Banco de Dados:** Crie um projeto gratuito no **Supabase**, execute o script [`site/supabase/schema.sql`](site/supabase/schema.sql) e configure as credenciais em [`site/js/config.js`](site/js/config.js).
-3. **Instruções Detalhadas:** Consulte o [`docs/GUIA_PUBLICACAO_DEPLOY_CUSTO_ZERO.md`](docs/GUIA_PUBLICACAO_DEPLOY_CUSTO_ZERO.md).
+O repositório está integrado para deploy contínuo em produção:
+* **Produção ativa na Vercel:** [https://eca2uergs.vercel.app](https://eca2uergs.vercel.app)
+* Todo push na branch `main` dispara o deploy automático no servidor da Vercel em segundos.
+* O banco de dados PostgreSQL roda no **Supabase** sob o projeto `eca2-uergs-db` com conexões autenticadas e políticas RLS ativas.
 
 ---
 
 ## 🛡️ Privacidade & LGPD
 
 O E(CA)² preza pelo respeito absoluto aos dados dos discentes da UERGS. Esta plataforma observa todas as diretrizes da **Lei Geral de Proteção de Dados (Lei 13.709/2018)**:
-* Os votos na urna são criptograficamente dissociados da identidade do aluno;
 * Nenhum dado de navegação é vendido ou compartilhado com terceiros;
 * O acesso administrativo é restrito por controle de acesso baseado em funções (RBAC).
 
@@ -124,4 +125,4 @@ O E(CA)² preza pelo respeito absoluto aos dados dos discentes da UERGS. Esta pl
 
 ---
 
-*Desenvolvido com dedicação pela comunidade de Engenharia de Controle e Automação da UERGS.*
+*Centro Acadêmico de Engenharia de Controle e Automação – UERGS Porto Alegre.*
