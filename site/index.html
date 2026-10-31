@@ -318,25 +318,25 @@
             <span class="badge cyan" id="studio-tag-badge">Lojinha E(CA)²</span>
             <span class="badge amber" id="studio-mode-badge" style="display: none;">Personalização Ativa</span>
           </div>
-          <h2 id="dlg-shop-title" style="margin-top: .35rem;">Estúdio de Compra &amp; Personalização E(CA)²</h2>
-          <span class="small muted" id="dlg-shop-subtitle">Simule a gravação em tempo real e personalize seu material da Engenharia UERGS</span>
+          <h2 id="dlg-shop-title" style="margin-top: .35rem;">Configuração de Encomenda E(CA)²</h2>
+          <span class="small muted" id="dlg-shop-subtitle">Verifique as especificações técnicas do item e configure sua encomenda oficial</span>
         </div>
         <button type="button" class="close-x" id="btn-close-shop-order" aria-label="Fechar">&times;</button>
       </div>
 
       <div class="shop-studio-layout">
-        <!-- Coluna Esquerda: Mockup ao Vivo & Pré-visualização da Gravação -->
+        <!-- Coluna Esquerda: Mockup ao Vivo & Especificações Técnicas do Produto -->
         <div class="shop-studio-preview-col">
           <div id="shop-order-preview"></div>
           
-          <!-- Box de Transparência e Qualidade da Bancada -->
+          <!-- Box de Especificações Técnicas Reais do Produto -->
           <div class="card studio-specs-card">
-            <div class="small" style="font-weight: 600; color: var(--amber); margin-bottom: .35rem;">
-              Padrão de Engenharia &amp; Acabamento
+            <div class="small" style="font-weight: 600; color: var(--amber); margin-bottom: .45rem;" id="studio-specs-title">
+              Especificações Técnicas &amp; Material
             </div>
-            <p class="small muted" style="margin: 0; line-height: 1.5;" id="studio-specs-text">
-              Material selecionado para alta durabilidade em bancadas de automação, laboratórios e uso acadêmico contínuo. Gravação indelével que não desbota.
-            </p>
+            <div class="small muted" style="margin: 0; line-height: 1.55;" id="studio-specs-text">
+              Selecione um item do catálogo para visualizar a ficha técnica completa.
+            </div>
           </div>
         </div>
 
@@ -349,15 +349,15 @@
             <input type="hidden" id="order-position-choice" name="position_choice" value="frente">
 
             <!-- Toggle de Personalização (Quando o produto suporta) -->
-            <div id="order-custom-toggle-section" class="studio-option-group" style="display: none;">
-              <label class="studio-label">Escolha o Tipo de Edição</label>
+            <div id="order-custom-toggle-section" class="studio-option-section studio-option-group" style="display: none;">
+              <label class="studio-label" id="order-edition-label">Escolha o Tipo de Edição</label>
               <div class="studio-toggle-row">
                 <button type="button" class="studio-toggle-btn active" id="btn-mode-standard" data-mode="standard">
-                  Padrão Oficial
-                  <span class="small muted" style="display: block; font-size: .75rem;">Sem gravação extra</span>
+                  <span id="studio-std-title">Padrão Oficial</span>
+                  <span class="small muted" id="studio-std-subtitle" style="display: block; font-size: .75rem;">Sem nome adicional</span>
                 </button>
                 <button type="button" class="studio-toggle-btn" id="btn-mode-custom" data-mode="custom">
-                  Personalizado a Laser
+                  <span id="studio-custom-title">Com Nome Personalizado</span>
                   <span class="small" id="studio-extra-badge" style="display: block; font-size: .75rem; color: var(--cyan);">+ R$ 5,00</span>
                 </button>
               </div>
@@ -367,27 +367,27 @@
             <div id="order-custom-panel" class="studio-custom-panel" style="display: none;">
               <div class="field">
                 <div class="row" style="justify-content: space-between; align-items: baseline;">
-                  <label for="order-custom-text">Texto para Gravação / Nome *</label>
+                  <label for="order-custom-text" id="order-custom-text-label">Nome ou Identificação no Item *</label>
                   <span class="small font-mono muted" id="order-char-counter">0 / 26</span>
                 </div>
-                <input type="text" id="order-custom-text" name="custom_text" placeholder="Ex: SEU NOME - TURMA 2026" maxlength="26" autocomplete="off">
+                <input type="text" id="order-custom-text" name="custom_text" placeholder="Ex: SEU NOME · TURMA 2026" maxlength="26" autocomplete="off">
               </div>
 
-              <!-- Sugestões Rápidas de Gravação -->
+              <!-- Sugestões Rápidas de Personalização -->
               <div class="field">
                 <span class="small muted">Sugestões rápidas de formatação:</span>
                 <div class="chips studio-chips" id="order-suggestion-chips"></div>
               </div>
 
-              <!-- Seletor de Fonte da Gravação -->
+              <!-- Seletor de Fonte -->
               <div class="field">
-                <label class="studio-sublabel">Estilo Tipográfico da Gravação</label>
+                <label class="studio-sublabel" id="order-font-label">Tipografia da Personalização</label>
                 <div class="radio-row" id="order-font-pills"></div>
               </div>
 
-              <!-- Seletor de Posição da Gravação -->
+              <!-- Seletor de Posição -->
               <div class="field">
-                <label class="studio-sublabel">Posição no Produto</label>
+                <label class="studio-sublabel" id="order-pos-label">Posição no Produto</label>
                 <div class="radio-row" id="order-position-pills"></div>
               </div>
             </div>

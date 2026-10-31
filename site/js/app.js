@@ -2390,10 +2390,9 @@ function renderShopHtml() {
     <section class="section">
       <div class="container">
         <div class="section-head">
-          <span class="eyebrow">Merchandise & Utensílios Oficiais</span>
           <h2>Lojinha & Utensílios do E(CA)²</h2>
           <p>
-            Copos térmicos gravados a laser, canecas de laboratório com o brasão de robótica do curso, moletons neon e ferramentas de bancada.
+            Copos térmicos em inox gravados a laser, canecas em cerâmica sublimada, vestuário técnico em moletom 3 cabos / dry-fit e régua de bancada em PCB FR-4.
             Toda a receita é 100% reinvestida nos projetos acadêmicos e atividades dos estudantes da UERGS.
           </p>
         </div>
@@ -2401,7 +2400,7 @@ function renderShopHtml() {
         <!-- Categorias e Filtros da Loja -->
         <div class="toolbar" style="margin-bottom: 2rem;">
           <div class="chips" id="shop-filter-chips">
-            <button type="button" class="chip" data-shop-filter="todos" aria-pressed="true">Todos os Itens (5)</button>
+            <button type="button" class="chip" data-shop-filter="todos" aria-pressed="true">Todos os Itens (${PRODUTOS_SHOP.length})</button>
             <button type="button" class="chip" data-shop-filter="Utensílios" aria-pressed="false">Utensílios & Canecas</button>
             <button type="button" class="chip" data-shop-filter="Vestuário" aria-pressed="false">Vestuário</button>
             <button type="button" class="chip" data-shop-filter="DIY & Laboratório" aria-pressed="false">DIY & Laboratório</button>
@@ -2426,10 +2425,14 @@ function renderShopHtml() {
                   ${prod.tag || prod.categoria}
                 </span>
                 ${prod.permitePersonalizacao ? `
-                  <span class="badge amber" style="position: absolute; top: 12px; right: 12px; backdrop-filter: blur(8px); box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);">
-                    Personalizável
+                  <span class="badge cyan" style="position: absolute; top: 12px; right: 12px; backdrop-filter: blur(8px);">
+                    ${prod.tituloBotaoPersonalizado || 'Personalizável'}
                   </span>
-                ` : ''}
+                ` : `
+                  <span class="badge" style="position: absolute; top: 12px; right: 12px; backdrop-filter: blur(8px); background: hsl(222 45% 8% / .85);">
+                    Lote Padrão
+                  </span>
+                `}
                 <span class="badge" style="position: absolute; bottom: 12px; right: 12px; background: hsl(224 50% 6% / .88); color: var(--cyan); border-color: var(--cyan); font-weight: 700; font-size: .88rem;">
                   ${prod.preco}
                 </span>
@@ -2438,7 +2441,7 @@ function renderShopHtml() {
               <div class="product-card-content">
                 <div class="row" style="margin-bottom: .4rem; justify-content: space-between;">
                   <span class="small muted">${prod.categoria}</span>
-                  <span class="small" style="color: var(--amber); font-weight: 600;">Disponível</span>
+                  <span class="small" style="color: var(--amber); font-weight: 600;">${prod.tamanhos ? `Tamanhos: ${prod.tamanhos[0]} ao ${prod.tamanhos[prod.tamanhos.length - 1]}` : 'Disponível'}</span>
                 </div>
                 <h3 style="font-size: 1.18rem; margin-bottom: .6rem; line-height: 1.3;">${prod.nome}</h3>
                 <p class="muted small" style="margin-bottom: 1.1rem; flex: 1;">
@@ -2452,7 +2455,7 @@ function renderShopHtml() {
                 ` : ''}
 
                 <button type="button" class="btn btn-primary btn-sm btn-open-order" data-prod-id="${prod.id}" style="width: 100%;">
-                  ${prod.permitePersonalizacao ? 'Personalizar & Encomendar' : 'Reservar este Item'}
+                  ${prod.permitePersonalizacao ? `Configurar & Encomendar` : 'Reservar este Item'}
                 </button>
               </div>
             </div>
@@ -2460,10 +2463,10 @@ function renderShopHtml() {
         </div>
 
         <!-- Banner de Transparência Financeira do Shop -->
-        <div class="card" style="border-left: 4px solid var(--cyan); padding: 1.75rem;">
+        <div class="card" style="padding: 1.75rem;">
           <div class="grid grid-2" style="align-items: center; gap: 1.5rem;">
             <div class="row" style="gap: 1.25rem;">
-              <span class="badge amber">IDEIA</span>
+              <span class="badge amber">TRANSPARÊNCIA</span>
               <div>
                 <strong>Prestação de Contas Aberta & Preço de Custo Social</strong>
                 <p class="small muted" style="margin: .3rem 0 0;">
@@ -2505,10 +2508,18 @@ function setupShopInteractions() {
   const sizePills = document.getElementById("order-size-pills");
   const variantSelect = document.getElementById("order-variant");
 
+  const studioSpecsTitle = document.getElementById("studio-specs-title");
   const studioSpecsText = document.getElementById("studio-specs-text");
   const studioTagBadge = document.getElementById("studio-tag-badge");
   const studioModeBadge = document.getElementById("studio-mode-badge");
   const studioExtraBadge = document.getElementById("studio-extra-badge");
+  const dlgShopTitle = document.getElementById("dlg-shop-title");
+  const dlgShopSubtitle = document.getElementById("dlg-shop-subtitle");
+  const studioStdTitle = document.getElementById("studio-std-title");
+  const studioStdSubtitle = document.getElementById("studio-std-subtitle");
+  const studioCustomTitle = document.getElementById("studio-custom-title");
+  const orderCustomTextLabel = document.getElementById("order-custom-text-label");
+  const orderFontLabel = document.getElementById("order-font-label");
 
   const btnSubmitWhatsapp = document.getElementById("btn-submit-order-whatsapp");
   const btnSubmitSystem = document.getElementById("btn-submit-order-system");
@@ -2516,7 +2527,7 @@ function setupShopInteractions() {
   // Estado dinâmico do estúdio de personalização
   let currentProd = null;
   let isCustom = false;
-  let selectedFont = { id: "mono", label: "Técnica", family: "'JetBrains Mono', monospace" };
+  let selectedFont = { id: "mono", label: "Técnica (Share Tech Mono)", family: "'Share Tech Mono', monospace" };
   let selectedPos = { id: "frente", label: "Frente (Abaixo do Brasão)" };
   let selectedSize = null;
   let submitTarget = "whatsapp";
@@ -2604,15 +2615,16 @@ function setupShopInteractions() {
 
     if (laserIndicator && laserText) {
       if (isCustom) {
-        laserText.textContent = currentProd.tipoPersonalizacao || "Gravação Personalizada";
+        laserText.textContent = currentProd.tipoPersonalizacao || "Personalização Ativa";
         laserIndicator.style.borderColor = "var(--cyan)";
       } else {
-        laserText.textContent = "Padrão Oficial E(CA)²";
+        laserText.textContent = currentProd.tituloBotaoPadrao ? `${currentProd.tituloBotaoPadrao} E(CA)²` : "Padrão Oficial E(CA)²";
         laserIndicator.style.borderColor = "var(--border)";
       }
     }
 
     if (studioModeBadge) {
+      studioModeBadge.textContent = currentProd.tituloBotaoPersonalizado || "Personalização Ativa";
       studioModeBadge.style.display = isCustom ? "inline-block" : "none";
     }
   }
@@ -2630,17 +2642,37 @@ function setupShopInteractions() {
       // Reset de estado
       isCustom = false;
       customEnabledInput.value = "false";
-      selectedFont = prod.fontesDisponiveis?.[0] || { id: "mono", label: "Técnica", family: "'JetBrains Mono', monospace" };
+      selectedFont = prod.fontesDisponiveis?.[0] || { id: "mono", label: "Técnica (Share Tech Mono)", family: "'Share Tech Mono', monospace" };
       selectedPos = prod.posicoesPersonalizacao?.[0] || { id: "frente", label: "Frente (Abaixo do Brasão)" };
       fontChoiceInput.value = selectedFont.id;
       posChoiceInput.value = selectedPos.id;
+      const maxChars = prod.maxCaracteresPersonalizacao || 24;
       customTextInput.value = "";
-      charCounter.textContent = `0 / ${prod.maxCaracteresPersonalizacao || 24}`;
+      customTextInput.maxLength = maxChars;
+      customTextInput.placeholder = prod.placeholderPersonalizacao || "Ex: SEU NOME · TURMA 2026";
+      charCounter.textContent = `0 / ${maxChars}`;
 
-      if (studioTagBadge) studioTagBadge.textContent = prod.categoria;
-      if (studioSpecsText) {
-        studioSpecsText.textContent = prod.descricao || "Material nobre com garantia oficial de durabilidade em laboratórios da UERGS.";
+      if (studioTagBadge) studioTagBadge.textContent = `${prod.categoria} · ${prod.tag || "Oficial"}`;
+      if (dlgShopTitle) dlgShopTitle.textContent = prod.nome;
+      if (dlgShopSubtitle) {
+        dlgShopSubtitle.textContent = prod.subtituloEstudio || "Verifique as especificações técnicas do item e configure sua encomenda oficial";
       }
+      if (studioSpecsTitle) {
+        studioSpecsTitle.textContent = `Ficha Técnica · ${prod.categoria}`;
+      }
+      if (studioSpecsText) {
+        const specsListHtml = prod.especificacoes && prod.especificacoes.length
+          ? `<ul style="margin: .55rem 0 0; padding-left: 1.1rem; line-height: 1.55;">${prod.especificacoes.map(esp => `<li>${escapeHtml(esp)}</li>`).join("")}</ul>`
+          : "";
+        studioSpecsText.innerHTML = `<p style="margin: 0;">${escapeHtml(prod.descricao || "")}</p>${specsListHtml}`;
+      }
+
+      // Atualiza rótulos específicos do método de personalização (Laser no Inox vs Sublimação na Cerâmica vs Bordado/DTF em Vestuário)
+      if (studioStdTitle) studioStdTitle.textContent = prod.tituloBotaoPadrao || "Padrão Oficial";
+      if (studioStdSubtitle) studioStdSubtitle.textContent = prod.subtituloBotaoPadrao || "Sem personalização extra";
+      if (studioCustomTitle) studioCustomTitle.textContent = prod.tituloBotaoPersonalizado || "Personalizado";
+      if (orderCustomTextLabel) orderCustomTextLabel.textContent = prod.labelCampoPersonalizacao || "Nome ou Identificação no Item *";
+      if (orderFontLabel) orderFontLabel.textContent = prod.labelEstiloPersonalizacao || "Tipografia da Personalização";
 
       // Monta Card do Mockup ao Vivo
       previewEl.innerHTML = `
@@ -2851,7 +2883,7 @@ function setupShopInteractions() {
     }
 
     if (isCustom && !customTextInput.value.trim()) {
-      showToast("Informe o nome ou texto que deseja gravar no item.", true);
+      showToast("Informe o nome ou texto para personalização do item.", true);
       customTextInput.focus();
       return;
     }
@@ -2900,10 +2932,10 @@ function setupShopInteractions() {
         `----------------------------------------`,
         `*Produto:* ${currentProd.nome}`,
         `*Valor Total:* ${finalPriceStr}`,
-        isCustom ? `*Personalização:* SIM (${currentProd.tipoPersonalizacao || 'Gravação'})` : `*Personalização:* Não (Padrão Oficial)`,
-        isCustom ? `*Texto Gravado:* ${customText}` : null,
+        isCustom ? `*Personalização:* SIM (${currentProd.tipoPersonalizacao || 'Personalizado'})` : `*Personalização:* Não (Padrão Oficial)`,
+        isCustom ? `*Texto Personalizado:* ${customText}` : null,
         isCustom ? `*Posição:* ${selectedPos.label}` : null,
-        isCustom ? `*Fonte:* ${selectedFont.label}` : null,
+        isCustom ? `*Tipografia:* ${selectedFont.label}` : null,
         selectedSize ? `*Tamanho:* ${selectedSize}` : null,
         `----------------------------------------`,
         `*Estudante:* ${name}`,
@@ -2912,7 +2944,7 @@ function setupShopInteractions() {
         obs ? `*Obs:* ${obs}` : null,
         `----------------------------------------`,
         `*Chave PIX:* ca.eca2.uergs@gmail.com`,
-        `_Estou enviando este pedido oficial com personalização configurada no site._`
+        `_Estou enviando este pedido oficial configurado no portal E(CA)²._`
       ].filter(Boolean).join("\n");
 
       const waUrl = `https://api.whatsapp.com/send?phone=5551989508930&text=${encodeURIComponent(msg)}`;

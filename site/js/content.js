@@ -333,12 +333,18 @@ export const PRODUTOS_SHOP = [
     precoNum: 68.0,
     foto: "img/shop_copo_termico.jpg",
     destaque: true,
-    tag: "Gravação a Laser",
+    tag: "Gravação a Laser no Inox",
     permitePersonalizacao: true,
-    tipoPersonalizacao: "Gravação a Laser de Fibra Indelével",
+    tituloBotaoPadrao: "Padrão Oficial",
+    subtituloBotaoPadrao: "Apenas brasão E(CA)²",
+    tituloBotaoPersonalizado: "Gravação a Laser",
+    tipoPersonalizacao: "Gravação a Laser de Fibra no Inox",
+    labelCampoPersonalizacao: "Nome ou Texto para Gravação a Laser *",
+    labelEstiloPersonalizacao: "Tipografia da Gravação no Inox",
+    subtituloEstudio: "Simule a gravação a laser em tempo real no aço inox 304 do seu copo térmico",
     taxaPersonalizacao: 5.0,
     taxaPersonalizacaoTexto: "+ R$ 5,00",
-    placeholderPersonalizacao: "Ex: WILLIAN SANTOS - 2026/1",
+    placeholderPersonalizacao: "Ex: WILLIAN SANTOS · 2026/1",
     maxCaracteresPersonalizacao: 26,
     posicoesPersonalizacao: [
       { id: "frente", label: "Frente (Abaixo do Brasão)" },
@@ -346,18 +352,17 @@ export const PRODUTOS_SHOP = [
       { id: "vertical", label: "Lateral Vertical" }
     ],
     fontesDisponiveis: [
-      { id: "mono", label: "Técnica (JetBrains Mono)", family: "'JetBrains Mono', monospace" },
-      { id: "sans", label: "Moderna (Inter)", family: "'Inter', sans-serif" },
-      { id: "tech", label: "Futurista (Space Grotesk)", family: "'Space Grotesk', sans-serif" }
+      { id: "mono", label: "Técnica (Share Tech Mono)", family: "'Share Tech Mono', monospace" },
+      { id: "tech", label: "Industrial (Chakra Petch)", family: "'Chakra Petch', sans-serif" },
+      { id: "sans", label: "Limpa (Barlow)", family: "'Barlow', sans-serif" }
     ],
     sugestoesRapidas: ["SEU NOME", "NOME · TURMA 2026", "ENG. AUTOMAÇÃO", "E(CA)² UERGS"],
-    descricao: "Aço inoxidável 304 com parede dupla isolada a vácuo, acabamento preto fosco acetinado e gravação a laser permanente do logotipo E(CA)² Engenharia de Controle e Automação - UERGS e trilhas de circuito. Mantém bebidas geladas por até 12h ou café quente por 6h.",
+    descricao: "Copo térmico em aço inoxidável 304 com parede dupla isolada a vácuo, pintura eletrostática preto fosco e gravação a laser de fibra permanente direto no metal revelando o inox escovado.",
     especificacoes: [
-      "Capacidade: 500 ml",
-      "Material: Aço Inoxidável 304 (Livre de BPA)",
-      "Gravação: Laser de fibra indelével de altíssima precisão",
-      "Tampa hermética com vedação de silicone e abridor embutido",
-      "Seguro para uso em laboratório com proteção antiqueda"
+      "Capacidade e Isolamento: 500 ml com parede dupla a vácuo (12h gelado / 6h quente)",
+      "Material: Aço Inoxidável 304 grau alimentício (Livre de BPA, não retém odor)",
+      "Personalização: Gravação a laser de fibra indelével direto na superfície metálica",
+      "Tampa: Acrílico translúcido hermético com anel de vedação em silicone e abridor embutido"
     ]
   },
   {
@@ -368,94 +373,118 @@ export const PRODUTOS_SHOP = [
     precoNum: 38.0,
     foto: "img/shop_caneca_lab.jpg",
     destaque: true,
-    tag: "Café do Engenheiro",
+    tag: "Sublimação Térmica",
     permitePersonalizacao: true,
-    tipoPersonalizacao: "Sublimação Térmica com Nome no Verso",
+    tituloBotaoPadrao: "Arte Oficial Padrão",
+    subtituloBotaoPadrao: "Sem nome adicional",
+    tituloBotaoPersonalizado: "Nome na Sublimação",
+    tipoPersonalizacao: "Sublimação Térmica de Alta Definição",
+    labelCampoPersonalizacao: "Nome ou Apelido Impresso na Caneca *",
+    labelEstiloPersonalizacao: "Tipografia da Impressão Térmica",
+    subtituloEstudio: "Configure sua caneca de cerâmica vitrificada com nome impresso na arte por sublimação",
     taxaPersonalizacao: 4.0,
     taxaPersonalizacaoTexto: "+ R$ 4,00",
     placeholderPersonalizacao: "Ex: SEU NOME / APELIDO",
     maxCaracteresPersonalizacao: 22,
     posicoesPersonalizacao: [
       { id: "verso", label: "Verso da Caneca" },
-      { id: "frente", label: "Abaixo da Engrenagem" }
+      { id: "frente", label: "Abaixo do Brasão" }
     ],
     fontesDisponiveis: [
-      { id: "mono", label: "Técnica (JetBrains Mono)", family: "'JetBrains Mono', monospace" },
-      { id: "sans", label: "Moderna (Inter)", family: "'Inter', sans-serif" },
-      { id: "tech", label: "Futurista (Space Grotesk)", family: "'Space Grotesk', sans-serif" }
+      { id: "mono", label: "Técnica (Share Tech Mono)", family: "'Share Tech Mono', monospace" },
+      { id: "tech", label: "Industrial (Chakra Petch)", family: "'Chakra Petch', sans-serif" },
+      { id: "sans", label: "Limpa (Barlow)", family: "'Barlow', sans-serif" }
     ],
     sugestoesRapidas: ["SEU NOME", "NOME · CAFEÍNA++", "ENG. DE CONTROLE"],
-    descricao: "Cerâmica nobre preta fosca com estampa em alta definição neon ciano e âmbar, apresentando o brasão E(CA)², engrenagens e robótica da Engenharia de Controle e Automação UERGS. Perfeita para as maratonas de programação e bancada de ensaios.",
+    descricao: "Caneca cilíndrica em cerâmica vitrificada classe AAA com arte oficial da Engenharia de Controle e Automação UERGS aplicada por termo-transferência (sublimação) de alta resistência.",
     especificacoes: [
-      "Capacidade: 350 ml",
-      "Material: Cerâmica premium fosca com interior vitrificado",
-      "Estampa: Sublimação térmica ultra resistente a micro-ondas e lava-louças",
-      "Pegada anatômica para conforto na bancada de ensaios"
+      "Capacidade e Formato: 350 ml cilíndrica com alça anatômica reforçada",
+      "Material: Cerâmica resinada classe AAA com acabamento vitrificado brilhante/acetinado",
+      "Processo de Estampa: Sublimação térmica a 200 °C integrada ao verniz (não descasca)",
+      "Uso Diário: Compatível com micro-ondas e lavagem frequente em copa/laboratório"
     ]
   },
   {
     id: "moletom-neon",
     categoria: "Vestuário",
-    nome: "Moletom Canguru E(CA)² Neon",
+    nome: "Moletom Canguru E(CA)² Oficial",
     preco: "R$ 139,90",
     precoNum: 139.9,
     foto: "img/shop_moletom.jpg",
     destaque: true,
-    tag: "Lote Inaugural",
+    tag: "Moletom 3 Cabos",
     tamanhos: ["P", "M", "G", "GG", "XGG"],
     permitePersonalizacao: true,
-    tipoPersonalizacao: "Estampa de Nome/Apelido na Manga ou Costas",
+    tituloBotaoPadrao: "Moletom Padrão",
+    subtituloBotaoPadrao: "Apenas arte oficial",
+    tituloBotaoPersonalizado: "Bordado / Estampa DTF",
+    tipoPersonalizacao: "Aplicação Têxtil (Bordado ou Filme DTF)",
+    labelCampoPersonalizacao: "Nome, Sobrenome ou Apelido no Tecido *",
+    labelEstiloPersonalizacao: "Tipografia da Aplicação Têxtil",
+    subtituloEstudio: "Escolha o tamanho (P ao XGG) e adicione seu nome opcional em bordado ou filme DTF têxtil",
     taxaPersonalizacao: 10.0,
     taxaPersonalizacaoTexto: "+ R$ 10,00",
     placeholderPersonalizacao: "Ex: SOBRENOME OU APELIDO",
     maxCaracteresPersonalizacao: 18,
     posicoesPersonalizacao: [
-      { id: "manga", label: "Manga Direita" },
-      { id: "costas", label: "Costas (Abaixo da Gola)" },
-      { id: "peito", label: "Peito Direito" }
+      { id: "manga", label: "Manga Direita (Punho)" },
+      { id: "peito", label: "Peito Direito" },
+      { id: "costas", label: "Costas (Abaixo da Gola)" }
     ],
     fontesDisponiveis: [
-      { id: "tech", label: "Futurista (Space Grotesk)", family: "'Space Grotesk', sans-serif" },
-      { id: "mono", label: "Técnica (JetBrains Mono)", family: "'JetBrains Mono', monospace" }
+      { id: "tech", label: "Industrial (Chakra Petch)", family: "'Chakra Petch', sans-serif" },
+      { id: "mono", label: "Técnica (Share Tech Mono)", family: "'Share Tech Mono', monospace" },
+      { id: "sans", label: "Limpa (Barlow)", family: "'Barlow', sans-serif" }
     ],
     sugestoesRapidas: ["SEU SOBRENOME", "APELIDO", "TURMA 2026"],
-    descricao: "Moletom flanelado 100% algodão de alta gramatura, com capuz forrado, bolso frontal canguru e estampa em silk-screen neon com brasão futurista e tipografia do E(CA)² Controle e Automação UERGS.",
+    descricao: "Moletom universitário pesado (3 cabos flanelado) com interior peluciado de alto isolamento térmico para o inverno gaúcho, capuz duplo forrado, bolso canguru e estampa têxtil oficial E(CA)² UERGS.",
     especificacoes: [
-      "Tecido: 100% algodão flanelado 3 cabos (não encolhe)",
-      "Estampa: Serigrafia de alta resistência ciano/laranja",
-      "Tamanhos: P, M, G, GG, XGG (Modelagem unissex)"
+      "Tecido: Moletom 3 cabos peluciado (gramatura 320 g/m² — 50% algodão / 50% poliéster, não encolhe)",
+      "Acabamento: Capuz duplo forrado com cordão ajustável, bolso canguru e punhos/barra em ribana canelada",
+      "Arte Principal: Serigrafia têxtil (Silk-Screen) de alta densidade no peito e nas costas",
+      "Personalização Têxtil: Nome ou apelido aplicado em filme DTF têxtil ou bordado eletrônico",
+      "Grade de Tamanhos: P, M, G, GG e XGG (Modelagem regular unissex)"
     ]
   },
   {
     id: "camiseta-tecnica",
     categoria: "Vestuário",
-    nome: "Camiseta Técnica do Curso (Dry-Fit)",
+    nome: "Camiseta Técnica do Curso (Dry-Fit / Algodão)",
     preco: "R$ 49,90",
     precoNum: 49.9,
     foto: "img/shop_camiseta.jpg",
     destaque: true,
-    tag: "Conforto Diário",
+    tag: "Vestuário Técnico",
     tamanhos: ["P", "M", "G", "GG", "XGG"],
     permitePersonalizacao: true,
-    tipoPersonalizacao: "Nome ou Apelido Estampado",
+    tituloBotaoPadrao: "Camiseta Padrão",
+    subtituloBotaoPadrao: "Apenas estampa oficial",
+    tituloBotaoPersonalizado: "Nome em DTF Têxtil",
+    tipoPersonalizacao: "Estampa Têxtil DTF de Toque Zero",
+    labelCampoPersonalizacao: "Nome ou Apelido para Estampa Têxtil *",
+    labelEstiloPersonalizacao: "Tipografia da Estampa DTF",
+    subtituloEstudio: "Selecione o tamanho (P ao XGG) e adicione seu nome opcional em estampa têxtil DTF",
     taxaPersonalizacao: 5.0,
     taxaPersonalizacaoTexto: "+ R$ 5,00",
-    placeholderPersonalizacao: "Ex: SEU NOME",
+    placeholderPersonalizacao: "Ex: SEU NOME · TURMA 2026",
     maxCaracteresPersonalizacao: 20,
     posicoesPersonalizacao: [
-      { id: "peito", label: "Peito Direito" },
-      { id: "manga", label: "Manga Esquerda" }
+      { id: "manga", label: "Manga Esquerda" },
+      { id: "peito", label: "Peito Direito" }
     ],
     fontesDisponiveis: [
-      { id: "sans", label: "Moderna (Inter)", family: "'Inter', sans-serif" },
-      { id: "mono", label: "Técnica (JetBrains Mono)", family: "'JetBrains Mono', monospace" }
+      { id: "sans", label: "Limpa (Barlow)", family: "'Barlow', sans-serif" },
+      { id: "tech", label: "Industrial (Chakra Petch)", family: "'Chakra Petch', sans-serif" },
+      { id: "mono", label: "Técnica (Share Tech Mono)", family: "'Share Tech Mono', monospace" }
     ],
-    sugestoesRapidas: ["SEU NOME", "TURMA 2026"],
-    descricao: "Camiseta preta leve e respirável com diagrama esquemático de malha de controle PID nas costas e logo minimalista no peito.",
+    sugestoesRapidas: ["SEU NOME", "TURMA 2026", "ENG. AUTOMAÇÃO"],
+    descricao: "Camiseta preta de modelagem técnica com diagrama esquemático da malha fechada de controle PID nas costas e brasão minimalista E(CA)² UERGS no peito.",
     especificacoes: [
-      "Tecido: Poliamida tecnológica Dry-Fit respirável (opção em algodão penteado 30.1)",
-      "Gola reforçada com costura dupla",
-      "Ideal para uso diário e visitas técnicas em indústrias"
+      "Tecido: Malha Dry-Fit Poliamida respirável ou Algodão Penteado 30.1 (165 g/m², antipilling)",
+      "Costura: Gola redonda em ribana com reforço ombro a ombro em ponto corrente",
+      "Arte Principal: Serigrafia têxtil de toque leve nas costas (diagrama PID) e peito",
+      "Personalização Têxtil: Aplicação opcional de nome/turma em filme DTF termocolante elástico",
+      "Grade de Tamanhos: P, M, G, GG e XGG (Ideal para bancada e visitas técnicas)"
     ]
   },
   {
@@ -468,11 +497,13 @@ export const PRODUTOS_SHOP = [
     destaque: true,
     tag: "Ferramenta de Bancada",
     permitePersonalizacao: false,
-    descricao: "Régua técnica fabricada em fibra de vidro FR-4 (placa de circuito impresso real) de 15cm com gabarito de componentes SMD, tamanhos de trilhas (AWG/mils) e pinouts, mais pack com 6 adesivos em vinil laminado à prova d'água.",
+    subtituloEstudio: "Item de lote fechado com especificações padronizadas de fábrica (PCB FR-4 + Vinil)",
+    descricao: "Régua técnica de 15 cm fabricada em placa de circuito impresso real (fibra de vidro FR-4 com acabamento em ouro químico ENIG), gabarito de encapsulamentos SMD, bitolas de trilhas (AWG/mils) e guia de pinouts, acompanhada de 6 adesivos impermeáveis.",
     especificacoes: [
-      "Régua em PCB FR-4 com acabamento de ouro químico ENIG",
-      "Pack com 6 adesivos vinílicos automotivos cortados a laser",
-      "Compatível com notebooks, estojos e caixas organizadoras"
+      "Régua PCB: Fibra de vidro FR-4 (15 cm, espessura 1,6 mm) com máscara preta fosca e ouro químico ENIG",
+      "Gabarito Técnico: Encapsulamentos SMD (0402 a 1206, SOIC, QFP, SOT-23), furos em mm/mils e tabela AWG",
+      "Pack de Adesivos: 6 adesivos em vinil polimérico impermeável com laminação UV e recorte eletrônico (plotter)",
+      "Aplicação: Ideal para bancada de eletrônica, prototipagem em protoboard e identificação de notebooks"
     ]
   }
 ];
