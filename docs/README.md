@@ -10,25 +10,25 @@ Todos os documentos foram redigidos e estruturados para atender os requisitos es
 
 | Arquivo Markdown | Arquivo PDF Compilado | Finalidade |
 | :--- | :--- | :--- |
-| [`01_Estrategia_Fundacao_Eca2.md`](fundacao/01_Estrategia_Fundacao_Eca2.md) | [`01_Estrategia_Fundacao_Eca2.pdf`](../site/pdf/01_Estrategia_Fundacao_Eca2.pdf) | Cronograma mestre, quórum de 20% do censo e plano do Salchipão. |
-| [`02_Edital_de_Convocacao.md`](fundacao/02_Edital_de_Convocacao.md) | [`02_Edital_de_Convocacao.pdf`](../site/pdf/02_Edital_de_Convocacao.pdf) | Edital solene com 8 dias de antecedência publicado na Unidade. |
-| [`03_Roteiro_da_Assembleia.md`](fundacao/03_Roteiro_da_Assembleia.md) | [`03_Roteiro_da_Assembleia.pdf`](../site/pdf/03_Roteiro_da_Assembleia.pdf) | Roteiro minuto a minuto com falas da mesa e rito de votação. |
-| [`04_Ata_de_Fundacao.md`](fundacao/04_Ata_de_Fundacao.md) | [`04_Ata_de_Fundacao.pdf`](../site/pdf/04_Ata_de_Fundacao.pdf) | Minuta formal para registro civil, cartório e homologação na Reitoria. |
-| [`05_Lista_de_Presenca.html`](fundacao/05_Lista_de_Presenca.html) | [`05_Lista_de_Presenca.pdf`](../site/pdf/05_Lista_de_Presenca.pdf) | Prancha de assinaturas físicas com campos para nome, matrícula e semestre. |
+| [`01_Estrategia_Fundacao_Eca2.md`](fundacao/01_Estrategia_Fundacao_Eca2.md) | [`01_Estrategia_Fundacao_Eca2.pdf`](../_arquivo_historico_fundacao_26/pdf/01_Estrategia_Fundacao_Eca2.pdf) | Cronograma mestre, quórum de 20% do censo e plano do Salchipão. |
+| [`02_Edital_de_Convocacao.md`](fundacao/02_Edital_de_Convocacao.md) | [`02_Edital_de_Convocacao.pdf`](../_arquivo_historico_fundacao_26/pdf/02_Edital_de_Convocacao.pdf) | Edital solene com 8 dias de antecedência publicado na Unidade. |
+| [`03_Roteiro_da_Assembleia.md`](fundacao/03_Roteiro_da_Assembleia.md) | [`03_Roteiro_da_Assembleia.pdf`](../_arquivo_historico_fundacao_26/pdf/03_Roteiro_da_Assembleia.pdf) | Roteiro minuto a minuto com falas da mesa e rito de votação. |
+| [`04_Ata_de_Fundacao.md`](fundacao/04_Ata_de_Fundacao.md) | [`04_Ata_de_Fundacao.pdf`](../_arquivo_historico_fundacao_26/pdf/04_Ata_de_Fundacao.pdf) | Minuta formal para registro civil, cartório e homologação na Reitoria. |
+| [`05_Lista_de_Presenca.html`](fundacao/05_Lista_de_Presenca.html) | [`05_Lista_de_Presenca.pdf`](../_arquivo_historico_fundacao_26/pdf/05_Lista_de_Presenca.pdf) | Prancha de assinaturas físicas com campos para nome, matrícula e semestre. |
 | [`06_Controle_Turmas.csv`](fundacao/06_Controle_Turmas.csv) | — | Mapeamento das 10 turmas ativas do curso e embaixadores. |
-| [`07_Mensagens_Divulgacao.md`](fundacao/07_Mensagens_Divulgacao.md) | [`07_Mensagens_Divulgacao.pdf`](../site/pdf/07_Mensagens_Divulgacao.pdf) | Copys oficiais para WhatsApp, murais e abordagem em sala de aula. |
-| [`08_Lista_Participantes.csv`](fundacao/08_Lista_Participantes.csv) | — | Base do censo de estudantes (235 discentes). |
-| [`09_Fluxograma.md`](fundacao/09_Fluxograma.md) | [`09_Fluxograma.pdf`](../site/pdf/09_Fluxograma.pdf) | Diagrama de fluxo operacional da fundação do CA. |
-| [`10_Estrategia_Atracao_Redes_Sociais.md`](fundacao/10_Estrategia_Atracao_Redes_Sociais.md) | [`10_Estrategia_Atracao_Redes_Sociais.pdf`](../site/pdf/10_Estrategia_Atracao_Redes_Sociais.pdf) | Campanhas visuais para engajamento dos calouros e veteranos. |
+| [`07_Mensagens_Divulgacao.md`](fundacao/07_Mensagens_Divulgacao.md) | [`07_Mensagens_Divulgacao.pdf`](../_arquivo_historico_fundacao_26/pdf/07_Mensagens_Divulgacao.pdf) | Copys oficiais para WhatsApp, murais e abordagem em sala de aula. |
+| [`08_Lista_Participantes.csv`](fundacao/08_Lista_Participantes.csv) | — | Base homologada do censo de estudantes (203 discentes). |
+| [`09_Fluxograma.md`](fundacao/09_Fluxograma.md) | [`09_Fluxograma.pdf`](../_arquivo_historico_fundacao_26/pdf/09_Fluxograma.pdf) | Diagrama de fluxo operacional da fundação do CA. |
+| [`10_Estrategia_Atracao_Redes_Sociais.md`](fundacao/10_Estrategia_Atracao_Redes_Sociais.md) | [`10_Estrategia_Atracao_Redes_Sociais.pdf`](../_arquivo_historico_fundacao_26/pdf/10_Estrategia_Atracao_Redes_Sociais.pdf) | Campanhas visuais para engajamento dos calouros e veteranos. |
 
 ---
 
 ## 📜 2. Estatutos & Matrizes PPC Vigentes (`site/pdf/`)
 
-* **[Estatuto Oficial E(CA)² 2026](../site/pdf/Estatuto_ECA2_2026.pdf):** Estatuto social da entidade.
-* **[Estatuto da Representação Discente UERGS](../site/pdf/Estatuto_Representacao_Discente.pdf):** Regulamento geral da UERGS.
-* **[PPC Controle e Automação 2024 (Vigente)](../site/pdf/PPC_Controle_Automacao_2024_Vigente.pdf):** Projeto Pedagógico do Curso atual.
-* **[PPC Controle e Automação 2019 (Antigo)](../site/pdf/PPC_Controle_Automacao_2019_Antigo.pdf):** Histórico para equivalências de disciplinas.
+* **[Estatuto Oficial E(CA)² 2026](../site/pdf/Estatuto_ECA2_2026.pdf):** Estatuto social da entidade estudantil.
+* **[Estatuto da Representação Discente de Controle e Automação](../site/pdf/Estatuto_Representacao_Discente.pdf):** Regimento específico da Representação Discente do curso de Engenharia de Controle e Automação.
+* **[PPC Controle e Automação 2024 (Vigente)](../site/pdf/PPC_Controle_Automacao_2024_Vigente.pdf):** Projeto Pedagógico do Curso atual (4.015h · 235 créditos).
+* **[PPC Controle e Automação 2019 (Antigo)](../site/pdf/PPC_Controle_Automacao_2019_Antigo.pdf):** Histórico para equivalências de disciplinas (3.765h · 243 créditos).
 
 ---
 

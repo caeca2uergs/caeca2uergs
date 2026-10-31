@@ -32,23 +32,19 @@
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Chakra+Petch:wght@600;700&family=JetBrains+Mono:wght@500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/styles.css?v=20261027_upcoming_v11">
-  <link rel="stylesheet" href="css/admin.css?v=20261025_admin2">
+  <link rel="stylesheet" href="css/styles.css?v=20261031_futurist_v1">
+  <link rel="stylesheet" href="css/admin.css?v=20261031_futurist_v1">
 </head>
 <body>
 
-  <!-- Efeitos de Fundo (Circuito / Gradiente Animado) -->
-  <div class="bg-fx" aria-hidden="true">
-    <div class="orb a"></div>
-    <div class="orb b"></div>
-    <div class="orb c"></div>
-  </div>
+  <!-- Superfície Atmosférica de Chassi -->
+  <div class="bg-fx" aria-hidden="true"></div>
 
   <!-- Barra de Notificação Demo (Modo Demonstração) -->
   <aside id="demo-banner" class="demo-banner" style="display: none;" aria-label="Aviso de Modo Demonstração">
-    <strong>Modo Demonstração ativo:</strong> dados armazenados localmente no seu navegador.
+    <strong>MODO DEMONSTRAÇÃO ATIVO //</strong> dados armazenados localmente no seu navegador.
     <button type="button" id="btn-reset-demo" title="Redefinir dados">Restaurar dados de teste</button>
   </aside>
 
@@ -57,15 +53,15 @@
     <div class="container">
       <nav class="nav" aria-label="Navegação principal">
         <a href="#inicio" class="brand" title="E(CA)² - Engenharia de Controle e Automação UERGS">
-          <img src="img/logo_option2_microchip.jpg" alt="Logo E(CA)² Microchip" class="brand-logo-img" width="42" height="42">
+          <img src="img/logo_option2_microchip.jpg" alt="Logo E(CA)² Microchip" class="brand-logo-img" width="40" height="40">
           <div>
-            <span>E(CA)² · UERGS</span>
-            <small>Eng. Controle & Automação</small>
+            <span>E(CA)² // UERGS</span>
+            <small>CONTROLE &amp; AUTOMAÇÃO</small>
           </div>
         </a>
 
         <button type="button" class="btn btn-ghost btn-sm nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Abrir menu de navegação">
-          Menu
+          MENU
         </button>
 
         <ul class="nav-links" id="nav-links">
@@ -75,11 +71,11 @@
               CURSO <span class="arrow" aria-hidden="true">▾</span>
             </button>
             <ul class="nav-dropdown-menu">
-              <li><a href="#curso" data-nav="curso-perfil">📘 Sobre o Curso</a></li>
-              <li><a href="#curso/arvore" data-nav="curso-arvore">🌳 Matriz & Árvores PPC</a></li>
-              <li><a href="#curso/labs" data-nav="curso-labs">🔬 Laboratórios & Bancadas</a></li>
-              <li><a href="#curso/estagios" data-nav="curso-estagios">💼 Estágios, TCC & CREA</a></li>
-              <li><a href="#curso/beneficios" data-nav="curso-beneficios">🎁 Benefícios & Monitoria</a></li>
+              <li><a href="#curso" data-nav="curso-perfil"><span class="nav-code">01</span> Sobre o Curso</a></li>
+              <li><a href="#curso/arvore" data-nav="curso-arvore"><span class="nav-code">02</span> Matriz &amp; Árvores PPC</a></li>
+              <li><a href="#curso/labs" data-nav="curso-labs"><span class="nav-code">03</span> Laboratórios &amp; Bancadas</a></li>
+              <li><a href="#curso/estagios" data-nav="curso-estagios"><span class="nav-code">04</span> Estágios, TCC &amp; CREA</a></li>
+              <li><a href="#curso/beneficios" data-nav="curso-beneficios"><span class="nav-code">05</span> Benefícios &amp; Monitoria</a></li>
             </ul>
           </li>
 
@@ -89,10 +85,10 @@
               CA <span class="arrow" aria-hidden="true">▾</span>
             </button>
             <ul class="nav-dropdown-menu">
-              <li><a href="#ca" data-nav="ca">⚡ Quem Somos & Gestão</a></li>
-              <li><a href="#documentos" data-nav="documentos">📜 Estatuto & Regimentos</a></li>
-              <li><a href="#documentos" data-nav="documentos">📊 Transparência & Contas</a></li>
-              <li><a href="mailto:ca.eca2.uergs@gmail.com" target="_blank" rel="noopener">📬 Fale com o CA / Ouvidoria</a></li>
+              <li><a href="#ca" data-nav="ca"><span class="nav-code">01</span> Quem Somos &amp; Gestão</a></li>
+              <li><a href="#documentos" data-nav="documentos"><span class="nav-code">02</span> Estatuto &amp; Regimentos</a></li>
+              <li><a href="#transparencia" data-nav="transparencia"><span class="nav-code">03</span> Transparência &amp; Contas</a></li>
+              <li><a href="#ouvidoria" data-nav="ouvidoria"><span class="nav-code">04</span> Fale com o CA / Ouvidoria</a></li>
             </ul>
           </li>
 
@@ -102,12 +98,12 @@
               ESTUDANTE <span class="arrow" aria-hidden="true">▾</span>
             </button>
             <ul class="nav-dropdown-menu">
-              <li><a href="#perfil" data-nav="perfil">🎛️ Simulador de Matrícula</a></li>
-              <li><a href="#perfil" data-nav="perfil">📈 Meu Histórico & Progresso</a></li>
-              <li><a href="#mural" data-nav="mural">📌 Mural & Oportunidades</a></li>
-              <li><a href="#forum" data-nav="forum">💬 Fórum dos Estudantes</a></li>
-              <li><a href="#faq" data-nav="faq">📖 Guia do Calouro & FAQ</a></li>
-              <li><a href="#registro" data-nav="registro">📝 Cadastro de Estudante</a></li>
+              <li><a href="#matricula" data-nav="matricula"><span class="nav-code">01</span> Simulador de Matrícula</a></li>
+              <li><a href="#perfil" data-nav="perfil"><span class="nav-code">02</span> Meu Histórico &amp; Progresso</a></li>
+              <li><a href="#mural" data-nav="mural"><span class="nav-code">03</span> Mural &amp; Oportunidades</a></li>
+              <li><a href="#forum" data-nav="forum"><span class="nav-code">04</span> Fórum dos Estudantes</a></li>
+              <li><a href="#faq" data-nav="faq"><span class="nav-code">05</span> Guia do Calouro &amp; FAQ</a></li>
+              <li><a href="#registro" data-nav="registro"><span class="nav-code">06</span> Cadastro &amp; Credencial PCB</a></li>
             </ul>
           </li>
 
@@ -117,30 +113,39 @@
               UERGS <span class="arrow" aria-hidden="true">▾</span>
             </button>
             <ul class="nav-dropdown-menu">
-              <li><a href="https://sga.uergs.edu.br" target="_blank" rel="noopener">🌐 Portal do Aluno (SGA) ↗</a></li>
-              <li><a href="#curso/beneficios" data-nav="curso-beneficios">🎁 Bolsas & Auxílios UERGS</a></li>
-              <li><a href="#documentos" data-nav="documentos">⚖️ Normas & Resoluções CONEPE</a></li>
-              <li><a href="https://maps.google.com/?q=Rua+Washington+Luiz,+675,+Porto+Alegre" target="_blank" rel="noopener">📍 Campus Porto Alegre ↗</a></li>
+              <li><a href="https://academico.uergs.edu.br/core/login" target="_blank" rel="noopener"><span class="nav-code">EXT</span> Portal do Aluno UERGS ↗</a></li>
+              <li><a href="#curso/beneficios" data-nav="curso-beneficios"><span class="nav-code">AUX</span> Bolsas &amp; Auxílios UERGS</a></li>
+              <li><a href="#documentos" data-nav="documentos"><span class="nav-code">DOC</span> Normas &amp; Resoluções CONEPE</a></li>
+              <li><a href="https://maps.google.com/?q=Rua+Washington+Luiz,+675,+Porto+Alegre" target="_blank" rel="noopener"><span class="nav-code">GEO</span> Campus Porto Alegre ↗</a></li>
             </ul>
           </li>
 
           <!-- 5. EVENTOS (Acesso Direto) -->
           <li>
             <a href="#eventos" data-nav="eventos" class="nav-direct-eventos">
-              📅 EVENTOS
+              EVENTOS
             </a>
           </li>
 
           <!-- 6. LOJINHA (Acesso Direto) -->
           <li>
             <a href="#shop" data-nav="shop" class="nav-direct-shop">
-              🛍️ LOJINHA
+              LOJINHA
             </a>
+          </li>
+
+          <!-- 7. BUSCA GLOBAL (Command Palette Ctrl+K) -->
+          <li>
+            <button type="button" class="btn btn-ghost btn-sm cmd-search-trigger" id="btn-open-cmd-palette" title="Busca Global Instantânea (Ctrl+K)" aria-label="Abrir busca global">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <span>BUSCAR</span>
+              <kbd class="cmd-kbd">Ctrl+K</kbd>
+            </button>
           </li>
 
           <!-- Slot de Login / Perfil -->
           <li id="auth-nav-slot">
-            <button type="button" class="btn btn-primary btn-sm" id="btn-open-login">Entrar</button>
+            <button type="button" class="btn btn-primary btn-sm" id="btn-open-login">ENTRAR</button>
           </li>
         </ul>
       </nav>
@@ -292,7 +297,7 @@
         <div id="prof-admin-section" style="display: none; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px dashed var(--border);">
           <div class="row" style="justify-content: space-between; align-items: center; gap: .75rem;">
             <div>
-              <span class="badge amber" style="font-size: .75rem;">⭐ DIRETORIA HOMOLOGADA</span>
+              <span class="badge amber" style="font-size: .76rem;">DIRETORIA HOMOLOGADA</span>
               <p class="small muted" style="margin: .25rem 0 0; font-size: .8rem;">Acesso de gestão do Centro Acadêmico.</p>
             </div>
             <button type="button" class="btn btn-primary btn-sm" id="btn-profile-open-admin" style="background: var(--amber); color: #000; border-color: var(--amber); font-weight: 600;">
@@ -426,13 +431,13 @@
             <div class="field studio-pix-box">
               <div class="row" style="justify-content: space-between; align-items: center; margin-bottom: .4rem;">
                 <span class="small" style="color: var(--amber); font-weight: 600;">Chave PIX Oficial do E(CA)²:</span>
-                <span class="badge green" style="font-size: .68rem;">Lote com Garantia</span>
+                <span class="badge green" style="font-size: .76rem;">Lote com Garantia</span>
               </div>
               <div class="row" style="justify-content: space-between; align-items: center; gap: .5rem;">
                 <code id="pix-key-display" style="font-family: var(--font-mono); font-size: .85rem; color: var(--cyan);">ca.eca2.uergs@gmail.com</code>
-                <button type="button" class="btn btn-ghost btn-sm" id="btn-copy-pix" style="min-height: 28px; padding: .2rem .6rem; font-size: .75rem;">Copiar PIX</button>
+                <button type="button" class="btn btn-ghost btn-sm" id="btn-copy-pix" style="min-height: 28px; padding: .2rem .6rem; font-size: .76rem;">Copiar PIX</button>
               </div>
-              <p class="small muted" style="margin: .4rem 0 0; font-size: .74rem; line-height: 1.4;">
+              <p class="small muted" style="margin: .4rem 0 0; font-size: .76rem; line-height: 1.4;">
                 A reserva garante o item no lote oficial. Você pode pagar agora via PIX e enviar o comprovante ou acertar na retirada.
               </p>
             </div>
@@ -587,10 +592,38 @@
     </div>
   </dialog>
 
+  <!-- Modal de Busca Global Instantânea (Command Palette · Ctrl+K) -->
+  <dialog id="dlg-cmd-palette" class="cmd-palette-dialog" closedby="any" aria-labelledby="dlg-cmd-title">
+    <div class="cmd-palette-body">
+      <div class="cmd-palette-header">
+        <span class="cmd-search-icon" aria-hidden="true" style="display: inline-flex; color: var(--cyan);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        </span>
+        <input type="search" id="cmd-palette-input" class="cmd-palette-input" placeholder="Buscar disciplina (ex: CLP, CALC-1), ementa, livro, FAQ, bolsa, PDF ou seção..." autocomplete="off" aria-label="Digite para pesquisar em todo o portal">
+        <button type="button" class="cmd-esc-btn" id="btn-close-cmd-palette" title="Fechar (Esc)">ESC</button>
+      </div>
+      <div class="cmd-palette-results" id="cmd-palette-results" role="listbox" aria-label="Resultados da busca">
+        <!-- Renderizado dinamicamente via app.js -->
+      </div>
+      <div class="cmd-palette-footer">
+        <span><kbd>↵</kbd> Abrir item selecionado</span>
+        <span><kbd>Ctrl+K</kbd> Alternar busca</span>
+        <span>PPC 2024 · Ementário · FAQ · Documentos</span>
+      </div>
+    </div>
+  </dialog>
+
   <!-- Container de Toasts / Mensagens Rápidas -->
   <div class="toasts" id="toasts-container" role="region" aria-live="polite" aria-label="Notificações"></div>
 
-  <!-- Scripts -->
-  <script type="module" src="js/app.js?v=20261027_upcoming_v11"></script>
+  <!-- Scripts & Registro PWA Offline -->
+  <script type="module" src="js/app.js?v=20261031_full_v12"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js").catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>

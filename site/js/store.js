@@ -61,8 +61,8 @@ export const DEFAULT_COURSE_OFFERINGS = {
     { code: "MECSOL", name: "Mecânica dos Sólidos", ppc: "2024", turma: "Turma A", dia: "Sex", horario: "18:30 - 22:00", ch: "60h", professor: "Prof. Dr. Alexandre Rocha", vagas: 25, ativo: true },
     { code: "CIRELE-2", name: "Circuitos Elétricos 2", ppc: "2024", turma: "Turma A", dia: "Seg/Qua", horario: "18:30 - 20:15", ch: "60h", professor: "Prof. Dr. Alfeu Sguarezi", vagas: 25, ativo: true },
     { code: "ELETANA", name: "Eletrônica Analógica", ppc: "2024", turma: "Lab A", dia: "Ter/Qui", horario: "18:30 - 20:15", ch: "60h", professor: "Prof. Dr. Jorge Alberto", vagas: 25, ativo: true },
-    { code: "SISAUR", name: "Sistemas de Automação e Robótica", ppc: "2024", turma: "Lab Robótica", dia: "Ter/Qui", horario: "20:25 - 22:00", ch: "60h", professor: "Prof. Dr. Marcelo Becker", vagas: 20, ativo: true },
-    { code: "INSELE", name: "Instalações Elétricas Industriais", ppc: "2024", turma: "Turma A", dia: "Sáb", horario: "08:00 - 12:00", ch: "60h", professor: "Prof. Me. Fernando Silva", vagas: 25, ativo: true }
+    { code: "ROBOT", name: "Robótica", ppc: "2024", turma: "Lab Robótica", dia: "Ter/Qui", horario: "20:25 - 22:00", ch: "60h", professor: "Prof. Dr. Marcelo Becker", vagas: 20, ativo: true },
+    { code: "INSTELE", name: "Instalações Elétricas", ppc: "2024", turma: "Turma A", dia: "Sáb", horario: "08:00 - 12:00", ch: "60h", professor: "Prof. Me. Fernando Silva", vagas: 25, ativo: true }
   ]
 };
 
@@ -467,7 +467,7 @@ function createDemoStore() {
     ],
     products: PRODUTOS_SHOP.map(p => ({ ...p, status: p.status || 'disponivel', estoque: 20 })),
     orders: [
-      { id: 1, aluno: "Ana Silva", email: "ana-oliveira07@uergs.edu.br", produto: "Moletom Canguru", total: "R$ 139,00", status: "pago", created_at: iso(D) }
+      { id: 1, aluno: "Ana Silva", email: "ana-oliveira07@uergs.edu.br", produto: "Moletom Canguru E(CA)² Neon", total: "R$ 139,90", status: "pago", created_at: iso(D) }
     ],
     auditLogs: [
       { id: 1, action: "SISTEMA_INICIALIZADO", target: "Plataforma E(CA)²", actor: "Root / Diretoria", created_at: iso(D), ip: "127.0.0.1" }

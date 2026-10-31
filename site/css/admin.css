@@ -56,7 +56,7 @@
 
 .kpi-card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   padding: 1.25rem 1.5rem;
   position: relative;
@@ -66,20 +66,12 @@
 
 .kpi-card:hover {
   transform: translateY(-2px);
-  border-color: var(--border-strong);
+  border-color: var(--cyan);
 }
 
-.kpi-card::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: var(--accent-bar, var(--cyan));
-}
-
-.kpi-card.amber::before { background: var(--amber); }
-.kpi-card.green::before { background: var(--green); }
-.kpi-card.violet::before { background: var(--violet); }
+.kpi-card.amber { border-color: hsl(43 96% 56% / 0.45); }
+.kpi-card.green { border-color: hsl(158 64% 52% / 0.45); }
+.kpi-card.violet { border-color: hsl(199 92% 60% / 0.45); }
 
 .kpi-head {
   display: flex;

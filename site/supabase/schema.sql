@@ -471,9 +471,9 @@ values (
 -- Produtos Iniciais da Lojinha
 insert into public.products (id, nome, categoria, preco, preco_socio, icone, tag, descricao, status, estoque)
 values 
-  ('moletom-eca2', 'Moletom Canguru E(CA)²', 'Vestuário', 'R$ 139,00', 'R$ 119,00', '🧥', 'OFICIAL 2026', 'Algodão premium 3 cabos com bordado de alta precisão do microchip de silício no peito e slogan nas costas.', 'disponivel', 30),
-  ('copo-termico-eca2', 'Copo Térmico Inox 473ml', 'Acessórios', 'R$ 59,00', 'R$ 49,00', '🥤', 'SUSTENTÁVEL', 'Parede dupla com vácuo térmico. Conserva sua bebida gelada nas 4 horas de aula ou café quente no laboratório.', 'disponivel', 40),
-  ('caneca-lab-eca2', 'Caneca de Cerâmica Lab 325ml', 'Acessórios', 'R$ 38,00', 'R$ 32,00', '☕', 'CLÁSSICA', 'Cerâmica fosca resistente a micro-ondas com a fórmula clássica da função de transferência de malha fechada.', 'disponivel', 50)
+  ('moletom-neon', 'Moletom Canguru E(CA)² Neon', 'Vestuário', 'R$ 139,90', 'R$ 129,90', '🧥', 'Lote Inaugural', 'Moletom flanelado 100% algodão de alta gramatura com capuz forrado, bolso canguru e estampa em silk-screen neon.', 'disponivel', 30),
+  ('copo-termico', 'Copo Térmico Inox a Vácuo E(CA)² 500ml', 'Utensílios', 'R$ 68,00', 'R$ 59,00', '🥤', 'Gravação a Laser', 'Aço inoxidável 304 com parede dupla isolada a vácuo, acabamento preto fosco e gravação a laser permanente.', 'disponivel', 40),
+  ('caneca-lab', 'Caneca de Cerâmica Lab & Café E(CA)² 350ml', 'Utensílios', 'R$ 38,00', 'R$ 32,00', '☕', 'Café do Engenheiro', 'Cerâmica preta fosca 350ml resistente a micro-ondas com o brasão E(CA)² e engrenagens.', 'disponivel', 50)
 on conflict (id) do nothing;
 
 -- =====================================================================

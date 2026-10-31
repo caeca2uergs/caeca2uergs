@@ -14,6 +14,11 @@ Thumbs.db
 .vscode/
 .idea/
 .agents/
+.codex/
+.impeccable/
+.github/agents/
+.github/hooks/
+.github/skills/
 .taste-skill/
 skills-lock.json
 

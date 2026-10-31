@@ -16,7 +16,8 @@ export async function fetchUergsPoaEvents(forceReload = false) {
   }
 
   try {
-    const res = await fetch(`data/uergs_eventos_poa.json?v=${now}`);
+    const url = forceReload ? `data/uergs_eventos_poa.json?v=${now}` : `data/uergs_eventos_poa.json`;
+    const res = await fetch(url);
     if (!res.ok) {
       throw new Error(`Status HTTP ${res.status}`);
     }

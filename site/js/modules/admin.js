@@ -830,7 +830,7 @@ async function renderTabEventos(container, store, showToast) {
         <tbody id="admin-eventos-tbody">
           ${events.map((ev) => `
             <tr data-id="${ev.id}">
-              <td><span style="font-size: 1.5rem;">${esc(ev.categoria || 'Evento')}</span></td>
+              <td><span style="font-size: 1.5rem;">${esc(ev.icone || '📅')}</span></td>
               <td>
                 <strong>${esc(ev.titulo || ev.title)}</strong>
                 ${ev.descricao ? `<div class="small muted" style="max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${esc(ev.descricao || ev.description)}</div>` : ''}
@@ -945,7 +945,7 @@ function openEventModal(eventData, store, showToast) {
 
         <div class="field">
           <label for="ev-icone">Ícone (Emoji)</label>
-          <input type="text" id="ev-icone" value="${esc(eventData?.categoria || 'Evento')}" style="max-width: 90px; text-align: center;">
+          <input type="text" id="ev-icone" value="${esc(eventData?.icone || '📅')}" style="max-width: 90px; text-align: center;">
         </div>
 
         <div class="field admin-form-full">
@@ -1260,7 +1260,7 @@ function openProductModal(prodData, store, showToast) {
 
         <div class="field">
           <label for="prod-icone">Ícone (Emoji)</label>
-          <input type="text" id="prod-icone" value="${esc(prodData?.categoria || 'Produto')}" style="max-width: 90px; text-align: center;">
+          <input type="text" id="prod-icone" value="${esc(prodData?.icone || '🛍️')}" style="max-width: 90px; text-align: center;">
         </div>
 
         <div class="field admin-form-full">
@@ -1728,7 +1728,7 @@ async function renderTabNoticias(container, store, showToast) {
             <p class="small muted" style="margin: 0; line-height: 1.6;">${esc(a.body || a.corpo || a.descricao || '')}</p>
           </div>
           <div class="table-actions">
-            <button type="button" class="btn btn-danger btn-sm btn-del-notice" data-id="${a.id}">Excluir Excluir</button>
+            <button type="button" class="btn btn-danger btn-sm btn-del-notice" data-id="${a.id}">Excluir</button>
           </div>
         </div>
       `).join("")}

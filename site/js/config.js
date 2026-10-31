@@ -118,7 +118,7 @@ export const CONFIG = {
     "email": "brenda-scorsatto@uergs.edu.br"
   },
   {
-    "name": "brenda-sousa",
+    "name": "Brenda Sousa",
     "email": "brenda-sousa@uergs.edu.br"
   },
   {
@@ -888,9 +888,9 @@ export const CONFIG = {
 
   /* ---------- Redes sociais (deixe "" se ainda não existir) ---------- */
   SOCIAL: {
-    instagram: "",          // ex.: "https://instagram.com/eca2.uergs"
+    instagram: "https://instagram.com/eca2uergs",
     whatsapp: "",           // link de convite da Comunidade
     youtube: "",            // ex.: "https://youtube.com/@eca2uergs"
-    email: "",              // ex.: "eca2.uergs@gmail.com"
+    email: "mailto:ca.eca2.uergs@gmail.com",
   },
 };
