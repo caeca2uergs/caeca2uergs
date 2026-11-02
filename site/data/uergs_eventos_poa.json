@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-10-26T02:31:27.964Z",
+  "updated_at": "2026-11-02T07:04:53.928Z",
   "source_url": "https://www.uergs.edu.br/agenda",
   "campus_filter": "Porto Alegre / Campus Central (Washington Luiz)",
   "total_scraped_global": 300,
-  "total_filtered_poa": 153,
+  "total_filtered_poa": 152,
   "events": [
     {
       "id": "uergs-grand-prix-uergs-2026",
@@ -1825,18 +1825,6 @@
       "local": "Porto Alegre - UERGS",
       "dataExibicao": "25 Nov. 2022",
       "isoDateTime": "2022-11-25T00:00:00-0300",
-      "inscrições": "",
-      "categoria": "Evento Geral",
-      "origem": "UERGS Oficial (Campus Porto Alegre / Central)"
-    },
-    {
-      "id": "uergs-seminario-de-gestao-publica-do-gedap-2-edicao",
-      "titulo": "Seminário de Gestão Pública do GEDAP (2ª edição)",
-      "link": "https://www.uergs.edu.br/seminario-de-gestao-publica-do-gedap-2-edicao",
-      "imagem": "https://www.uergs.edu.br/upload/recortes/202211/22084548_122272_MD.png",
-      "local": "Porto Alegre - UERGS",
-      "dataExibicao": "De 22 a 23 Nov. 2022",
-      "isoDateTime": "2022-11-22T00:00:00-0300",
       "inscrições": "",
       "categoria": "Evento Geral",
       "origem": "UERGS Oficial (Campus Porto Alegre / Central)"
