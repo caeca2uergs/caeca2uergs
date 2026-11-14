@@ -2253,12 +2253,14 @@ async function renderTabAlunos(container, store, showToast) {
     document.getElementById("form-admin-aluno")?.addEventListener("submit", (e) => {
       e.preventDefault();
       const mail = document.getElementById("aluno-email").value.trim().toLowerCase();
+      const nome = document.getElementById("aluno-nome").value.trim();
+      const matr = document.getElementById("aluno-matr").value.trim();
       if (!mail.endsWith("@uergs.edu.br")) {
         alert("O e-mail deve pertencer ao domínio institucional @uergs.edu.br");
         return;
       }
-      if (!CONFIG.VOTING_ALLOWED_EMAILS.includes(mail)) {
-        CONFIG.VOTING_ALLOWED_EMAILS.push(mail);
+      if (typeof CONFIG.addAllowedStudent === "function") {
+        CONFIG.addAllowedStudent(mail, nome, matr);
       }
       showToast("Estudante homologado com sucesso na base eleitoral!");
       modal.close();

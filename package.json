@@ -11,7 +11,7 @@
     "scrape:events": "node scripts/scrape_uergs_events.js",
     "scrape:weekly": "node scripts/auto_scrape_weekly.js",
     "supabase:ping": "node scripts/supabase_keepalive.js",
-    "check": "node --check site/js/app.js && node --check site/js/modules/admin.js && node --check site/js/store.js && node --check site/js/config.js"
+    "check": "node --check site/js/app.js && node --check site/js/modules/admin.js && node --check site/js/modules/academic.js && node --check site/js/modules/curso.js && node --check site/js/modules/institucional.js && node --check site/js/modules/comunidade.js && node --check site/js/modules/shop.js && node --check site/js/store.js && node --check site/js/config.js"
   },
   "repository": {
     "type": "git",
@@ -31,5 +31,8 @@
   "bugs": {
     "url": "https://github.com/caeca2uergs/caeca2uergs/issues"
   },
-  "homepage": "https://github.com/caeca2uergs/caeca2uergs#readme"
+  "homepage": "https://github.com/caeca2uergs/caeca2uergs#readme",
+  "devDependencies": {
+    "serve": "^14.2.8"
+  }
 }

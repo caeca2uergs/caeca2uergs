@@ -15,8 +15,26 @@ create table if not exists public.profiles (
   semester     text check (char_length(semester) <= 30),     -- Semestre ou ano
   interests    text check (char_length(interests) <= 250),   -- Áreas de interesse (Robótica, CLP, etc.)
   commission_interest boolean default false,                 -- Interesse em colaborar com o CA
+  is_eca_student boolean default false,                      -- Vínculo verificado com Eng. de Controle e Automação
+  academic     jsonb default '{}'::jsonb,                    -- Progresso curricular e simulação de matrícula
   created_at   timestamptz not null default now()
 );
+
+-- Proteção LGPD em nível de coluna: revoga leitura pública de matrícula e WhatsApp para visitantes anônimos
+revoke select (registration, whatsapp) on public.profiles from anon;
+
+-- Função agregada segura (LGPD) para estatísticas sem expor dados individuais
+create or replace function public.get_students_summary()
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'total', (select count(*)::int from public.profiles),
+    'semesters', coalesce(
+      (select jsonb_object_agg(semester, cnt)
+       from (select semester, count(*)::int as cnt from public.profiles where semester is not null and semester <> '' group by semester) s),
+      '{}'::jsonb
+    )
+  );
+$$;
 
 create table if not exists public.admins (
   user_id uuid primary key references auth.users(id) on delete cascade
@@ -79,15 +97,18 @@ $$;
 -- 3. MURAL DE SUGESTÕES + VOTOS
 -- ---------------------------------------------------------------------
 create table if not exists public.suggestions (
-  id         bigint generated always as identity primary key,
-  user_id    uuid not null default auth.uid() references public.profiles(id) on delete cascade,
-  title      text not null check (char_length(title) between 5 and 120),
-  body       text not null check (char_length(body) between 5 and 2000),
-  category   text not null check (char_length(category) <= 40),
-  status     text not null default 'nova' check (status in ('nova', 'analise', 'encaminhada', 'concluida')),
-  vote_count integer not null default 0,
-  hidden     boolean not null default false,
-  created_at timestamptz not null default now()
+  id            bigint generated always as identity primary key,
+  user_id       uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  title         text not null check (char_length(title) between 5 and 120),
+  body          text not null check (char_length(body) between 5 and 2000),
+  category      text not null check (char_length(category) <= 40),
+  status        text not null default 'nova' check (status in ('nova', 'analise', 'encaminhada', 'concluida')),
+  vote_count    integer not null default 0,
+  hidden        boolean not null default false,
+  ca_reply      text,
+  ca_replied_at timestamptz,
+  ca_replied_by text,
+  created_at    timestamptz not null default now()
 );
 
 create table if not exists public.suggestion_votes (
@@ -367,14 +388,27 @@ create policy "ord_admin"  on public.orders for update using (public.is_admin())
 -- ---------------------------------------------------------------------
 create table if not exists public.audit_logs (
   id            uuid primary key default gen_random_uuid(),
-  actor_id      uuid references auth.users(id) on delete set null,
-  actor_name    text not null,
+  actor_id      uuid default auth.uid() references auth.users(id) on delete set null,
+  actor_name    text not null default 'Sistema',
   action        text not null,
   target_entity text not null,
   payload_diff  jsonb,
   ip            text,
   created_at    timestamptz not null default now()
 );
+
+-- Oferta Semestral de Disciplinas (Sincronizada em Nuvem)
+create table if not exists public.course_offerings (
+  id         text primary key default 'current',
+  payload    jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.course_offerings enable row level security;
+drop policy if exists "offerings_read"  on public.course_offerings;
+drop policy if exists "offerings_admin" on public.course_offerings;
+create policy "offerings_read"  on public.course_offerings for select using (true);
+create policy "offerings_admin" on public.course_offerings for all using (public.is_admin()) with check (public.is_admin());
 
 alter table public.audit_logs enable row level security;
 

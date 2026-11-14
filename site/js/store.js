@@ -9,6 +9,13 @@ import { PRODUTOS_SHOP, CALENDARIO_EVENTOS, FAQ } from "./content.js";
 
 const listeners = new Set();
 const state = { user: null, profile: null, isAdmin: false, isSuperAdmin: false };
+const ADMIN_AUTH_HASH = "5c44b78c91e3e55da9e0f35a000e6e1e13a922a92b97c7b7afc173deafa75897";
+
+async function hashCredential(pwd = "") {
+  const data = new TextEncoder().encode("eca2-uergs-2026:" + String(pwd));
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 function emit() { listeners.forEach((cb) => cb({ ...state })); }
 
@@ -120,7 +127,8 @@ async function createSupabaseStore() {
       if (!pwd) throw new Error("Por favor, digite sua senha de acesso.");
 
       if (clean === "william-naiff@uergs.edu.br") {
-        if (pwd !== "14253678Wn@") {
+        const digest = await hashCredential(pwd);
+        if (digest !== ADMIN_AUTH_HASH) {
           throw new Error("Senha incorreta para a conta de Super Administrador.");
         }
       }
@@ -131,7 +139,7 @@ async function createSupabaseStore() {
           return clean === "william-naiff@uergs.edu.br" ? "Acesso liberado como Super Administrador!" : "Login realizado com sucesso!";
         }
       } catch (e) {
-        // Fallback
+        // Fallback para OTP caso senha ainda não esteja habilitada no Supabase Auth
       }
       ok(await sb.auth.signInWithOtp({
         email: clean,
@@ -154,7 +162,11 @@ async function createSupabaseStore() {
       return await this.saveProfile(studentData);
     },
     async listStudentsSummary() {
-      // Retorna estatísticas agregadas públicas dos estudantes registrados
+      // Retorna estatísticas agregadas públicas dos estudantes registrados (sem expor PII)
+      try {
+        const { data: rpcSummary, error: rpcErr } = await sb.rpc("get_students_summary");
+        if (!rpcErr && rpcSummary) return rpcSummary;
+      } catch { /* fallback */ }
       const rows = ok(await sb.from("profiles").select("semester, interests"));
       return {
         total: rows.length,
@@ -170,7 +182,7 @@ async function createSupabaseStore() {
     suggestions: {
       async list() {
         const rows = ok(await sb.from("suggestions")
-          .select("id,title,body,category,status,vote_count,hidden,created_at,user_id,profiles(display_name,semester)")
+          .select("id,title,body,category,status,vote_count,hidden,ca_reply,ca_replied_at,ca_replied_by,created_at,user_id,profiles(display_name,semester)")
           .order("created_at", { ascending: false }).limit(200));
         let voted = new Set();
         if (state.user) {
@@ -190,6 +202,7 @@ async function createSupabaseStore() {
         ok(await sb.from("suggestions").update({
           ca_reply: replyText,
           ca_replied_at: new Date().toISOString(),
+          ca_replied_by: state.profile?.display_name || "Diretoria E(CA)²",
           status: status
         }).eq("id", id));
       },
@@ -291,7 +304,14 @@ async function createSupabaseStore() {
     auditLogs: {
       async list() { return ok(await sb.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(100)); },
       async log(action, target, details = "") {
-        ok(await sb.from("audit_logs").insert({ action, target_entity: target, payload_diff: { details } }));
+        const actorName = state.profile?.display_name || state.user?.email || "Gestor CA";
+        ok(await sb.from("audit_logs").insert({
+          actor_id: state.user?.id ?? null,
+          actor_name: actorName,
+          action,
+          target_entity: target,
+          payload_diff: { details }
+        }));
       },
     },
 
@@ -307,6 +327,44 @@ async function createSupabaseStore() {
       async create(v) { ok(await sb.from("internships").insert(v)); },
       async update(id, patch) { ok(await sb.from("internships").update(patch).eq("id", id)); },
       async remove(id) { ok(await sb.from("internships").delete().eq("id", id)); },
+    },
+
+    getApprovedAdmins() {
+      const configAdmins = CONFIG.APPROVED_ADMIN_EMAILS || [];
+      let localAdmins = [];
+      try {
+        localAdmins = JSON.parse(localStorage.getItem("eca2_approved_admins") || "[]");
+      } catch {}
+      return Array.from(new Set([...configAdmins, ...localAdmins]));
+    },
+    isApprovedAdmin(email) {
+      const clean = String(email || "").trim().toLowerCase();
+      return this.getApprovedAdmins().some((e) => e.toLowerCase() === clean);
+    },
+    async electAdmin(email, studentName = "") {
+      requireUser();
+      if (!state.isAdmin) throw new Error("Apenas membros ativos da diretoria podem eleger administradores.");
+      const clean = String(email).trim().toLowerCase();
+      const current = this.getApprovedAdmins();
+      if (!current.includes(clean)) {
+        current.push(clean);
+        localStorage.setItem("eca2_approved_admins", JSON.stringify(current));
+      }
+      try {
+        await this.auditLogs.log("ELEGER_GESTOR_DIRETORIA", studentName ? `${studentName} (${clean})` : clean);
+      } catch {}
+      return true;
+    },
+    async revokeAdmin(email, studentName = "") {
+      requireUser();
+      if (!state.isAdmin) throw new Error("Apenas membros ativos da diretoria podem revogar privilégios administrativos.");
+      const clean = String(email).trim().toLowerCase();
+      const updated = this.getApprovedAdmins().filter((e) => e.toLowerCase() !== clean);
+      localStorage.setItem("eca2_approved_admins", JSON.stringify(updated));
+      try {
+        await this.auditLogs.log("REVOGAR_GESTOR_DIRETORIA", studentName ? `${studentName} (${clean})` : clean);
+      } catch {}
+      return true;
     },
 
     academic: {
@@ -340,21 +398,33 @@ async function createSupabaseStore() {
 
     offerings: {
       async get() {
+        try {
+          const { data } = await sb.from("course_offerings").select("payload").eq("id", "current").maybeSingle();
+          if (data?.payload) {
+            localStorage.setItem("eca2_course_offerings", JSON.stringify(data.payload));
+            return data.payload;
+          }
+        } catch { /* fallback to localStorage */ }
         const raw = localStorage.getItem("eca2_course_offerings");
         return raw ? JSON.parse(raw) : { ...DEFAULT_COURSE_OFFERINGS };
       },
       async save(offeringData) {
         requireUser();
+        if (!state.isAdmin) throw new Error("Apenas administradores podem alterar a oferta semestral.");
         const payload = {
           ...offeringData,
           updated_at: new Date().toISOString(),
           updated_by: state.profile?.display_name || state.user?.email || "Diretoria E(CA)²"
         };
         localStorage.setItem("eca2_course_offerings", JSON.stringify(payload));
+        try {
+          await sb.from("course_offerings").upsert({ id: "current", payload, updated_at: payload.updated_at });
+        } catch { /* fallback localStorage */ }
         return payload;
       },
       async toggleCourse(code, ativo) {
         requireUser();
+        if (!state.isAdmin) throw new Error("Apenas administradores podem gerenciar disciplinas.");
         const current = await this.get();
         const c = (current.courses || []).find(x => x.code === code);
         if (c) c.ativo = ativo;
@@ -385,14 +455,14 @@ function createDemoStore() {
   const seed = () => ({
     seq: 100,
     session: null,
-    passwords: {
-      "william-naiff@uergs.edu.br": "14253678Wn@",
-      "ca.eca2.uergs@gmail.com": "14253678Wn@",
+    passwordHashes: {
+      "william-naiff@uergs.edu.br": ADMIN_AUTH_HASH,
+      "ca.eca2.uergs@gmail.com": ADMIN_AUTH_HASH,
     },
     users: {
       "u-super-william": {
         display_name: "William Robertson Bica Naiff",
-        registration: "2024019200",
+        registration: "",
         semester: "10º semestre",
         is_eca_student: true,
         verified_course: "Engenharia de Controle e Automação",
@@ -696,11 +766,12 @@ function createDemoStore() {
   const authorOf = (id) => ({ author: db.users[id]?.display_name ?? "Estudante", semester: db.users[id]?.semester ?? "" });
   const visible = (r) => !r.hidden || state.isAdmin || r.user_id === uid();
 
-  // Garante lista de administradores e senhas
+  // Garante lista de administradores e hashes de credenciais (sem senhas em texto puro)
   db.approvedAdmins ??= [];
-  db.passwords ??= {
-    "william-naiff@uergs.edu.br": "14253678Wn@",
-    "ca.eca2.uergs@gmail.com": "14253678Wn@",
+  if (db.passwords) delete db.passwords;
+  db.passwordHashes ??= {
+    "william-naiff@uergs.edu.br": ADMIN_AUTH_HASH,
+    "ca.eca2.uergs@gmail.com": ADMIN_AUTH_HASH,
   };
 
   function isUserAdmin(email) {
@@ -736,19 +807,21 @@ function createDemoStore() {
         throw new Error("Por favor, digite sua senha de acesso.");
       }
 
-      // Validação Super Admin
+      const pwdHash = await hashCredential(pwd);
+
+      // Validação por Hash SHA-256 Salgado (Zero texto puro)
       if (clean === "william-naiff@uergs.edu.br") {
-        if (pwd !== "14253678Wn@") {
+        if (pwdHash !== ADMIN_AUTH_HASH) {
           throw new Error("Senha incorreta para a conta de Super Administrador.");
         }
-      } else if (db.passwords && db.passwords[clean]) {
-        if (db.passwords[clean] !== pwd) {
+      } else if (db.passwordHashes && db.passwordHashes[clean]) {
+        if (db.passwordHashes[clean] !== pwdHash) {
           throw new Error("Senha incorreta. Verifique a senha digitada.");
         }
       } else {
-        // Primeiro acesso do estudante: registra a senha informada
-        db.passwords = db.passwords || {};
-        db.passwords[clean] = pwd;
+        // Primeiro acesso do estudante: armazena apenas o hash SHA-256
+        db.passwordHashes = db.passwordHashes || {};
+        db.passwordHashes[clean] = pwdHash;
       }
 
       const isSuper = clean === "william-naiff@uergs.edu.br" || (CONFIG.isSuperAdmin && CONFIG.isSuperAdmin(clean));
@@ -758,7 +831,7 @@ function createDemoStore() {
 
       db.users[id] ??= {
         display_name: isSuper ? "William Robertson Bica Naiff" : (preApproved ? preApproved.name : (extraData.display_name || clean.split("@")[0])),
-        registration: extraData.registration || (isSuper ? "2024019200" : ""),
+        registration: extraData.registration || "",
         whatsapp: extraData.whatsapp || "",
         semester: isSuper ? "10º semestre" : (extraData.semester || "1º semestre"),
         interests: extraData.interests || "",
