@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-11-02T07:04:53.928Z",
+  "updated_at": "2026-11-16T08:24:15.178Z",
   "source_url": "https://www.uergs.edu.br/agenda",
   "campus_filter": "Porto Alegre / Campus Central (Washington Luiz)",
   "total_scraped_global": 300,
-  "total_filtered_poa": 152,
+  "total_filtered_poa": 148,
   "events": [
     {
       "id": "uergs-grand-prix-uergs-2026",
@@ -27,6 +27,30 @@
       "isoDateTime": "2026-11-20T00:00:00-0300",
       "inscrições": "Inscreva-se até 30/10!",
       "categoria": "Competições",
+      "origem": "UERGS Oficial (Campus Porto Alegre / Central)"
+    },
+    {
+      "id": "uergs-1-hackathon-das-engenharias-da-uergs",
+      "titulo": "1ª Hackathon das Engenharias da UERGS",
+      "link": "https://www.uergs.edu.br/1-hackathon-das-engenharias-da-uergs",
+      "imagem": "https://www.uergs.edu.br/upload/recortes/202611/06094115_156232_MD.png",
+      "local": "Campus Uergs - Porto Alegre",
+      "dataExibicao": "De 12 a 13 Nov. 2026",
+      "isoDateTime": "2026-11-12T00:00:00-0300",
+      "inscrições": "",
+      "categoria": "Competições",
+      "origem": "UERGS Oficial (Campus Porto Alegre / Central)"
+    },
+    {
+      "id": "uergs-2-semana-da-avaliacao-institucional",
+      "titulo": "2ª Semana da Avaliação Institucional",
+      "link": "https://www.uergs.edu.br/2-semana-da-avaliacao-institucional",
+      "imagem": "https://www.uergs.edu.br/upload/recortes/202511/04192204_149440_MD.png",
+      "local": "Híbrido - Uergs Porto Alegre",
+      "dataExibicao": "De 11 a 16 Nov. 2026",
+      "isoDateTime": "2026-11-11T00:00:00-0300",
+      "inscrições": "",
+      "categoria": "Semanas Acadêmicas e Temáticas",
       "origem": "UERGS Oficial (Campus Porto Alegre / Central)"
     },
     {
@@ -1753,78 +1777,6 @@
       "local": "Porto Alegre - UERGS",
       "dataExibicao": "06 Dez. 2022 às 14h30min",
       "isoDateTime": "2022-12-06T14:30:00-0300",
-      "inscrições": "",
-      "categoria": "Evento Geral",
-      "origem": "UERGS Oficial (Campus Porto Alegre / Central)"
-    },
-    {
-      "id": "uergs-1-salao-academico-missioneiro-samis",
-      "titulo": "1º Salão Acadêmico Missioneiro - SAMIS",
-      "link": "https://www.uergs.edu.br/1-salao-academico-missioneiro-samis",
-      "imagem": "https://www.uergs.edu.br/upload/recortes/202212/07085242_122921_MD.png",
-      "local": "Porto Alegre - UERGS",
-      "dataExibicao": "De 05 a 10 Dez. 2022",
-      "isoDateTime": "2022-12-05T00:00:00-0300",
-      "inscrições": "",
-      "categoria": "Evento Geral",
-      "origem": "UERGS Oficial (Campus Porto Alegre / Central)"
-    },
-    {
-      "id": "uergs-ciclo-de-palestras-especializacao-vacaria-2",
-      "titulo": "Ciclo de palestras - Especialização Agronomia, Meio Ambiente e Sustentabilidade",
-      "link": "https://www.uergs.edu.br/ciclo-de-palestras-especializacao-vacaria-2",
-      "imagem": "https://www.uergs.edu.br/upload/recortes/202211/22090754_122294_MD.png",
-      "local": "Porto Alegre - UERGS",
-      "dataExibicao": "02 Dez. 2022",
-      "isoDateTime": "2022-12-02T00:00:00-0300",
-      "inscrições": "",
-      "categoria": "Evento Geral",
-      "origem": "UERGS Oficial (Campus Porto Alegre / Central)"
-    },
-    {
-      "id": "uergs-extensao-oficinas-para-a-producao-de-alimentos-vivos",
-      "titulo": "Extensão - Oficinas para a produção de alimentos vivos (Iogurte, Kefir e Kombucha)",
-      "link": "https://www.uergs.edu.br/extensao-oficinas-para-a-producao-de-alimentos-vivos",
-      "imagem": "https://www.uergs.edu.br/upload/recortes/202211/10150212_121988_MD.jpg",
-      "local": "Porto Alegre - UERGS",
-      "dataExibicao": "De 30 Nov. a 07 Dez. 2022",
-      "isoDateTime": "2022-11-30T00:00:00-0300",
-      "inscrições": "",
-      "categoria": "Evento Geral",
-      "origem": "UERGS Oficial (Campus Porto Alegre / Central)"
-    },
-    {
-      "id": "uergs-uergs-na-37-feira-do-livro-de-osorio",
-      "titulo": "Uergs na 37ª Feira do Livro de Osório",
-      "link": "https://www.uergs.edu.br/uergs-na-37-feira-do-livro-de-osorio",
-      "imagem": "https://www.uergs.edu.br/upload/recortes/202211/28154122_122430_MD.png",
-      "local": "Porto Alegre - UERGS",
-      "dataExibicao": "De 28 Nov. a 02 Dez. 2022",
-      "isoDateTime": "2022-11-28T00:00:00-0300",
-      "inscrições": "",
-      "categoria": "Evento Geral",
-      "origem": "UERGS Oficial (Campus Porto Alegre / Central)"
-    },
-    {
-      "id": "uergs-3-mostra-cientifica-cidades-e-sustentabilidade",
-      "titulo": "3ª Mostra Científica Cidades e Sustentabilidade",
-      "link": "https://www.uergs.edu.br/3-mostra-cientifica-cidades-e-sustentabilidade",
-      "imagem": "https://www.uergs.edu.br/upload/recortes/202209/27164946_121165_MD.png",
-      "local": "Porto Alegre - UERGS",
-      "dataExibicao": "25 Nov. 2022",
-      "isoDateTime": "2022-11-25T00:00:00-0300",
-      "inscrições": "",
-      "categoria": "Evento Geral",
-      "origem": "UERGS Oficial (Campus Porto Alegre / Central)"
-    },
-    {
-      "id": "uergs-ciclo-de-palestras-especializacao-vacaria-1",
-      "titulo": "Ciclo de palestras - Especialização Agronomia, Meio Ambiente e Sustentabilidade",
-      "link": "https://www.uergs.edu.br/ciclo-de-palestras-especializacao-vacaria-1",
-      "imagem": "https://www.uergs.edu.br/upload/recortes/202211/22090116_122283_MD.png",
-      "local": "Porto Alegre - UERGS",
-      "dataExibicao": "25 Nov. 2022",
-      "isoDateTime": "2022-11-25T00:00:00-0300",
       "inscrições": "",
       "categoria": "Evento Geral",
       "origem": "UERGS Oficial (Campus Porto Alegre / Central)"
